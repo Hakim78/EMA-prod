@@ -87,6 +87,53 @@ MOCK_TARGETS = [
     }
 ]
 
+MOCK_SIGNALS = [
+    { "id": "1", "type": "Critical Event", "title": "CFO Replacement at TechFlow Industrials", "time": "2 hours ago", "source": "Press Analysis", "severity": "high", "location": "Global", "tags": ["Leadership", "Spin-off"] },
+    { "id": "2", "type": "Weak Signal", "title": "Succession Pattern: Founder of Aetherial SA nearing threshold", "time": "Yesterday", "source": "Proprietary", "severity": "high", "location": "Europe", "tags": ["Founder-led", "Exit"] },
+    { "id": "3", "type": "Market Movement", "title": "New holding vehicle registered for NexSphere executives", "time": "2 days ago", "source": "Registry", "severity": "medium", "location": "France", "tags": ["Restructuring", "M&A"] },
+    { "id": "4", "type": "Strategic Rumor", "title": "Internal spin-off discussions in Industrial Tech sector", "time": "4 days ago", "source": "Web Scrape", "severity": "low", "location": "Global", "tags": ["Rumor", "Sector-wide"] },
+    { "id": "5", "type": "Pattern Match", "title": "Historical holding period (5Y+) reached for EQT Portfolio", "time": "1 week ago", "source": "PE Intelligence", "severity": "high", "location": "Global", "tags": ["Exit Window", "Fund Life"] },
+    { "id": "6", "type": "Advisory Signal", "title": "Boutique advisor headcount surge in UK Software space", "time": "3 hours ago", "source": "Network", "severity": "medium", "location": "UK", "tags": ["Advisors", "Pipeline"] },
+]
+
+MOCK_PIPELINE = [
+    {
+        "id": "identification",
+        "title": "Identification",
+        "cards": [
+            { "id": "c1", "name": "Horizon Solar", "sector": "Renewable Energy", "score": 82, "tags": ["Scale-up", "US"], "priority": "medium" },
+            { "id": "c2", "name": "CyberGrid", "sector": "SaaS", "score": 71, "tags": ["Profitability focus"], "priority": "low" },
+        ],
+    },
+    {
+        "id": "qualification",
+        "title": "Qualification",
+        "cards": [
+            { "id": "c3", "name": "TechFlow Industrials", "sector": "Industrial Tech", "score": 89, "tags": ["Warm Intro", "3-6m Window"], "priority": "high" },
+            { "id": "c4", "name": "Aetherial SA", "sector": "Renewable Energy", "score": 76, "tags": ["Succession"], "priority": "high" },
+        ],
+    },
+    {
+        "id": "pathing",
+        "title": "Relationship Pathing",
+        "cards": [
+            { "id": "c5", "name": "NexSphere Healthcare", "sector": "MedTech", "score": 68, "tags": ["Carve-out"], "priority": "medium" },
+        ],
+    },
+    {
+        "id": "outreach",
+        "title": "Active Outreach",
+        "cards": [
+            { "id": "c6", "name": "Blue Harbor Log", "sector": "Logistics", "score": 94, "tags": ["Proprietary"], "priority": "high" },
+        ],
+    },
+    {
+        "id": "closing",
+        "title": "Closing",
+        "cards": [],
+    },
+]
+
 @app.get("/api/targets")
 def get_targets(
     q: str = Query(None, description="Search query for target name or sector"),
@@ -112,6 +159,14 @@ def get_target(target_id: str):
     if target:
         return {"data": target}
     raise HTTPException(status_code=404, detail=f"Target '{target_id}' not found")
+
+@app.get("/api/signals")
+def get_signals():
+    return {"data": MOCK_SIGNALS}
+
+@app.get("/api/pipeline")
+def get_pipeline():
+    return {"data": MOCK_PIPELINE}
 
 @app.get("/api/copilot/query")
 def copilot_query(q: str = Query(..., min_length=1, description="Natural language query")):
