@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Network, Search, Filter, ZoomIn, ZoomOut, Download, Users, Briefcase, ChevronRight, MapPin, CheckCircle, ExternalLink, Info, Target as TargetIcon, Zap, ArrowUpRight } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // Dynamically import force graph to avoid SSR issues
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
@@ -211,9 +212,9 @@ export default function RelationshipGraph() {
                 </div>
 
                 <div className="pt-6 mt-auto">
-                  <button onClick={() => router.push(`/targets/${selectedNode.id}`)} className="w-full py-4 rounded-[1.5rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3">
-                     View Deep Intelligence <ArrowUpRight size={18} />
-                  </button>
+                  <Link href={`/targets/${selectedNode.id}/report`} className="w-full py-4 rounded-[1.5rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-3">
+                     Generate Dossier <ArrowUpRight size={18} />
+                  </Link>
                 </div>
               </>
             ) : (

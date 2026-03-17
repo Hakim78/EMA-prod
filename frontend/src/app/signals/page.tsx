@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Bell, Filter, Search, ShieldAlert, ArrowUpRight, Clock, MapPin, Zap, TrendingUp, Globe, AlertCircle, Radio } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 // --- Types ---
 interface Signal {
@@ -19,15 +21,22 @@ interface Signal {
 export default function SignalsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const signals: Signal[] = [
-    { id: "1", type: "Critical Event", title: "CFO Replacement at TechFlow Industrials", time: "2 hours ago", source: "Press Analysis", severity: "high", location: "Global", tags: ["Leadership", "Spin-off"] },
-    { id: "2", type: "Weak Signal", title: "Succession Pattern: Founder of Aetherial SA nearing threshold", time: "Yesterday", source: "Proprietary", severity: "high", location: "Europe", tags: ["Founder-led", "Exit"] },
-    { id: "3", type: "Market Movement", title: "New holding vehicle registered for NexSphere executives", time: "2 days ago", source: "Registry", severity: "medium", location: "France", tags: ["Restructuring", "M&A"] },
-    { id: "4", type: "Strategic Rumor", title: "Internal spin-off discussions in Industrial Tech sector", time: "4 days ago", source: "Web Scrape", severity: "low", location: "Global", tags: ["Rumor", "Sector-wide"] },
-    { id: "5", type: "Pattern Match", title: "Historical holding period (5Y+) reached for EQT Portfolio", time: "1 week ago", source: "PE Intelligence", severity: "high", location: "Global", tags: ["Exit Window", "Fund Life"] },
-    { id: "6", type: "Advisory Signal", title: "Boutique advisor headcount surge in UK Software space", time: "3 hours ago", source: "Network", severity: "medium", location: "UK", tags: ["Advisors", "Pipeline"] },
-  ];
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_URL}/api/signals`)
+      .then(res => res.json())
+      .then(json => {
+        setSignals(json.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch signals:", err);
+        setLoading(false);
+      });
+  }, []);
 
   const filteredSignals = useMemo(() => {
     return signals.filter(s => {
@@ -36,7 +45,7 @@ export default function SignalsPage() {
       const matchFilter = filter === "All" || s.severity === filter.toLowerCase();
       return matchSearch && matchFilter;
     });
-  }, [search, filter]);
+  }, [search, filter, signals]);
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto py-4 h-[calc(100vh-8rem)]">

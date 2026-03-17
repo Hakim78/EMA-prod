@@ -306,9 +306,9 @@ export default function TargetDetail() {
                <button className="px-10 py-4 rounded-[2rem] bg-white/10 border border-white/20 text-white font-black text-xs uppercase tracking-widest hover:bg-white/20 transition-all backdrop-blur-xl active:scale-95">
                   Assign Sector Lead
                </button>
-               <button className="px-12 py-4 rounded-[2rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center gap-3 shadow-2xl active:scale-95 group/btn">
+                <Link href={`/targets/${id}/report`} className="px-12 py-4 rounded-[2rem] bg-white text-black font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center gap-3 shadow-2xl active:scale-95 group/btn">
                   Generate Intercept PDF <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-               </button>
+                </Link>
             </div>
           </div>
 

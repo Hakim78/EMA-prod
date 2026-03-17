@@ -66,13 +66,27 @@ const initialData: Column[] = [
   },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 export default function PipelinePage() {
-  const [columns, setColumns] = useState<Column[]>(initialData);
+  const [columns, setColumns] = useState<Column[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Fix Hydration mismatch for DND
   useEffect(() => {
     setIsClient(true);
+    setLoading(true);
+    fetch(`${API_URL}/api/pipeline`)
+      .then(res => res.json())
+      .then(json => {
+        setColumns(json.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch pipeline:", err);
+        setLoading(false);
+      });
   }, []);
 
   const onDragEnd = (result: DropResult) => {
