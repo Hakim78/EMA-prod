@@ -61,7 +61,7 @@ export default function SignalsPage() {
             </div>
           </div>
           <p className="text-gray-400 text-sm font-medium">
-            Real-time anomaly detection and strategic market triggers calibrated by Aethelgard.
+            Real-time anomaly detection and strategic market triggers calibrated by EDRCF.
           </p>
         </div>
         

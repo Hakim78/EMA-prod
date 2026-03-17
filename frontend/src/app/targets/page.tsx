@@ -167,7 +167,7 @@ export default function TargetsPage() {
             </div>
           </h1>
           <p className="text-gray-400 text-base md:text-lg font-medium max-w-2xl leading-relaxed">
-            Universal directory of analyzed entities. Calibrated by <span className="text-white">Aethelgard High-Fidelity Scoring</span>.
+            Universal directory of analyzed entities. Calibrated by <span className="text-white">EDRCF High-Fidelity Scoring</span>.
           </p>
         </div>
         
@@ -240,7 +240,7 @@ export default function TargetsPage() {
                 <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full" />
                 <div className="absolute inset-0 border-t-4 border-indigo-500 rounded-full animate-spin shadow-[0_0_20px_rgba(79,70,229,0.5)]" />
               </div>
-              <span className="font-black uppercase tracking-[0.3em] text-[10px] text-white/50">Accessing Aethelgard Datastream...</span>
+              <span className="font-black uppercase tracking-[0.3em] text-[10px] text-white/50">Accessing EDRCF Datastream...</span>
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-white/[0.03]">

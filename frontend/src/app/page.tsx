@@ -40,7 +40,7 @@ export default function Home() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
         <div>
           <h1 className="text-5xl font-black tracking-tighter text-white mb-3 flex items-center gap-5">
-            Aethelgard Engine
+            EDRCF Engine
             <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">
                <Radio size={14} className="animate-pulse" /> Intelligence Live
             </div>
@@ -123,7 +123,7 @@ export default function Home() {
                 </div>
                 <div>
                    <div className="font-black uppercase tracking-widest text-xs mb-1 text-rose-500">Connectivity Error</div>
-                   <div className="text-sm font-medium text-gray-400">Unable to establish secure tunnel to Aethelgard Internal Services. Verify host status.</div>
+                   <div className="text-sm font-medium text-gray-400">Unable to establish secure tunnel to EDRCF Internal Services. Verify host status.</div>
                 </div>
              </motion.div>
           )}
@@ -262,7 +262,7 @@ export default function Home() {
                  <Zap size={32} />
               </div>
               <div className="relative z-10">
-                 <h3 className="text-2xl font-black text-white leading-tight mb-4 tracking-tighter">Query Aethelgard</h3>
+                 <h3 className="text-2xl font-black text-white leading-tight mb-4 tracking-tighter">Query EDRCF</h3>
                  <p className="text-indigo-100 text-base font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
                     "Identify French industrials with founders nearing age 65 and no clear succession plan."
                  </p>
