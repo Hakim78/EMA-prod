@@ -734,7 +734,7 @@ async def search_pappers_edrcf(
     """Search Pappers with EdRCF-specific M&A filters."""
     filters = {
         "par_page": par_page,
-        "entreprise_cessee": "true" if inclure_radiees else "false",
+        "entreprise_cessee": inclure_radiees,
     }
     if code_naf:
         filters["code_naf"] = code_naf
@@ -1602,7 +1602,6 @@ async def copilot_query(q: str = Query(...)):
         wants_pappers = True
 
     # Detect financial filters from natural language
-    import re
     ca_match = re.search(r"(\d+)\s*(?:m€|m\b|millions?|meur)", ql)
     if ca_match:
         ca_val = int(ca_match.group(1)) * 1_000_000

@@ -253,9 +253,9 @@ export default function SignalsPage() {
                     {/* Target + Dimension row */}
                     {(signal.target_name || signal.dimension) && (
                       <div className="flex items-center gap-4 mb-3 flex-wrap">
-                        {signal.target_name && (
+                        {signal.target_name && signal.target_id && (
                           <Link
-                            href={`/targets/${signal.target_id || ''}`}
+                            href={`/targets/${signal.target_id}`}
                             className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors flex items-center gap-1.5 bg-indigo-500/5 px-3 py-1.5 rounded-xl border border-indigo-500/10"
                           >
                             <Activity size={12} /> {signal.target_name}
