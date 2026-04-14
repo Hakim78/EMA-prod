@@ -6,6 +6,7 @@ import GlobalCopilot from "@/components/GlobalCopilot";
 import BottomTabBar from "@/components/layout/BottomTabBar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import OfflineBanner from "@/components/layout/OfflineBanner";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 
 export default function MainLayout({
   children,
@@ -52,6 +53,7 @@ export default function MainLayout({
 
       {/* Mobile Bottom Tab Bar */}
       <BottomTabBar />
+      <InstallPrompt />
 
       <div className="print:hidden">
         <CommandPalette />

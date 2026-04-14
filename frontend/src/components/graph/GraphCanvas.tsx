@@ -182,20 +182,52 @@ export default function GraphCanvas({
         graphRef.current.destroy();
       }
 
+      const isMobile = window.innerWidth < 1024;
+
+      const plugins: any[] = [
+        {
+          type: "tooltip",
+          key: "tooltip",
+          getContent: (_: any, items: any[]) => {
+            if (!items || items.length === 0) return "";
+            const item = items[0];
+            const data = item.data || {};
+            return `
+              <div style="padding:8px 12px;background:#0a0a0a;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-family:Inter,sans-serif;">
+                <div style="font-weight:900;color:#fff;font-size:13px;margin-bottom:4px;">${data.name || ""}</div>
+                <div style="color:#818cf8;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">${data.role || ""}</div>
+                ${data.score ? `<div style="color:#6b7280;font-size:10px;margin-top:4px;">Score: ${data.score}/100</div>` : ""}
+              </div>
+            `;
+          },
+        },
+      ];
+
+      // Only show minimap on desktop — takes too much space on mobile
+      if (!isMobile) {
+        plugins.push({
+          type: "minimap",
+          key: "minimap",
+          size: [160, 100],
+          position: "bottom-left" as any,
+        });
+      }
+
       graph = new Graph({
         container: containerRef.current!,
         autoFit: "view",
-        padding: [40, 40, 40, 40],
+        padding: isMobile ? [20, 20, 20, 20] : [40, 40, 40, 40],
         theme: "dark",
         data: buildGraphData(),
         layout: getLayoutConfig(),
         node: {
           type: "circle",
           style: {
-            size: 28,
+            size: isMobile ? 22 : 28,
             fill: "#6366f1",
             labelPlacement: "bottom",
-            labelMaxWidth: 100,
+            labelMaxWidth: isMobile ? 70 : 100,
+            labelFontSize: isMobile ? 10 : 12,
           },
           palette: {
             type: "group",
@@ -215,32 +247,9 @@ export default function GraphCanvas({
           "drag-element",
           "click-select",
         ],
-        plugins: [
-          {
-            type: "minimap",
-            key: "minimap",
-            size: [160, 100],
-            position: "bottom-left" as any,
-          },
-          {
-            type: "tooltip",
-            key: "tooltip",
-            getContent: (_: any, items: any[]) => {
-              if (!items || items.length === 0) return "";
-              const item = items[0];
-              const data = item.data || {};
-              return `
-                <div style="padding:8px 12px;background:#0a0a0a;border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-family:Inter,sans-serif;">
-                  <div style="font-weight:900;color:#fff;font-size:13px;margin-bottom:4px;">${data.name || ""}</div>
-                  <div style="color:#818cf8;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">${data.role || ""}</div>
-                  ${data.score ? `<div style="color:#6b7280;font-size:10px;margin-top:4px;">Score: ${data.score}/100</div>` : ""}
-                </div>
-              `;
-            },
-          },
-        ],
+        plugins,
         animation: {
-          duration: 500,
+          duration: isMobile ? 300 : 500,
         },
       });
 
