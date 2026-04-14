@@ -159,7 +159,7 @@ export default function GlobalCopilot() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-[2rem] bg-indigo-600 text-white shadow-[0_20px_50px_rgba(79,70,229,0.4)] z-[50] flex items-center justify-center border border-white/20 group"
+        className="fixed bottom-6 right-4 sm:bottom-8 sm:right-8 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[2rem] bg-indigo-600 text-white shadow-[0_20px_50px_rgba(79,70,229,0.4)] z-[50] flex items-center justify-center border border-white/20 group"
       >
         {isOpen ? <X size={24} /> : <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />}
         {!isOpen && (
@@ -174,8 +174,11 @@ export default function GlobalCopilot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className={`
-              fixed right-8 z-[100] bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden
-              ${isMinimized ? "bottom-32 w-80 h-20" : "bottom-32 w-[450px] h-[650px]"}
+              fixed z-[100] bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden
+              ${isMinimized
+                ? "bottom-32 right-4 sm:right-8 w-72 sm:w-80 h-20 rounded-[2rem] sm:rounded-[3rem]"
+                : "bottom-4 right-4 left-4 sm:left-auto sm:bottom-32 sm:right-8 sm:w-[420px] lg:w-[450px] h-[calc(100vh-6rem)] sm:h-[600px] lg:h-[650px] rounded-2xl sm:rounded-[3rem]"
+              }
               transition-all duration-500 ease-in-out
             `}
           >

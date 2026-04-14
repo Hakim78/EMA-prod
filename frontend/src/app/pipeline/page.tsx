@@ -174,13 +174,13 @@ export default function PipelinePage() {
 
       <div className="flex-1 overflow-x-auto pb-20 px-4 custom-scrollbar">
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-8 h-full min-w-max">
+          <div className="flex gap-4 sm:gap-6 lg:gap-8 h-full min-w-max">
              {columns.map((column) => {
               const colors = STAGE_COLORS[column.color] || STAGE_COLORS.indigo;
               return (
-              <div key={column.id} className="w-[340px] flex flex-col h-full bg-black/40 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden backdrop-blur-3xl group/col shrink-0">
+              <div key={column.id} className="w-[260px] sm:w-[300px] lg:w-[340px] flex flex-col h-full bg-black/40 rounded-[2rem] sm:rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden backdrop-blur-3xl group/col shrink-0">
 
-                <div className="p-8 pb-5 flex items-center justify-between">
+                <div className="p-4 sm:p-6 lg:p-8 pb-3 sm:pb-5 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-8 rounded-full ${colors.indicator}`} />
                     <h3 className="font-black text-white text-[11px] uppercase tracking-[0.3em]">{column.title}</h3>
@@ -206,7 +206,7 @@ export default function PipelinePage() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`group p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 ${colors.cardHover} cursor-grab active:cursor-grabbing transition-all shadow-xl backdrop-blur-2xl relative overflow-hidden
+                              className={`group p-4 sm:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[2.5rem] bg-white/[0.03] border border-white/10 ${colors.cardHover} cursor-grab active:cursor-grabbing transition-all shadow-xl backdrop-blur-2xl relative overflow-hidden
                                 ${snapshot.isDragging ? "rotate-2 scale-[1.05] shadow-[0_40px_80px_rgba(0,0,0,0.8)] !border-indigo-500/60 !bg-indigo-500/10 z-[1000]" : ""}
                               `}
                             >
@@ -278,7 +278,7 @@ export default function PipelinePage() {
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-12 px-10 py-5 rounded-[2.5rem] bg-black/60 border border-white/10 backdrop-blur-3xl shadow-2xl z-50 items-center ring-1 ring-white/10"
+        className="fixed bottom-6 sm:bottom-10 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 flex flex-wrap justify-center gap-4 sm:gap-8 lg:gap-12 px-6 sm:px-10 py-4 sm:py-5 rounded-2xl sm:rounded-[2.5rem] bg-black/80 sm:bg-black/60 border border-white/10 backdrop-blur-3xl shadow-2xl z-50 items-center ring-1 ring-white/10"
       >
         <div className="flex items-center gap-4">
           <Activity size={20} className="text-indigo-400" />
