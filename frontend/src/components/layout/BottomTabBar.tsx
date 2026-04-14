@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Target, Network, Layers, Activity } from "lucide-react";
 import { useEffect, useState } from "react";
+import { hapticLight } from "@/lib/haptics";
 
 const tabs = [
   { label: "Board", icon: LayoutDashboard, href: "/" },
@@ -47,6 +48,7 @@ export default function BottomTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={() => !isActive && hapticLight()}
               className={`flex flex-col items-center justify-center gap-1 w-full h-full relative transition-colors duration-200 ${
                 isActive ? "text-indigo-400" : "text-gray-500 active:text-gray-300"
               }`}

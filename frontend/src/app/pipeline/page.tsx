@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Target as TargetType } from "@/types";
 import { usePipeline, useMoveCard } from "@/lib/queries/usePipeline";
+import { hapticMedium } from "@/lib/haptics";
 
 interface PipelineCard {
   id: string;
@@ -97,6 +98,7 @@ export default function PipelinePage() {
     if (!sourceCol) return;
     const card = sourceCol.cards[source.index];
 
+    hapticMedium();
     moveCard.mutate({
       cardId: card.id,
       fromStage: source.droppableId,

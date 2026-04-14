@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTargets } from "@/lib/queries/useTargets";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/ui/PullToRefreshIndicator";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
@@ -56,8 +58,13 @@ function getScoreThresholdLabel(score: number) {
 
 export default function TargetsPage() {
   const queryClient = useQueryClient();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data, isLoading: loading } = useTargets();
   const targets = data?.data || [];
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["targets"] });
+  }, [queryClient]);
+  const { isRefreshing, pullDistance } = usePullToRefresh(scrollRef, handleRefresh);
   const totalCount = data?.total || targets.length;
   const apiFilters = data?.filters || null;
   const [search, setSearch] = useState("");
@@ -558,7 +565,8 @@ export default function TargetsPage() {
         </div>
 
         {/* Table Body */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar">
+          <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
           {loading ? (
             <div className="p-20 text-center text-gray-500 flex flex-col items-center justify-center h-full gap-8">
               <div className="relative w-16 h-16">

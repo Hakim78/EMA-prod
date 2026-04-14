@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Bell, Filter, Search, ShieldAlert, ArrowUpRight, Clock, MapPin, Zap, TrendingUp, Globe, AlertCircle, Radio, ExternalLink, ChevronDown, ChevronUp, Hash } from "lucide-react";
 import Link from "next/link";
 import { useSignals } from "@/lib/queries/useSignals";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/ui/PullToRefreshIndicator";
 
 // --- Types ---
 interface Signal {
@@ -45,11 +48,18 @@ const DIMENSION_FR: Record<string, string> = {
 };
 
 export default function SignalsPage() {
+  const queryClient = useQueryClient();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const { data, isLoading } = useSignals();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["signals"] });
+  }, [queryClient]);
+  const { isRefreshing, pullDistance } = usePullToRefresh(scrollRef, handleRefresh);
   const signals = data?.data ?? [];
   const catalog = data?.catalog ?? {};
 
@@ -181,7 +191,8 @@ export default function SignalsPage() {
              </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
             <AnimatePresence mode="popLayout">
               {filteredSignals.map((signal) => (
                 <motion.div
