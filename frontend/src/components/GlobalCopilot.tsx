@@ -159,7 +159,7 @@ export default function GlobalCopilot() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-[2rem] bg-indigo-600 text-white shadow-[0_20px_50px_rgba(79,70,229,0.4)] z-[50] flex items-center justify-center border border-white/20 group"
+        className="fixed bottom-5 right-4 sm:bottom-8 sm:right-8 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-indigo-600 text-white shadow-[0_20px_50px_rgba(79,70,229,0.4)] z-[50] flex items-center justify-center border border-white/20 group"
       >
         {isOpen ? <X size={24} /> : <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />}
         {!isOpen && (
@@ -174,19 +174,21 @@ export default function GlobalCopilot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className={`
-              fixed right-8 z-[100] bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden
-              ${isMinimized ? "bottom-32 w-80 h-20" : "bottom-32 w-[450px] h-[650px]"}
-              transition-all duration-500 ease-in-out
+              fixed z-[100] bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden transition-all duration-500 ease-in-out
+              ${isMinimized
+                ? "bottom-24 sm:bottom-32 right-4 sm:right-8 w-64 sm:w-80 h-20 rounded-2xl sm:rounded-[3rem]"
+                : "inset-x-3 bottom-24 top-16 sm:inset-x-auto sm:top-auto sm:bottom-28 sm:right-8 sm:w-full sm:max-w-md sm:h-[min(650px,calc(100dvh-10rem))] rounded-2xl sm:rounded-[3rem]"
+              }
             `}
           >
             {/* Header */}
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                  <Sparkles size={20} />
+            <div className="px-4 py-3 sm:p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Sparkles size={18} className="sm:hidden" /><Sparkles size={20} className="hidden sm:block" />
                 </div>
-                <div>
-                   <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none mb-1">EDRCF 6.0 Copilot</h3>
+                <div className="min-w-0">
+                   <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-widest leading-none mb-1 truncate">EDRCF 6.0 Copilot</h3>
                    <div className="flex items-center gap-1.5 ">
                       <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">Lien Neuronal Actif</span>
@@ -214,10 +216,10 @@ export default function GlobalCopilot() {
               <>
                 <div
                   ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar"
+                  className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar"
                 >
                   {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center opacity-40 text-center space-y-4 px-10">
+                    <div className="h-full flex flex-col items-center justify-center opacity-40 text-center space-y-4 px-4 sm:px-10">
                        <Target size={40} className="text-indigo-400 mb-2" />
                        <p className="text-xs font-black text-white uppercase tracking-[0.2em]">Protocole Intelligence EDRCF</p>
                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
@@ -284,7 +286,7 @@ export default function GlobalCopilot() {
 
                 {/* Suggestions Chips - Show when few messages */}
                 {messages.length < 3 && (
-                   <div className="px-6 py-2 flex gap-2 overflow-x-auto scrollbar-hide">
+                   <div className="px-4 sm:px-6 py-2 flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                       {[
                         "Top 5 cibles",
                         "Fondateurs > 60 ans",
@@ -307,7 +309,7 @@ export default function GlobalCopilot() {
                 )}
 
                 {/* Input Area */}
-                <div className="p-6 bg-white/[0.02] border-t border-white/10">
+                <div className="p-4 sm:p-6 bg-white/[0.02] border-t border-white/10">
                   <form
                     onSubmit={handleSend}
                     className="relative"

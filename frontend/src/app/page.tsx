@@ -137,7 +137,7 @@ export default function Home() {
   const maxPriority = Math.max(...Object.values(priorityDistribution), 1);
 
   return (
-    <div className="flex flex-col gap-10 w-full max-w-7xl mx-auto py-4 relative overflow-x-hidden">
+    <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10 w-full max-w-7xl mx-auto py-4 relative overflow-x-hidden">
       {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
@@ -145,7 +145,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 50, x: "-50%" }}
             animate={{ opacity: 1, y: 0, x: "-50%" }}
             exit={{ opacity: 0, y: 20, x: "-50%" }}
-            className="fixed bottom-10 left-1/2 z-[200] px-6 py-3 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-3 border border-indigo-400 backdrop-blur-xl"
+            className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:bottom-10 z-[200] px-5 py-3 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 border border-indigo-400 backdrop-blur-xl sm:w-max"
           >
             <ShieldCheck size={16} /> {notification}
           </motion.div>
@@ -153,15 +153,17 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 shrink-0">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-white mb-3 flex items-center gap-5">
-            EDRCF 6.0
-            <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5 mb-3">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tighter text-white">
+              EDRCF 6.0
+            </h1>
+            <div className="flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em]">
               <Radio size={14} className="animate-pulse" /> Intelligence Live
             </div>
-          </h1>
-          <p className="text-gray-400 text-lg font-medium max-w-2xl leading-relaxed">
+          </div>
+          <p className="text-gray-400 text-sm sm:text-base lg:text-lg font-medium max-w-2xl leading-relaxed">
             Centre de contrôle propriétaire d&apos;origination. Calibrage des{" "}
             <span className="text-white">fenêtres transactionnelles court-terme</span> et de la
             proximité réseau en temps réel.
@@ -204,7 +206,7 @@ export default function Home() {
       </header>
 
       {/* KPI Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)
           : [
@@ -242,16 +244,16 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1, duration: 0.5 }}
                 key={card.label}
-                className="p-8 rounded-[2.5rem] bg-black/40 border border-white/10 backdrop-blur-2xl group hover:border-indigo-500/40 transition-all shadow-2xl relative overflow-hidden"
+                className="p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl lg:rounded-[2.5rem] bg-black/40 border border-white/10 backdrop-blur-2xl group hover:border-indigo-500/40 transition-all shadow-2xl relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
                   <card.icon size={80} />
                 </div>
-                <div className="flex justify-between items-start mb-8 relative z-10">
+                <div className="flex justify-between items-start mb-4 sm:mb-6 lg:mb-8 relative z-10">
                   <div
-                    className={`p-3.5 rounded-2xl bg-white/5 border border-white/10 ${card.color}`}
+                    className={`p-2.5 sm:p-3 lg:p-3.5 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 ${card.color}`}
                   >
-                    <card.icon size={24} />
+                    <card.icon size={20} className="sm:hidden" /><card.icon size={24} className="hidden sm:block" />
                   </div>
                   <span
                     className={`text-[10px] font-black px-2.5 py-1 rounded-xl border ${
@@ -265,7 +267,7 @@ export default function Home() {
                     {card.trend}
                   </span>
                 </div>
-                <div className="text-4xl font-black text-white mb-2 tracking-tighter relative z-10">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-1 sm:mb-2 tracking-tighter relative z-10">
                   {card.value}
                 </div>
                 <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest relative z-10">
@@ -276,10 +278,10 @@ export default function Home() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 items-start overflow-hidden">
         {/* Targets Feed - top 5 */}
         <div className="lg:col-span-8 flex flex-col gap-6 min-w-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
             <h2 className="text-xs font-black text-white uppercase tracking-[0.3em] flex items-center gap-4">
               <div className="hidden sm:block w-1.5 h-6 bg-indigo-600 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
               Trajectoires d&apos;Origination Haute Confiance
@@ -296,7 +298,7 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-8 rounded-[2.5rem] bg-rose-500/5 border border-rose-500/20 text-rose-300 flex items-center gap-6"
+              className="p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-rose-500/5 border border-rose-500/20 text-rose-300 flex items-center gap-4 sm:gap-6"
             >
               <div className="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 shadow-2xl">
                 <AlertTriangle size={28} className="text-rose-500" />
@@ -313,7 +315,7 @@ export default function Home() {
             </motion.div>
           )}
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 sm:gap-5">
             {loading
               ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
               : targets.slice(0, 5).map((target, idx) => (
@@ -323,41 +325,42 @@ export default function Home() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 + idx * 0.1 }}
                     key={target.id}
-                    className="group p-10 rounded-[3rem] bg-black/40 border border-white/10 hover:border-indigo-500/40 transition-all cursor-pointer relative overflow-hidden backdrop-blur-3xl shadow-2xl active:scale-[0.99]"
+                    className="group p-5 sm:p-7 lg:p-10 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-black/40 border border-white/10 hover:border-indigo-500/40 transition-all cursor-pointer relative overflow-hidden backdrop-blur-3xl shadow-2xl active:scale-[0.99]"
                   >
-                    <div className="flex justify-between items-start relative z-10 gap-4">
+                    <div className="flex justify-between items-start relative z-10 gap-3 sm:gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-5 mb-5">
-                          <div className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/30 transition-all shadow-xl">
-                            <Building size={28} />
+                        <div className="flex items-center gap-3 sm:gap-5 mb-3 sm:mb-5">
+                          <div className="w-11 h-11 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl lg:rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/30 transition-all shadow-xl shrink-0">
+                            <Building size={22} className="sm:hidden" />
+                            <Building size={28} className="hidden sm:block" />
                           </div>
-                          <div>
-                            <h3 className="text-3xl font-black text-white tracking-tighter group-hover:text-indigo-400 transition-colors truncate">
+                          <div className="min-w-0">
+                            <h3 className="text-lg sm:text-2xl lg:text-3xl font-black text-white tracking-tighter group-hover:text-indigo-400 transition-colors truncate">
                               {target.name}
                             </h3>
-                            <div className="flex gap-3 items-center mt-2 flex-wrap">
-                              <span className="px-3 py-1 rounded-xl text-[10px] font-black tracking-widest uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            <div className="flex gap-2 sm:gap-3 items-center mt-1.5 sm:mt-2 flex-wrap">
+                              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black tracking-widest uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                                 {target.sector}
                               </span>
                               {target.region && (
-                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]">
+                                <span className="text-[9px] sm:text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]">
                                   {target.region}
                                 </span>
                               )}
-                              <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">
+                              <span className="hidden sm:inline text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">
                                 {target.id}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-3 mt-8">
+                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-4 sm:mt-8">
                           {target.topSignals?.slice(0, 4).map((signal) => (
                             <div
                               key={signal.id}
-                              className="px-4 py-2 rounded-2xl bg-white/[0.03] text-gray-400 text-xs font-black uppercase tracking-widest flex items-center gap-2.5 border border-white/5 group-hover:bg-white/[0.05] transition-all overflow-hidden max-w-full"
+                              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-white/[0.03] text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center gap-2 sm:gap-2.5 border border-white/5 group-hover:bg-white/[0.05] transition-all overflow-hidden max-w-full"
                             >
-                              <div className="w-2 h-2 rounded-full bg-indigo-500/50 shadow-[0_0_8px_rgba(79,70,229,0.5)] shrink-0" />
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500/50 shadow-[0_0_8px_rgba(79,70,229,0.5)] shrink-0" />
                               <span className="truncate">{signal.label}</span>
                             </div>
                           ))}
@@ -365,17 +368,17 @@ export default function Home() {
                       </div>
 
                       <div className="flex flex-col items-end shrink-0">
-                        <span className="text-7xl font-black text-white leading-none tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-800">
+                        <span className="text-4xl sm:text-5xl lg:text-7xl font-black text-white leading-none tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-800">
                           {target.globalScore}
                         </span>
-                        <span className="text-[10px] uppercase tracking-[0.4em] text-indigo-400/80 font-black mt-3">
-                          Score Global
+                        <span className="text-[8px] sm:text-[10px] uppercase tracking-[0.3em] sm:tracking-[0.4em] text-indigo-400/80 font-black mt-1.5 sm:mt-3">
+                          Score
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-10 pt-8 border-t border-white/[0.05] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-                      <div className="flex gap-8 sm:gap-12">
+                    <div className="mt-5 sm:mt-8 lg:mt-10 pt-4 sm:pt-6 lg:pt-8 border-t border-white/[0.05] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6 relative z-10">
+                      <div className="flex flex-wrap gap-5 sm:gap-8 lg:gap-12">
                         <div className="space-y-1.5">
                           <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest block">
                             Type Probable
@@ -424,10 +427,10 @@ export default function Home() {
         </div>
 
         {/* Intelligence Sidebar */}
-        <div className="lg:col-span-4 flex flex-col gap-10 sticky top-4 min-w-0 overflow-hidden">
+        <div className="lg:col-span-4 flex flex-col gap-5 sm:gap-8 lg:gap-10 lg:sticky top-4 min-w-0 overflow-hidden">
           {/* ── Distribution par Seuil ──────────────────────────── */}
-          <div className="p-10 rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl shadow-2xl">
-            <div className="flex items-center justify-between mb-10">
+          <div className="p-5 sm:p-7 lg:p-10 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl shadow-2xl">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-10">
               <h2 className="text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
                 <BarChart3 size={18} className="text-indigo-400" /> Distribution par Seuil
               </h2>
@@ -454,8 +457,8 @@ export default function Home() {
           </div>
 
           {/* ── Volatilité Sectorielle ─────────────────────────── */}
-          <div className="p-10 rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl shadow-2xl">
-            <div className="flex items-center justify-between mb-10">
+          <div className="p-5 sm:p-7 lg:p-10 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-black/40 border border-white/10 backdrop-blur-3xl shadow-2xl">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-10">
               <h2 className="text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
                 <Activity size={18} className="text-indigo-400" /> Volatilité Sectorielle
               </h2>
@@ -503,7 +506,7 @@ export default function Home() {
                   ))}
             </div>
 
-            <div className="mt-10 p-5 rounded-3xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
+            <div className="mt-6 sm:mt-8 lg:mt-10 p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="p-2 rounded-xl bg-indigo-500/10">
                   <Cpu size={16} className="text-indigo-400" />
@@ -527,27 +530,29 @@ export default function Home() {
           <motion.button
             whileHover={{ y: -5 }}
             onClick={() => window.dispatchEvent(new CustomEvent("toggle-copilot"))}
-            className="relative p-10 rounded-[3rem] bg-indigo-600 text-left shadow-[0_30px_60px_rgba(79,70,229,0.4)] border border-indigo-400 hover:bg-indigo-500 transition-all group overflow-hidden"
+            className="relative p-5 sm:p-7 lg:p-10 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] bg-indigo-600 text-left shadow-[0_30px_60px_rgba(79,70,229,0.4)] border border-indigo-400 hover:bg-indigo-500 transition-all group overflow-hidden"
           >
-            <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 group-hover:rotate-6 transition-all duration-700">
-              <MessageSquare size={160} />
+            <div className="absolute top-0 right-0 p-6 sm:p-10 opacity-10 group-hover:scale-125 group-hover:rotate-6 transition-all duration-700">
+              <MessageSquare size={100} className="sm:hidden" />
+              <MessageSquare size={160} className="hidden sm:block" />
             </div>
 
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/50 to-transparent pointer-events-none" />
 
-            <div className="w-16 h-16 rounded-[1.5rem] bg-white/10 flex items-center justify-center text-white relative z-10 backdrop-blur-md mb-8 shadow-2xl">
-              <Zap size={32} />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl lg:rounded-[1.5rem] bg-white/10 flex items-center justify-center text-white relative z-10 backdrop-blur-md mb-5 sm:mb-6 lg:mb-8 shadow-2xl">
+              <Zap size={24} className="sm:hidden" />
+              <Zap size={32} className="hidden sm:block" />
             </div>
             <div className="relative z-10">
-              <h3 className="text-2xl font-black text-white leading-tight mb-4 tracking-tighter">
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight mb-3 sm:mb-4 tracking-tighter">
                 Interroger EDRCF
               </h3>
-              <p className="text-indigo-100 text-base font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
+              <p className="text-indigo-100 text-sm sm:text-base font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
                 &quot;Identifiez les industriels français avec des fondateurs proches de 65 ans et
                 sans plan de succession clair.&quot;
               </p>
             </div>
-            <div className="flex items-center gap-3 text-white text-[11px] font-black uppercase tracking-[0.2em] mt-8 relative z-10 group-hover:translate-x-2 transition-transform">
+            <div className="flex items-center gap-3 text-white text-[11px] font-black uppercase tracking-[0.2em] mt-5 sm:mt-6 lg:mt-8 relative z-10 group-hover:translate-x-2 transition-transform">
               Lancer l&apos;Assistant <ChevronRight size={18} />
             </div>
           </motion.button>

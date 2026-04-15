@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
 
       <aside className={`
         fixed left-0 top-0 h-screen bg-black/40 backdrop-blur-3xl border-r border-white/5 flex flex-col p-6 z-[100] transition-all duration-500 
-        ${isOpen ? "translate-x-0 w-72" : "-translate-x-full lg:translate-x-0 w-72"}
+        ${isOpen ? "translate-x-0 w-full max-w-xs sm:max-w-none sm:w-72" : "-translate-x-full lg:translate-x-0 w-72"}
         lg:hover:border-white/10
       `}>
         {/* Branding */}
