@@ -127,7 +127,7 @@ export default function SignalsPage() {
   }, [catalog]);
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6 lg:gap-8 w-full py-4 lg:h-[calc(100dvh-8rem)]">
+    <div className="flex flex-col gap-5 sm:gap-6 lg:gap-8 w-full py-4 lg:h-[calc(100dvh-6rem)]">
       {/* Header */}
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 shrink-0">
         <div className="space-y-2">

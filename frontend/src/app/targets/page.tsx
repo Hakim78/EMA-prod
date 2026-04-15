@@ -218,7 +218,7 @@ export default function TargetsPage() {
   const ebitdaRanges = apiFilters?.ebitda_ranges || ["< 3M", "3-10M", "10-30M", "> 30M"];
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-8 lg:gap-10 w-full py-4 h-[calc(100dvh-7rem)] sm:h-[calc(100dvh-8rem)]">
+    <div className="flex flex-col gap-5 sm:gap-6 lg:gap-8 w-full py-4 h-[calc(100dvh-5rem)] sm:h-[calc(100dvh-6rem)]">
 
       {/* ── Filter Sidebar Overlay ───────────────────────────────── */}
       <AnimatePresence>
@@ -542,7 +542,7 @@ export default function TargetsPage() {
       {/* ── Table Area ───────────────────────────────────────────── */}
       <div className="flex-1 bg-black/40 border border-white/10 rounded-2xl sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl backdrop-blur-3xl relative">
         {/* Table Header - Desktop Only */}
-        <div className="hidden lg:grid grid-cols-12 gap-4 px-10 py-6 border-b border-white/10 bg-white/[0.02] text-[11px] font-black text-gray-500 uppercase tracking-[0.2em]">
+        <div className="hidden lg:grid grid-cols-12 gap-4 px-6 lg:px-8 py-4 lg:py-5 border-b border-white/10 bg-white/[0.02] text-[11px] font-black text-gray-500 uppercase tracking-[0.2em]">
           <div
             className="col-span-3 flex items-center gap-3 cursor-pointer hover:text-white transition-colors"
             onClick={() => handleSort("name")}
@@ -600,7 +600,7 @@ export default function TargetsPage() {
                       transition={{ duration: 0.3, delay: idx * 0.03 }}
                       key={target.id}
                       onClick={() => router.push(`/targets/${target.id}`)}
-                      className="flex flex-col lg:grid lg:grid-cols-12 gap-4 px-6 lg:px-10 py-5 lg:py-6 items-start lg:items-center hover:bg-white/[0.04] transition-all cursor-pointer group active:scale-[0.998] relative overflow-hidden"
+                      className="flex flex-col lg:grid lg:grid-cols-12 gap-4 px-5 lg:px-8 py-4 lg:py-5 items-start lg:items-center hover:bg-white/[0.04] transition-all cursor-pointer group active:scale-[0.998] relative overflow-hidden"
                     >
                       {/* Entity */}
                       <div className="w-full lg:col-span-3 flex items-center gap-4">

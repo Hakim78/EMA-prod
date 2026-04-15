@@ -130,7 +130,7 @@ export default function PipelinePage() {
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-8 lg:gap-10 w-full max-w-full mx-auto h-[calc(100dvh-7rem)] sm:h-[calc(100dvh-8rem)] py-4 overflow-hidden relative">
+    <div className="flex flex-col gap-4 sm:gap-6 lg:gap-8 w-full h-[calc(100dvh-5rem)] sm:h-[calc(100dvh-6rem)] py-4 overflow-hidden relative">
       <AnimatePresence>
         {notification && (
           <motion.div

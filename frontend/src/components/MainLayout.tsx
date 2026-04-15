@@ -19,7 +19,7 @@ export default function MainLayout({
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       </div>
       
-      <main className="lg:ml-72 min-h-screen relative w-full">
+      <main className="lg:pl-72 min-h-screen relative">
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 sm:p-6 bg-black/40 backdrop-blur-3xl border-b border-white/5 sticky top-0 z-[80] print:hidden">
           <div className="flex items-center gap-3">

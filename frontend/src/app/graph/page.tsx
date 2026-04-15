@@ -112,12 +112,12 @@ export default function RelationshipGraph() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] w-full pb-4 px-4 overflow-hidden">
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6 pt-4">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] pb-4 overflow-hidden">
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 mb-4 sm:mb-6 pt-4 px-1">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2 flex items-center gap-4">
-            <div className="p-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
-              <Network size={24} className="text-indigo-400" />
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white mb-2 flex items-center gap-3 sm:gap-4">
+            <div className="p-2 rounded-xl sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+              <Network size={22} className="text-indigo-400" />
             </div>
             Intelligence Réseau
           </h1>
@@ -127,7 +127,7 @@ export default function RelationshipGraph() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative group w-full sm:w-80">
+          <div className="relative group w-full sm:w-64 lg:w-72">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors">
                <Search size={18} />
             </span>
@@ -164,9 +164,9 @@ export default function RelationshipGraph() {
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-8 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 min-h-0">
 
-        <div className="lg:col-span-3 rounded-[2.5rem] bg-[#050505] border border-white/10 relative overflow-hidden flex flex-col group shadow-[0_4px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+        <div className="lg:col-span-3 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] bg-[#050505] border border-white/10 relative overflow-hidden flex flex-col group shadow-[0_4px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           {/* Legend */}
           <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-10 flex flex-col gap-2 sm:gap-3">
             {[
@@ -288,7 +288,7 @@ export default function RelationshipGraph() {
               initial={{ opacity: 0, x: 20, y: 100 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="fixed lg:relative bottom-6 sm:bottom-10 left-4 right-4 lg:bottom-0 lg:left-0 lg:right-0 lg:col-span-1 rounded-[2rem] sm:rounded-[2.5rem] bg-black/80 lg:bg-black/40 border border-white/10 backdrop-blur-3xl p-6 sm:p-8 flex flex-col max-h-[50vh] lg:max-h-full overflow-y-auto shadow-2xl space-y-6 sm:space-y-8 z-[60]"
+              className="fixed lg:relative bottom-4 sm:bottom-10 left-3 right-3 lg:bottom-0 lg:left-0 lg:right-0 lg:col-span-1 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] bg-black/80 lg:bg-black/40 border border-white/10 backdrop-blur-3xl p-5 sm:p-6 lg:p-8 flex flex-col max-h-[50dvh] lg:max-h-full overflow-y-auto shadow-2xl space-y-4 sm:space-y-6 lg:space-y-8 z-[60]"
             >
               <div className="flex items-center justify-between lg:hidden mb-2">
                 <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Fiche Contact</span>
