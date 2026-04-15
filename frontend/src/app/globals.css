@@ -46,12 +46,14 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
+    overflow-y: auto;
   }
-  
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    @apply antialiased selection:bg-indigo-500/30 font-sans overflow-x-hidden;
+    @apply antialiased selection:bg-indigo-500/30 font-sans;
   }
 
   h1, h2, h3, h4, h5, h6 {

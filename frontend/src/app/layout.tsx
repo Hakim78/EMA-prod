@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${outfit.variable} antialiased selection:bg-indigo-500/30 font-sans overflow-x-hidden`}>
+      <body className={`${inter.variable} ${outfit.variable} antialiased selection:bg-indigo-500/30 font-sans`}>
         <MainLayout>
           {children}
         </MainLayout>
