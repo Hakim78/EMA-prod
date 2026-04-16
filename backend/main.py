@@ -15,7 +15,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
 import asyncio
-import time
 import copy
 import json
 import re
@@ -27,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from demo_data import SIGNAL_CATALOG, DEFAULT_SCORING_WEIGHTS, SECTORS_HEAT
-from pappers_loader import load_targets_from_pappers, load_cache, save_cache
+from pappers_loader import load_targets_from_pappers, load_cache, save_cache, build_target, detect_signals
 
 
 # ==========================================================================
@@ -90,8 +89,11 @@ PAPPERS_MCP_URL = os.getenv("PAPPERS_MCP_URL", "")
 
 # Global list populated at startup
 enriched_targets = []
+_next_idx = 0  # auto-increment index for new targets
 # Keep raw targets (pre-enrichment) for re-scoring
 raw_targets = []
+# Lock to protect concurrent mutations on enriched_targets / raw_targets
+_targets_lock = asyncio.Lock()
 
 
 def _load_targets_sync():
@@ -156,6 +158,36 @@ app.add_middleware(
 
 # Ensure targets are loaded even if lifespan doesn't run (Vercel serverless)
 _load_targets_sync()
+
+
+async def _add_company_to_targets(siren: str) -> Optional[dict]:
+    """Fetch a company from Pappers, build a target, and add it to enriched_targets.
+    Returns the enriched target dict, or None if it fails.
+    Thread-safe via _targets_lock."""
+    global enriched_targets, raw_targets, _next_idx
+    # Quick check outside lock (avoids unnecessary Pappers call)
+    existing = next((t for t in enriched_targets if t.get("siren") == siren), None)
+    if existing:
+        return existing
+    try:
+        company_info = await get_pappers_company(siren)
+        if not company_info or not isinstance(company_info, dict) or "raw" in company_info:
+            return None
+        async with _targets_lock:
+            # Re-check inside lock (another coroutine may have added it)
+            existing = next((t for t in enriched_targets if t.get("siren") == siren), None)
+            if existing:
+                return existing
+            _next_idx = max(_next_idx, len(enriched_targets)) + 1
+            target = build_target(idx=_next_idx, company_info=company_info, search_info={})
+            raw_targets.append(target)
+            enriched = enrich_target(target)
+            enriched_targets.append(enriched)
+            save_cache(raw_targets)
+            return enriched
+    except Exception as e:
+        print(f"[EdRCF] _add_company_to_targets error for {siren}: {e}")
+        return None
 
 
 # ==========================================================================
@@ -499,7 +531,7 @@ async def get_google_news(company_name: str, max_results: int = 6) -> list:
     query = urllib.parse.quote(f'"{company_name}"')
     url = f"https://news.google.com/rss/search?q={query}&hl=fr&gl=FR&ceid=FR:fr"
     try:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=6, follow_redirects=True) as client:
             resp = await client.get(url, headers={
                 "User-Agent": "Mozilla/5.0 (compatible; EdRCF/6.0)"
             })
@@ -548,7 +580,7 @@ INFOGREFFE_BASE = "https://opendata.datainfogreffe.fr/api/explore/v2.1/catalog/d
 async def get_infogreffe_actes(siren: str, max_results: int = 10) -> list:
     """
     Fetch recent actes RCS from Infogreffe open data by SIREN.
-    Tries multiple dataset names gracefully.
+    Tries multiple dataset names gracefully (3s per dataset, 8s total).
     """
     for dataset in INFOGREFFE_DATASETS:
         url = f"{INFOGREFFE_BASE}/{dataset}/records"
@@ -558,7 +590,7 @@ async def get_infogreffe_actes(siren: str, max_results: int = 10) -> list:
             "order_by": "date_depot desc",
         }
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with httpx.AsyncClient(timeout=3) as client:
                 resp = await client.get(url, params=params)
             if resp.status_code == 200:
                 data = resp.json()
@@ -694,15 +726,17 @@ def get_targets(
 
 @app.get("/api/targets/search-pappers")
 async def search_pappers_endpoint(q: str = Query(...)):
-    """Search real companies via Pappers MCP and return enriched results."""
+    """Search real companies via Pappers MCP, enrich and add to targets."""
     pappers_data = await search_pappers(q)
 
-    # If we got raw results, try to extract and format them
     if isinstance(pappers_data, dict) and "resultats" in pappers_data:
         companies = []
+        # Enrich each result in background — add to enriched_targets
+        add_tasks = []
         for r in pappers_data["resultats"][:10]:
+            siren = r.get("siren", "")
             company = {
-                "siren": r.get("siren", ""),
+                "siren": siren,
                 "name": r.get("nom_entreprise", r.get("denomination", "")),
                 "siege": r.get("siege", {}),
                 "dirigeants": r.get("representants", []),
@@ -714,9 +748,16 @@ async def search_pappers_endpoint(q: str = Query(...)):
                 "capital": r.get("capital", ""),
             }
             companies.append(company)
+            # Queue enrichment for each company with a SIREN
+            if siren:
+                add_tasks.append(_add_company_to_targets(siren))
+
+        # Run all enrichments concurrently (best-effort, don't block response)
+        if add_tasks:
+            await asyncio.gather(*add_tasks, return_exceptions=True)
+
         return {"data": companies, "total": pappers_data.get("total", 0), "source": "pappers-mcp"}
 
-    # Return raw data if format is unexpected
     return {"data": pappers_data, "source": "pappers-mcp"}
 
 
@@ -1265,10 +1306,18 @@ async def get_score_defaillance_endpoint(siren: str, annee: Optional[str] = Quer
 
 
 @app.get("/api/targets/{target_id}")
-def get_target(target_id: str):
+async def get_target(target_id: str):
+    # 1) Lookup by id
     target = next((t for t in enriched_targets if t["id"] == target_id), None)
     if target:
         return {"data": target}
+    # 2) Maybe target_id is a SIREN — try to fetch from Pappers and add
+    if target_id.replace("-", "").isdigit():
+        siren = target_id.replace("edrcf-", "").replace("edrcf", "")
+        if len(siren) == 9:
+            added = await _add_company_to_targets(siren)
+            if added:
+                return {"data": added}
     raise HTTPException(status_code=404, detail="Target not found")
 
 
@@ -1277,20 +1326,29 @@ async def get_news_for_company(siren: str):
     """
     Fetch recent press articles from Google News RSS for a company.
     Returns articles with M&A signal detection.
+    Optimised: Pappers name lookup + Google News run concurrently with 8s guard.
     """
     siren = siren.strip().replace(" ", "")
-    # Find company name: 1) enriched_targets, 2) Pappers live lookup, 3) fallback SIREN
+    # Fast path: target already in memory
     target = next((t for t in enriched_targets if t.get("siren") == siren), None)
     if target:
         company_name = target["name"]
+        articles = await asyncio.wait_for(get_google_news(company_name), timeout=8)
     else:
-        try:
-            pappers_data = await get_pappers_company(siren)
-            company_name = (pappers_data or {}).get("nom_entreprise") or siren
-        except Exception:
-            company_name = siren
+        # Slow path: need Pappers lookup — run concurrently with a generous timeout
+        async def _resolve_and_fetch():
+            try:
+                pappers_data = await asyncio.wait_for(get_pappers_company(siren), timeout=6)
+                name = (pappers_data or {}).get("nom_entreprise") or siren
+            except Exception:
+                name = siren
+            return name, await get_google_news(name)
 
-    articles = await get_google_news(company_name)
+        try:
+            company_name, articles = await asyncio.wait_for(_resolve_and_fetch(), timeout=9)
+        except asyncio.TimeoutError:
+            company_name, articles = siren, []
+
     # Aggregate detected signals across all articles
     detected_signals: set = set()
     for a in articles:
@@ -1313,7 +1371,10 @@ async def get_infogreffe_endpoint(siren: str):
     Fetch recent actes RCS from Infogreffe open data for a SIREN.
     """
     siren = _validate_siren(siren)
-    actes = await get_infogreffe_actes(siren)
+    try:
+        actes = await asyncio.wait_for(get_infogreffe_actes(siren), timeout=8)
+    except asyncio.TimeoutError:
+        actes = []
     # Detect signals from actes
     detected_signals: set = set()
     for acte in actes:
@@ -1480,7 +1541,7 @@ def build_target_from_search(idx, search_result, search_context=None):
     if ca > 5e6:
         signals.append("big4_audit")
     # Always add establishment if multi-site
-    if effectif and "50" in str(effectif) or "100" in str(effectif) or "200" in str(effectif):
+    if effectif and any(s in str(effectif) for s in ("50", "100", "200")):
         signals.append("new_establishment")
     signals.append("press_regional")
     # Deduplicate and validate
@@ -1552,14 +1613,69 @@ async def copilot_query(q: str = Query(...)):
     pappers_filters = {}
     targets_updated = False
 
-    # Broad intent detection — trigger Pappers for any company/sector query
+    # --- SIREN lookup FIRST (before anything else) ---
+    siren_match = re.search(r'\b(\d{9})\b', q)
+    if siren_match and PAPPERS_MCP_URL:
+        siren_val = siren_match.group(1)
+        try:
+            data = await get_pappers_company(siren_val)
+            if data and isinstance(data, dict) and "raw" not in data and data.get("nom_entreprise"):
+                nom = data.get("nom_entreprise", "Entreprise inconnue")
+                siege = data.get("siege") or {}
+                ville = siege.get("ville", "")
+                dept = siege.get("departement", "")
+                naf = data.get("libelle_code_naf", "")
+                ca = data.get("chiffre_affaires")
+                ca_str = f"{ca/1e6:.1f}M EUR" if ca and ca > 0 else "N/A"
+                effectif = data.get("effectif", "N/A")
+                cessee = data.get("entreprise_cessee", False)
+                statut = "Radiee" if cessee else "Active"
+                date_cess = data.get("date_cessation", "")
+                reps = data.get("representants") or []
+                rep_lines = "\n".join([
+                    f"  - {(r.get('prenom') or '')} {(r.get('nom') or '')} — {r.get('qualite', '')}"
+                    for r in reps[:3]
+                ])
+                date_crea = data.get("date_creation", "")
+                forme = data.get("forme_juridique", "")
+                capital = data.get("capital")
+                capital_str = f"{capital/1000:.0f}k EUR" if capital else "N/A"
+                # Add to targets
+                await _add_company_to_targets(siren_val)
+                resp_lines = [
+                    f"**{nom}** — SIREN {siren_val}\n",
+                    f"- **Statut** : {statut}" + (f" ({date_cess})" if date_cess else ""),
+                    f"- **Siège** : {ville}{', ' + dept if dept else ''}",
+                    f"- **Activité** : {naf}",
+                    f"- **Forme juridique** : {forme}",
+                    f"- **Création** : {date_crea}",
+                    f"- **CA** : {ca_str}  |  **Effectif** : {effectif}  |  **Capital** : {capital_str}",
+                    "",
+                    "**Dirigeants :**",
+                    rep_lines if rep_lines else "  N/A",
+                    "",
+                    "*Source : Pappers MCP — données open data*",
+                ]
+                return {
+                    "response": "\n".join(resp_lines),
+                    "source": "pappers-mcp",
+                    "targets_updated": True,
+                }
+            else:
+                return {
+                    "response": f"Aucune entreprise trouvée pour le SIREN **{siren_val}** dans la base Pappers.",
+                    "source": "pappers-mcp",
+                    "targets_updated": False,
+                }
+        except Exception as e:
+            print(f"[Copilot] SIREN lookup error: {e}")
+
+    # Broad intent detection — trigger Pappers for sector/screening queries
     wants_pappers = any(w in ql for w in [
-        "pappers", "cherche", "recherche", "trouve", "identifier",
-        "screening", "screener", "scan", "prospecter", "nouvelles cibles",
-        "open data", "siren", "societe", "société", "entreprise",
-        "pme", "eti", "groupe", "parle moi", "liste", "quelles",
-        "montre", "affiche", "donne", "ca superieur", "chiffre",
-        "salarie", "salarié", "effectif", "france",
+        "pappers", "screening", "screener", "scan", "prospecter", "nouvelles cibles",
+        "open data", "pme", "eti",
+        "ca superieur", "chiffre affaires",
+        "salarie", "salarié", "effectif",
     ])
 
     # Sector → NAF code mapping (broad)
@@ -1643,84 +1759,28 @@ async def copilot_query(q: str = Query(...)):
                     )
                 pappers_context = "\n".join(pappers_lines)
 
-                # --- Replace targets with Pappers search results ---
-                new_enriched = []
-                new_raw = []
-                seen_sirens = set()
-                for idx, r in enumerate(resultats):
-                    siren = r.get("siren", "")
-                    if not siren or siren in seen_sirens:
-                        continue
-                    seen_sirens.add(siren)
-                    new_target = build_target_from_search(idx + 1, r, pappers_filters)
-                    new_raw.append(new_target)
-                    new_enriched.append(enrich_target(new_target))
+                # --- MERGE new results into existing targets (don't replace) ---
+                async with _targets_lock:
+                    existing_sirens = {t.get("siren") for t in enriched_targets}
+                    added_count = 0
+                    for idx, r in enumerate(resultats):
+                        siren = r.get("siren", "")
+                        if not siren or siren in existing_sirens:
+                            continue
+                        existing_sirens.add(siren)
+                        new_target = build_target_from_search(len(enriched_targets) + added_count + 1, r, pappers_filters)
+                        raw_targets.append(new_target)
+                        enriched_targets.append(enrich_target(new_target))
+                        added_count += 1
 
-                if new_enriched:
-                    new_enriched.sort(key=lambda x: x["globalScore"], reverse=True)
-                    enriched_targets[:] = new_enriched[:10]
-                    raw_targets[:] = new_raw[:10]
-                    save_cache(raw_targets)
-                    targets_updated = True
-                    print(f"[Copilot] Replaced targets: {len(enriched_targets)} from Pappers ({total} total)")
+                    if added_count:
+                        enriched_targets.sort(key=lambda x: x["globalScore"], reverse=True)
+                        save_cache(raw_targets)
+                        targets_updated = True
+                    print(f"[Copilot] Added {added_count} targets from Pappers (total: {len(enriched_targets)})")
 
         except Exception as e:
             print(f"[Copilot] Pappers enrichment error: {e}")
-
-    # --- Direct SIREN lookup (9-digit number detected in query) ---
-    siren_match = re.search(r'\b(\d{9})\b', q)
-    if siren_match and PAPPERS_MCP_URL:
-        siren_val = siren_match.group(1)
-        try:
-            data = await get_pappers_company(siren_val)
-            if data and isinstance(data, dict) and "raw" not in data and data.get("nom_entreprise"):
-                nom = data.get("nom_entreprise", "Entreprise inconnue")
-                siege = data.get("siege") or {}
-                ville = siege.get("ville", "")
-                dept = siege.get("departement", "")
-                naf = data.get("libelle_code_naf", "")
-                ca = data.get("chiffre_affaires")
-                ca_str = f"{ca/1e6:.1f}M EUR" if ca and ca > 0 else "N/A"
-                effectif = data.get("effectif", "N/A")
-                cessee = data.get("entreprise_cessee", False)
-                statut = "Radiee" if cessee else "Active"
-                date_cess = data.get("date_cessation", "")
-                reps = data.get("representants") or []
-                rep_lines = "\n".join([
-                    f"  - {(r.get('prenom') or '')} {(r.get('nom') or '')} — {r.get('qualite', '')}"
-                    for r in reps[:3]
-                ])
-                date_crea = data.get("date_creation", "")
-                forme = data.get("forme_juridique", "")
-                capital = data.get("capital")
-                capital_str = f"{capital/1000:.0f}k EUR" if capital else "N/A"
-                resp_lines = [
-                    f"**{nom}** — SIREN {siren_val}\n",
-                    f"- **Statut** : {statut}" + (f" ({date_cess})" if date_cess else ""),
-                    f"- **Siège** : {ville}{', ' + dept if dept else ''}",
-                    f"- **Activité** : {naf}",
-                    f"- **Forme juridique** : {forme}",
-                    f"- **Création** : {date_crea}",
-                    f"- **CA** : {ca_str}  |  **Effectif** : {effectif}  |  **Capital** : {capital_str}",
-                    "",
-                    "**Dirigeants :**",
-                    rep_lines if rep_lines else "  N/A",
-                    "",
-                    "*Source : Pappers MCP — données open data*",
-                ]
-                return {
-                    "response": "\n".join(resp_lines),
-                    "source": "pappers-mcp",
-                    "targets_updated": False,
-                }
-            else:
-                return {
-                    "response": f"Aucune entreprise trouvée pour le SIREN **{siren_val}** dans la base Pappers.",
-                    "source": "pappers-mcp",
-                    "targets_updated": False,
-                }
-        except Exception as e:
-            print(f"[Copilot] SIREN lookup error: {e}")
 
     # --- Direct company name search (short query, no trigger keywords, likely a company name) ---
     is_company_name_search = (
@@ -1737,6 +1797,7 @@ async def copilot_query(q: str = Query(...)):
                 resultats = pappers_result["resultats"][:5]
                 total = pappers_result.get("total", len(resultats))
                 lines = [f"**Recherche Pappers pour \"{q}\" — {total} résultat(s) :**\n"]
+                add_tasks = []
                 for r in resultats:
                     nom = r.get("nom_entreprise", "N/A")
                     siren_r = r.get("siren", "")
@@ -1757,11 +1818,16 @@ async def copilot_query(q: str = Query(...)):
                     for rep in reps_r[:1]:
                         lines.append(f"  Dirigeant : {(rep.get('prenom') or '')} {(rep.get('nom') or '')} — {rep.get('qualite', '')}")
                     lines.append("")
+                    if siren_r:
+                        add_tasks.append(_add_company_to_targets(siren_r))
                 lines.append("*Source : Pappers MCP — données open data*")
+                # Add found companies to targets in background
+                if add_tasks:
+                    await asyncio.gather(*add_tasks, return_exceptions=True)
                 return {
                     "response": "\n".join(lines),
                     "source": "pappers-mcp",
-                    "targets_updated": False,
+                    "targets_updated": bool(add_tasks),
                 }
         except Exception as e:
             print(f"[Copilot] Company name search error: {e}")
@@ -1775,7 +1841,7 @@ async def copilot_query(q: str = Query(...)):
         return {"response": ai_response, "source": source, "targets_updated": targets_updated}
 
     # Fallback: rule-based copilot
-    time.sleep(0.5)
+    await asyncio.sleep(0.3)
     ql = q.lower()
 
     # --- Smart matching on specific targets ---
@@ -2215,7 +2281,12 @@ def get_graph():
 
         # Subsidiary nodes — up to 3 per target
         for i, sub in enumerate(entreprises_liees[:3]):
-            sub_name = sub.get("denomination") or sub.get("name") or f"Filiale {i+1}"
+            if isinstance(sub, str):
+                sub_name = sub or f"Filiale {i+1}"
+            elif isinstance(sub, dict):
+                sub_name = sub.get("denomination") or sub.get("name") or f"Filiale {i+1}"
+            else:
+                sub_name = f"Filiale {i+1}"
             sub_id = f"{t['id']}-sub-{i}"
             nodes.append({
                 "id": sub_id,
@@ -2364,11 +2435,11 @@ async def _enrich_with_external_sources(targets: list) -> list:
             news_task = asyncio.create_task(get_google_news(name, max_results=6))
             infogreffe_task = asyncio.create_task(get_infogreffe_actes(siren)) if siren else None
 
-            news = await asyncio.wait_for(news_task, timeout=12)
+            news = await asyncio.wait_for(news_task, timeout=8)
             actes = []
             if infogreffe_task:
                 try:
-                    actes = await asyncio.wait_for(infogreffe_task, timeout=10)
+                    actes = await asyncio.wait_for(infogreffe_task, timeout=7)
                 except asyncio.TimeoutError:
                     print(f"[Infogreffe] Timeout for SIREN {siren}")
 
