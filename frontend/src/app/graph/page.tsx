@@ -106,6 +106,8 @@ export default function RelationshipGraph() {
 
   const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const { x, y } = node;
+    // Guard: skip nodes whose positions haven't been computed yet by the force sim
+    if (!isFinite(x) || !isFinite(y)) return;
     const r = (node.node_size || 6);
     const isSelected = selectedNode?.id === node.id;
     const isHovered = hoveredNode?.id === node.id;
@@ -221,7 +223,7 @@ export default function RelationshipGraph() {
   const linkCanvasObject = useCallback((link: any, ctx: CanvasRenderingContext2D) => {
     const start = link.source;
     const end = link.target;
-    if (!start?.x || !end?.x) return;
+    if (!isFinite(start?.x) || !isFinite(start?.y) || !isFinite(end?.x) || !isFinite(end?.y)) return;
 
     const isCrossMandate = link.type === "cross_mandate";
     const isDirects = link.type === "directs";
@@ -265,33 +267,33 @@ export default function RelationshipGraph() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] pb-3 overflow-hidden gap-3">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] pb-3 overflow-hidden gap-3" style={{ touchAction: "none" }}>
 
       {/* ── Header + Stats ── */}
-      <header className="shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 px-1">
+      <header className="shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2 pt-2 px-1">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-            <Network size={20} className="text-indigo-400" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+            <Network size={18} className="text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white leading-none">Intelligence Réseau</h1>
-            <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-0.5">Cartographie M&A propriétaire</p>
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-white leading-none">Intelligence Réseau</h1>
+            <p className="text-gray-600 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mt-0.5">Cartographie M&A propriétaire</p>
           </div>
         </div>
 
         {/* Stats glassmorphism pills */}
         {stats && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { icon: <Building2 size={12} />, value: stats.companies, label: "Cibles", color: "text-emerald-400" },
-              { icon: <Users size={12} />, value: stats.directors, label: "Dirigeants", color: "text-amber-400" },
-              { icon: <GitBranch size={12} />, value: stats.cross_mandates, label: "Mandats croisés", color: "text-orange-400" },
-              { icon: <Zap size={12} />, value: stats.signals, label: "Signaux", color: "text-red-400" },
+              { icon: <Building2 size={11} />, value: stats.companies, label: "Cibles", color: "text-emerald-400" },
+              { icon: <Users size={11} />, value: stats.directors, label: "Dirigeants", color: "text-amber-400" },
+              { icon: <GitBranch size={11} />, value: stats.cross_mandates, label: "Mandats croisés", color: "text-orange-400" },
+              { icon: <Zap size={11} />, value: stats.signals, label: "Signaux", color: "text-red-400" },
             ].map(s => (
-              <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+              <div key={s.label} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
                 <span className={s.color}>{s.icon}</span>
-                <span className="text-white font-black text-sm">{s.value}</span>
-                <span className="text-gray-600 text-[9px] font-black uppercase tracking-wider hidden sm:block">{s.label}</span>
+                <span className="text-white font-black text-xs">{s.value}</span>
+                <span className="text-gray-600 text-[8px] font-black uppercase tracking-wider hidden sm:block">{s.label}</span>
               </div>
             ))}
           </div>
@@ -337,8 +339,8 @@ export default function RelationshipGraph() {
             </div>
           </div>
 
-          {/* Legend bottom-left */}
-          <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5">
+          {/* Legend bottom-left — hidden on mobile when panel is open (panel overlaps) */}
+          <div className={`absolute bottom-3 left-3 z-10 flex-col gap-1.5 ${selectedNode ? "hidden lg:flex" : "flex"}`}>
             {[
               { color: "#10b981", label: "Cible prioritaire (≥65)" },
               { color: "#f59e0b", label: "Qualification (≥45)" },

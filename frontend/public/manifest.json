@@ -1,0 +1,44 @@
+{
+  "name": "EDRCF 6.0 — AI Origination",
+  "short_name": "EDRCF 6.0",
+  "description": "Plateforme d'origination M&A propulsée par l'IA — Edmond de Rothschild Corporate Finance",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "any",
+  "lang": "fr",
+  "categories": ["finance", "business"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tableau de Bord",
+      "url": "/",
+      "description": "Centre de contrôle M&A"
+    },
+    {
+      "name": "Intelligence Vault",
+      "url": "/targets",
+      "description": "Base de données des cibles"
+    },
+    {
+      "name": "Graphe Réseau",
+      "url": "/graph",
+      "description": "Cartographie des connexions"
+    }
+  ]
+}
