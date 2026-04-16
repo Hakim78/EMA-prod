@@ -26,7 +26,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from demo_data import SIGNAL_CATALOG, DEFAULT_SCORING_WEIGHTS, SECTORS_HEAT
-from pappers_loader import load_targets_from_pappers, load_cache, save_cache, build_target, detect_signals
+from pappers_loader import load_cache, save_cache, build_target, detect_signals
+from data_sources import (
+    get_full_company_info as _papperclip_get_company,
+    search_companies_gouv as _papperclip_search,
+    load_targets_from_papperclip,
+)
 
 
 # ==========================================================================
@@ -122,17 +127,17 @@ async def lifespan(app):
     global enriched_targets, raw_targets
     _load_targets_sync()
 
-    # Try to fetch from Pappers in background if no cache
-    if not enriched_targets and PAPPERS_MCP_URL:
+    # Try to load from Papperclip (free gov APIs) if no cache
+    if not enriched_targets:
         try:
-            fetched = await load_targets_from_pappers(PAPPERS_MCP_URL, count=10)
+            fetched = await load_targets_from_papperclip(count=10)
             if fetched:
                 save_cache(fetched)
                 raw_targets = fetched
                 enriched_targets = [enrich_target(c) for c in fetched]
-                print(f"[EdRCF] Loaded {len(enriched_targets)} targets from Pappers MCP")
+                print(f"[EdRCF] Loaded {len(enriched_targets)} targets from Papperclip")
         except Exception as e:
-            print(f"[EdRCF] Pappers fetch failed: {e}")
+            print(f"[EdRCF] Papperclip fetch failed: {e}")
 
     yield
 
@@ -195,98 +200,25 @@ async def _add_company_to_targets(siren: str) -> Optional[dict]:
 # ==========================================================================
 
 
-async def call_pappers_mcp(tool_name: str, arguments: dict):
-    """Call a Pappers MCP tool via the streamable HTTP MCP server."""
-    if not PAPPERS_MCP_URL:
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            # MCP streamable HTTP: POST with JSON-RPC
-            resp = await client.post(
-                PAPPERS_MCP_URL,
-                headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
-                json={
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "tools/call",
-                    "params": {"name": tool_name, "arguments": arguments},
-                },
-            )
-            if resp.status_code == 200:
-                content_type = resp.headers.get("content-type", "")
-                if "text/event-stream" in content_type:
-                    # Parse SSE response
-                    for line in resp.text.split("\n"):
-                        if line.startswith("data: "):
-                            data = json.loads(line[6:])
-                            if "result" in data:
-                                return data["result"]
-                    return None
-                else:
-                    data = resp.json()
-                    if "result" in data:
-                        return data["result"]
-                    return data
-            print(f"[Pappers MCP] HTTP {resp.status_code}: {resp.text[:200]}")
-    except Exception as e:
-        print(f"[Pappers MCP] Error: {e}")
-    return None
-
-
 async def search_pappers(query: str = "", par_page: str = "10", **filters):
-    """Search companies via Pappers MCP with structured filters. Max 10 results."""
-    args = {
-        "par_page": par_page,
-        "entreprise_cessee": False,
-        "return_fields": ["siren", "nom_entreprise", "siege", "date_creation",
-                          "code_naf", "libelle_code_naf", "effectif",
-                          "forme_juridique", "capital", "chiffre_affaires", "resultat"],
-    }
-    # If query looks like a company name, use nom_entreprise filter
-    if query and not any(k in filters for k in ["code_naf", "age_dirigeant_min"]):
-        args["nom_entreprise"] = query
-    # Merge explicit filters
-    args.update(filters)
-    result = await call_pappers_mcp("recherche-entreprises", args)
-    if result:
-        # Extract text content from MCP response
-        if isinstance(result, dict) and "content" in result:
-            for block in result["content"]:
-                if block.get("type") == "text":
-                    try:
-                        return json.loads(block["text"])
-                    except json.JSONDecodeError:
-                        return {"raw": block["text"]}
-        return result
-    return {"results": [], "message": "Pappers MCP non disponible"}
+    """Search companies via Papperclip (free gov APIs). Returns Pappers-compatible structure."""
+    count = min(int(par_page or "10"), 25)
+    code_naf = filters.get("code_naf", "")
+    departement = filters.get("departement", "")
+    # Use nom_entreprise filter if provided, otherwise free text query
+    search_query = filters.get("nom_entreprise") or query
+    companies = await _papperclip_search(
+        query=search_query,
+        code_naf=code_naf,
+        departement=departement,
+        per_page=count,
+    )
+    return {"resultats": companies, "total": len(companies)}
 
 
 async def get_pappers_company(siren: str):
-    """Get company details via Pappers MCP."""
-    result = await call_pappers_mcp("informations-entreprise", {
-        "siren": siren,
-        "return_fields": [
-            "siren", "nom_entreprise", "siege", "representants",
-            "date_creation", "code_naf", "libelle_code_naf", "effectif",
-            "forme_juridique", "capital", "finances",
-            "beneficiaires_effectifs", "etablissements",
-            "entreprise_cessee", "date_cessation",
-            "procedure_collective_existe", "procedure_collective_en_cours",
-            "procedures_collectives",
-            "scoring_non_financier",
-            # Note: publications_bodacc exclu ici (trop volumineux, endpoint dedie /bodacc/{siren})
-        ],
-    })
-    if result:
-        if isinstance(result, dict) and "content" in result:
-            for block in result["content"]:
-                if block.get("type") == "text":
-                    try:
-                        return json.loads(block["text"])
-                    except json.JSONDecodeError:
-                        return {"raw": block["text"]}
-        return result
-    return None
+    """Get company details via Papperclip (free gov APIs)."""
+    return await _papperclip_get_company(siren)
 
 
 def _extract_group_info(data: dict, cartographie: dict = None) -> dict:
@@ -366,18 +298,12 @@ def _extract_group_info(data: dict, cartographie: dict = None) -> dict:
 
 
 async def get_pappers_dirigeants(siren: str):
-    """Get company directors via Pappers MCP."""
-    result = await call_pappers_mcp("recherche-dirigeants", {"siren": siren})
-    if result:
-        if isinstance(result, dict) and "content" in result:
-            for block in result["content"]:
-                if block.get("type") == "text":
-                    try:
-                        return json.loads(block["text"])
-                    except json.JSONDecodeError:
-                        return {"raw": block["text"]}
-        return result
-    return None
+    """Get company directors via Papperclip."""
+    data = await _papperclip_get_company(siren)
+    if not data:
+        return None
+    return {"representants": data.get("representants", []), "siren": siren,
+            "nom_entreprise": data.get("nom_entreprise", "")}
 
 
 def _validate_siren(siren: str) -> str:
@@ -403,115 +329,59 @@ def _parse_mcp_json(result) -> Optional[dict]:
 
 
 async def get_pappers_bodacc(siren: str) -> Optional[dict]:
-    """
-    Recupere les publications BODACC via informations-entreprise (champ publications_bodacc).
-    Structure reelle Pappers : {type, date, description, administration, bodacc, numero_annonce}
-    """
-    result = await call_pappers_mcp("informations-entreprise", {
-        "siren": siren,
-        "return_fields": [
-            "siren", "nom_entreprise",
-            "entreprise_cessee", "date_cessation",
-            "publications_bodacc",
-            "procedure_collective_existe", "procedure_collective_en_cours",
-            "procedures_collectives",
-        ],
-    })
-    data = _parse_mcp_json(result)
-    if data:
-        return data
-    return None
+    """Recupere les publications BODACC via Papperclip (incluses dans get_full_company_info)."""
+    return await _papperclip_get_company(siren)
 
 
 async def get_pappers_procedures(siren: str) -> Optional[dict]:
-    """Recupere les procedures collectives et le statut d'activite via Pappers MCP."""
-    result = await call_pappers_mcp("informations-entreprise", {
-        "siren": siren,
-        "return_fields": [
-            "siren", "nom_entreprise", "entreprise_cessee", "date_cessation",
-            "procedure_collective_existe", "procedure_collective_en_cours",
-            "procedures_collectives", "scoring_non_financier",
-        ],
-    })
-    return _parse_mcp_json(result)
+    """Recupere les procedures collectives via Papperclip."""
+    return await _papperclip_get_company(siren)
 
 
 async def get_cartographie(siren: str) -> Optional[dict]:
-    """
-    Recupere la cartographie d'une entreprise : entreprises liees et dirigeants.
-    Outil reel Pappers : cartographie-entreprise
-    """
-    result = await call_pappers_mcp("cartographie-entreprise", {
-        "siren": siren,
-        "inclure_entreprises_dirigees": True,
-        "inclure_sci": False,
-    })
-    return _parse_mcp_json(result)
+    """Cartographie groupe non disponible dans Papperclip v1. Returns None."""
+    return None
 
 
 async def get_comptes(siren: str, annee: str = "") -> Optional[dict]:
-    """
-    Recupere les comptes annuels detailles (bilan, liasses) via Pappers MCP.
-    Outil reel : comptes-entreprise.
-    Note : peut timeout sur les grandes entreprises (reponse volumineuse).
-    """
-    args: Dict[str, Any] = {"siren": siren}
-    if annee:
-        args["annee"] = annee
-    try:
-        # Timeout etendu a 60s car comptes-entreprise peut etre volumineux
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                PAPPERS_MCP_URL,
-                headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
-                json={"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                      "params": {"name": "comptes-entreprise", "arguments": args}},
-            )
-            if resp.status_code == 200:
-                content_type = resp.headers.get("content-type", "")
-                if "text/event-stream" in content_type:
-                    for line in resp.text.split("\n"):
-                        if line.startswith("data: "):
-                            d = json.loads(line[6:])
-                            if "result" in d:
-                                return _parse_mcp_json(d["result"])
-                    return None
-                else:
-                    return _parse_mcp_json(resp.json().get("result"))
-            print(f"[Pappers comptes] HTTP {resp.status_code}")
-    except (httpx.TimeoutException, httpx.ReadTimeout) as e:
-        print(f"[Pappers comptes] Timeout pour SIREN {siren}: {e}")
-    except Exception as e:
-        print(f"[Pappers comptes] Erreur pour SIREN {siren}: {e}")
+    """Comptes annuels detailles non disponibles dans Papperclip v1. Returns None."""
     return None
 
 
 async def search_dirigeant_by_name(q: str) -> Optional[dict]:
-    """
-    Recherche toutes les entreprises ou une personne est dirigeante.
-    Outil reel : recherche-dirigeants avec parametre q (nom + prenom concatenes).
-    """
-    result = await call_pappers_mcp("recherche-dirigeants", {
-        "q": q,
-        "par_page": 20,
-        "siege": False,
-    })
-    return _parse_mcp_json(result)
+    """Recherche dirigeant par nom via Papperclip — recherche approximative par raison sociale."""
+    companies = await _papperclip_search(query=q, per_page=20)
+    resultats = []
+    q_lower = q.lower()
+    for company in companies:
+        reps = company.get("representants", [])
+        matching = [
+            r for r in reps
+            if q_lower in f"{r.get('prenom', '')} {r.get('nom', '')}".lower()
+        ]
+        if matching:
+            for rep in matching:
+                resultats.append({
+                    "entreprises": [{
+                        "siren": company.get("siren"),
+                        "nom_entreprise": company.get("nom_entreprise"),
+                        "code_naf": company.get("code_naf"),
+                        "libelle_code_naf": company.get("libelle_code_naf"),
+                        "siege": company.get("siege"),
+                        "dirigeant": {"qualites": [rep.get("qualite", "")], "actuel": True},
+                    }]
+                })
+    return {"resultats": resultats, "total": len(resultats)}
 
 
 async def get_pappers_concurrents(code_naf: str, departement: str = "", ca_min: int = 0) -> Optional[dict]:
-    """Recherche les entreprises concurrentes (meme code NAF, meme departement)."""
-    args: Dict[str, Any] = {
-        "code_naf": code_naf,
-        "entreprise_cessee": False,
-        "par_page": 20,
-    }
-    if departement:
-        args["departement"] = departement
-    if ca_min > 0:
-        args["chiffre_affaires_min"] = str(ca_min)
-    result = await call_pappers_mcp("recherche-entreprises", args)
-    return _parse_mcp_json(result)
+    """Recherche les entreprises concurrentes via Papperclip (meme code NAF, meme departement)."""
+    companies = await _papperclip_search(
+        code_naf=code_naf,
+        departement=departement,
+        per_page=20,
+    )
+    return {"resultats": companies, "total": len(companies)}
 
 
 # ==========================================================================
@@ -2457,11 +2327,9 @@ async def _enrich_with_external_sources(targets: list) -> list:
 
 @app.post("/api/refresh-targets")
 async def refresh_targets():
-    """Refresh targets from Pappers MCP, then enrich with Google News + Infogreffe."""
+    """Refresh targets from Papperclip (free gov APIs), then enrich with Google News + Infogreffe."""
     global enriched_targets, raw_targets
-    if not PAPPERS_MCP_URL:
-        raise HTTPException(400, "Pappers MCP URL not configured")
-    fetched = await load_targets_from_pappers(PAPPERS_MCP_URL, count=10)
+    fetched = await load_targets_from_papperclip(count=10)
     if fetched:
         # Enrich with external sources (news + infogreffe actes)
         print(f"[EdRCF] Enriching {len(fetched)} targets with Google News + Infogreffe...")

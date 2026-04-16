@@ -144,18 +144,29 @@ def _map_gouv_to_pappers(company: dict) -> dict:
         siege.get("tranche_effectif_salarie", "")
     )
 
+    # --- Direct CA / resultat for endpoint compatibility ---
+    ca_recent = finances[0]["chiffre_affaires"] if finances else 0
+    resultat_recent = finances[0]["resultat"] if finances else 0
+
+    # --- Departement from code_postal ---
+    cp = siege.get("code_postal", "") or ""
+    departement = cp[:2] if len(cp) >= 2 else ""
+
     # --- Build Pappers-compatible dict ---
     return {
         "siren": company.get("siren", ""),
         "nom_entreprise": company.get("nom_complet", "") or company.get("nom_raison_sociale", ""),
         "siege": {
             "adresse": siege.get("adresse", ""),
-            "code_postal": siege.get("code_postal", ""),
+            "code_postal": cp,
             "ville": siege.get("commune", ""),
             "siret": siege.get("siret", ""),
+            "departement": departement,
         },
         "code_naf": siege.get("activite_principale", "") or company.get("activite_principale", ""),
         "libelle_code_naf": siege.get("libelle_activite_principale", "") or "",
+        "chiffre_affaires": ca_recent,
+        "resultat": resultat_recent,
         "date_creation": company.get("date_creation", ""),
         "forme_juridique": forme_juridique,
         "effectif": effectif,
@@ -355,3 +366,79 @@ def _tranche_to_effectif(tranche: str) -> str:
     if not tranche:
         return "N/A"
     return _TRANCHE_MAP.get(str(tranche), str(tranche))
+
+
+# ==========================================================================
+# Startup pipeline: load initial targets from free sources
+# ==========================================================================
+
+# Search profiles — one per target sector, matched to NAF codes
+_LOAD_PROFILES = [
+    {"label": "Courtage assurance",          "code_naf": "66.22Z", "per_page": 5},
+    {"label": "Transport routier fret",       "code_naf": "49.41A", "per_page": 5},
+    {"label": "Construction batiments",       "code_naf": "41.20A", "per_page": 4},
+    {"label": "Conseil management",           "code_naf": "70.22Z", "per_page": 4},
+    {"label": "Fabrication materiel medical", "code_naf": "32.50A", "per_page": 3},
+    {"label": "Fabrication machines ind.",    "code_naf": "28.99B", "per_page": 3},
+    {"label": "Industrie agroalimentaire",    "code_naf": "10.89Z", "per_page": 2},
+]
+
+
+async def load_targets_from_papperclip(count: int = 10) -> list:
+    """Load initial M&A target companies from free government APIs.
+
+    Pipeline: search by NAF -> deduplicate -> enrich with BODACC -> build_target().
+    Compatible with build_target() / detect_signals() from pappers_loader.py.
+    """
+    from pappers_loader import build_target  # local import to avoid circular at module level
+
+    seen_sirens: set = set()
+    raw_companies: list = []
+
+    print(f"[Papperclip] Starting load pipeline (target: {count} companies)...")
+
+    for profile in _LOAD_PROFILES:
+        if len(raw_companies) >= count:
+            break
+        label = profile["label"]
+        code_naf = profile.get("code_naf", "")
+        per_page = profile.get("per_page", 5)
+        print(f"[Papperclip] Searching: {label}...")
+        try:
+            results = await search_companies_gouv(code_naf=code_naf, per_page=per_page)
+            added = 0
+            for company in results:
+                siren = company.get("siren", "")
+                if siren and siren not in seen_sirens:
+                    seen_sirens.add(siren)
+                    raw_companies.append(company)
+                    added += 1
+                    if len(raw_companies) >= count:
+                        break
+            print(f"[Papperclip]   -> {added} new companies (pool: {len(raw_companies)})")
+        except Exception as e:
+            print(f"[Papperclip]   -> Search error for {label}: {e}")
+
+    print(f"[Papperclip] Collected {len(raw_companies)} unique companies. Enriching with BODACC...")
+
+    targets = []
+    for idx, company in enumerate(raw_companies, start=1):
+        siren = company.get("siren", "")
+        nom = company.get("nom_entreprise", "N/A")
+        print(f"[Papperclip] Enriching {idx}/{len(raw_companies)}: {nom} ({siren})...")
+        try:
+            company_info = await get_full_company_info(siren)
+            if not company_info:
+                print(f"[Papperclip]   -> Skipped (no detail data)")
+                continue
+            target = build_target(idx=idx, company_info=company_info, search_info=company)
+            targets.append(target)
+            print(
+                f"[Papperclip]   -> OK: {target['name']} | {target['sector']} "
+                f"| {len(target['active_signals'])} signals"
+            )
+        except Exception as e:
+            print(f"[Papperclip]   -> Error for {siren}: {e}")
+
+    print(f"[Papperclip] Pipeline complete: {len(targets)} targets built.")
+    return targets
