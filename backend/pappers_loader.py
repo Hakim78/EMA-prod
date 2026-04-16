@@ -49,6 +49,66 @@ def load_cache():
 
 
 # ============================================================================
+# Supabase cache (persistent storage — survives Vercel cold starts)
+# ============================================================================
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")  # anon/service key
+
+
+async def load_from_supabase() -> list | None:
+    """Load targets from Supabase. Returns list or None if not configured/empty."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"{SUPABASE_URL}/rest/v1/edrcf_companies?select=data&order=score.desc&limit=200",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                },
+            )
+            if r.status_code == 200:
+                rows = r.json()
+                if rows:
+                    targets = [row["data"] for row in rows]
+                    print(f"[Supabase] Loaded {len(targets)} targets from DB")
+                    return targets
+    except Exception as e:
+        print(f"[Supabase] Load error: {e}")
+    return None
+
+
+async def save_to_supabase(targets: list):
+    """Upsert targets to Supabase. Silently skips if not configured."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return
+    rows = [
+        {"siren": t.get("siren", ""), "data": t, "score": t.get("globalScore", 0)}
+        for t in targets
+        if t.get("siren")
+    ]
+    if not rows:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                f"{SUPABASE_URL}/rest/v1/edrcf_companies",
+                json=rows,
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates",
+                },
+            )
+            print(f"[Supabase] Upserted {len(rows)} targets (HTTP {r.status_code})")
+    except Exception as e:
+        print(f"[Supabase] Save error: {e}")
+
+
+# ============================================================================
 # MCP call helper
 # ============================================================================
 

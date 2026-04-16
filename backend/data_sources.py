@@ -374,13 +374,33 @@ def _tranche_to_effectif(tranche: str) -> str:
 
 # Search profiles — one per target sector, matched to NAF codes
 _LOAD_PROFILES = [
-    {"label": "Courtage assurance",          "code_naf": "66.22Z", "per_page": 5},
-    {"label": "Transport routier fret",       "code_naf": "49.41A", "per_page": 5},
-    {"label": "Construction batiments",       "code_naf": "41.20A", "per_page": 4},
-    {"label": "Conseil management",           "code_naf": "70.22Z", "per_page": 4},
-    {"label": "Fabrication materiel medical", "code_naf": "32.50A", "per_page": 3},
-    {"label": "Fabrication machines ind.",    "code_naf": "28.99B", "per_page": 3},
-    {"label": "Industrie agroalimentaire",    "code_naf": "10.89Z", "per_page": 2},
+    # --- Courtage / Assurance (heat 91 — surchauffe) ---
+    {"label": "Courtage assurance",              "code_naf": "66.22Z", "per_page": 6},
+    {"label": "Activites auxiliaires assurance", "code_naf": "66.29Z", "per_page": 4},
+    # --- Holding / Gestion actifs (signaux patrimoniaux) ---
+    {"label": "Holding gestion actifs",          "code_naf": "64.20Z", "per_page": 5},
+    {"label": "Capital-investissement",          "code_naf": "64.30Z", "per_page": 3},
+    # --- Logistique / Transport (heat 58) ---
+    {"label": "Transport routier fret",          "code_naf": "49.41A", "per_page": 5},
+    {"label": "Transport express messagerie",    "code_naf": "49.41B", "per_page": 4},
+    # --- BTP / Construction (heat 45) ---
+    {"label": "Construction batiments",          "code_naf": "41.20A", "per_page": 4},
+    {"label": "Travaux installation electrique", "code_naf": "43.21A", "per_page": 3},
+    # --- Services B2B / Conseil (heat 68) ---
+    {"label": "Conseil management",              "code_naf": "70.22Z", "per_page": 5},
+    {"label": "Activites comptabilite audit",    "code_naf": "69.20Z", "per_page": 4},
+    # --- MedTech / Sante (heat 75) ---
+    {"label": "Fabrication materiel medical",    "code_naf": "32.50A", "per_page": 4},
+    {"label": "Cliniques et hopitaux prives",    "code_naf": "86.10Z", "per_page": 3},
+    # --- Industrie / Tech (heat 82) ---
+    {"label": "Fabrication machines ind.",       "code_naf": "28.99B", "per_page": 4},
+    {"label": "Fabrication composants electro.", "code_naf": "26.11Z", "per_page": 3},
+    # --- Agroalimentaire (heat 52) ---
+    {"label": "Industrie agroalimentaire",       "code_naf": "10.89Z", "per_page": 3},
+    {"label": "Fabrication vins",                "code_naf": "11.02A", "per_page": 2},
+    # --- Energie / CleanTech (heat 87) ---
+    {"label": "Production energie renouvelable", "code_naf": "35.11Z", "per_page": 3},
+    {"label": "Services efficacite energetique", "code_naf": "71.12B", "per_page": 2},
 ]
 
 

@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from demo_data import SIGNAL_CATALOG, DEFAULT_SCORING_WEIGHTS, SECTORS_HEAT
-from pappers_loader import load_cache, save_cache, build_target, detect_signals
+from pappers_loader import load_cache, save_cache, build_target, detect_signals, load_from_supabase, save_to_supabase
 from data_sources import (
     get_full_company_info as _papperclip_get_company,
     search_companies_gouv as _papperclip_search,
@@ -125,14 +125,24 @@ def _load_targets_sync():
 @asynccontextmanager
 async def lifespan(app):
     global enriched_targets, raw_targets
-    _load_targets_sync()
 
-    # Try to load from Papperclip (free gov APIs) if no cache
+    # 1. Supabase first — persistent, survives cold starts (fast)
+    db_targets = await load_from_supabase()
+    if db_targets:
+        raw_targets = db_targets
+        enriched_targets = [enrich_target(c) for c in db_targets]
+        print(f"[EdRCF] Loaded {len(enriched_targets)} targets from Supabase")
+    else:
+        # 2. Local JSON cache (warm instances only)
+        _load_targets_sync()
+
+    # 3. Last resort: fetch 50 companies from free gov APIs
     if not enriched_targets:
         try:
-            fetched = await load_targets_from_papperclip(count=10)
+            fetched = await load_targets_from_papperclip(count=50)
             if fetched:
                 save_cache(fetched)
+                await save_to_supabase(fetched)
                 raw_targets = fetched
                 enriched_targets = [enrich_target(c) for c in fetched]
                 print(f"[EdRCF] Loaded {len(enriched_targets)} targets from Papperclip")
@@ -202,6 +212,13 @@ async def _add_company_to_targets(siren: str) -> Optional[dict]:
 
 async def search_pappers(query: str = "", par_page: str = "10", **filters):
     """Search companies via Papperclip (free gov APIs). Returns Pappers-compatible structure."""
+    # Direct SIREN lookup if query is exactly 9 digits
+    clean_query = query.strip()
+    if re.match(r'^\d{9}$', clean_query):
+        company_info = await _papperclip_get_company(clean_query)
+        if company_info and isinstance(company_info, dict) and company_info.get("siren"):
+            return {"resultats": [company_info], "total": 1}
+
     count = min(int(par_page or "10"), 25)
     code_naf = filters.get("code_naf", "")
     departement = filters.get("departement", "")
