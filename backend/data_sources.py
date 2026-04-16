@@ -7,6 +7,7 @@ Sources:
   - BODACC (OpenDataSoft) — no auth, legal announcements
 """
 
+import os
 import httpx
 from datetime import datetime
 
@@ -251,6 +252,147 @@ def _bodacc_type(fields: dict) -> str:
 
 
 # ==========================================================================
+# INPI RNE (Director registry — optional OAuth2 credentials)
+# ==========================================================================
+
+_INPI_TOKEN: str | None = None
+_INPI_TOKEN_EXPIRY: float = 0.0
+
+INPI_LOGIN_URL = "https://registre-national-entreprises.inpi.fr/api/sso/login"
+INPI_COMPANIES_URL = "https://registre-national-entreprises.inpi.fr/api/companies"
+
+
+async def _get_inpi_token() -> str | None:
+    """Fetch INPI OAuth2 token. Returns None if INPI_USER / INPI_PASSWORD not set."""
+    import time
+    global _INPI_TOKEN, _INPI_TOKEN_EXPIRY
+
+    user = os.environ.get("INPI_USER", "")
+    password = os.environ.get("INPI_PASSWORD", "")
+    if not user or not password:
+        return None
+
+    if _INPI_TOKEN and time.time() < _INPI_TOKEN_EXPIRY:
+        return _INPI_TOKEN
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                INPI_LOGIN_URL,
+                json={"username": user, "password": password},
+                headers={"Content-Type": "application/json"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                _INPI_TOKEN = data.get("token")
+                _INPI_TOKEN_EXPIRY = time.time() + 3500  # token valid ~1h
+                print(f"[INPI] Token obtained")
+                return _INPI_TOKEN
+            print(f"[INPI] Login failed: HTTP {resp.status_code}")
+    except Exception as e:
+        print(f"[INPI] Token error: {e}")
+    return None
+
+
+async def fetch_inpi_rne(siren: str) -> dict | None:
+    """Fetch company data from INPI RNE API.
+    Returns raw INPI data dict or None if unavailable / not configured."""
+    token = await _get_inpi_token()
+    if not token:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{INPI_COMPANIES_URL}/{siren}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            print(f"[INPI] RNE fetch HTTP {resp.status_code} for {siren}")
+    except Exception as e:
+        print(f"[INPI] RNE error for {siren}: {e}")
+    return None
+
+
+def _enrich_representants_from_inpi(representants: list, inpi_data: dict) -> list:
+    """Merge INPI RNE director data into existing representants list.
+    Adds: historical mandates, more precise age, nationality."""
+    if not inpi_data:
+        return representants
+
+    # INPI structure varies — try common paths
+    inpi_reps = (
+        inpi_data.get("representants")
+        or inpi_data.get("dirigeants")
+        or []
+    )
+    if not inpi_reps:
+        # Try nested structure
+        formality = inpi_data.get("formality") or {}
+        content = formality.get("content") or {}
+        inpi_reps = content.get("personnesMorales", []) or content.get("personneMorale", [])
+
+    # Build a name-keyed map for merging
+    inpi_map: dict = {}
+    for r in inpi_reps:
+        nom = (r.get("nom") or r.get("lastName") or "").upper()
+        if nom:
+            inpi_map[nom] = r
+
+    enriched = []
+    for rep in representants:
+        nom_key = (rep.get("nom") or "").upper()
+        inpi_match = inpi_map.get(nom_key)
+        if inpi_match:
+            rep = dict(rep)
+            # Add nationality if present
+            nat = inpi_match.get("nationalite") or inpi_match.get("nationality")
+            if nat:
+                rep["nationalite"] = nat
+            # Add more precise birth date if INPI has it
+            if not rep.get("date_de_naissance"):
+                dob = inpi_match.get("dateDeNaissance") or inpi_match.get("birthDate")
+                if dob:
+                    rep["date_de_naissance"] = str(dob)[:10]
+                    try:
+                        rep["age"] = _current_year - int(str(dob)[:4])
+                    except Exception:
+                        pass
+        enriched.append(rep)
+    return enriched
+
+
+async def enrich_with_cross_mandates(siren: str, representants: list) -> list:
+    """For the first 3 directors, search for other companies they manage.
+    Populates 'autres_mandats' — used by detect_signals() for dirigeant_multi_mandats."""
+    enriched = []
+    for idx, rep in enumerate(representants):
+        if idx >= 3:  # Only enrich top 3 to respect rate limits
+            enriched.append(rep)
+            continue
+        nom = (rep.get("nom") or "").strip()
+        prenom = (rep.get("prenom") or "").strip()
+        if not nom:
+            enriched.append(rep)
+            continue
+        query = f"{prenom} {nom}".strip()
+        try:
+            companies = await search_companies_gouv(query=query, per_page=5)
+            autres = [
+                {"entreprise": {"nom_entreprise": c.get("nom_entreprise", ""), "siren": c.get("siren", "")}}
+                for c in companies
+                if c.get("siren") and c.get("siren") != siren
+            ][:3]
+            rep = dict(rep)
+            rep["autres_mandats"] = autres
+        except Exception:
+            rep = dict(rep)
+            rep.setdefault("autres_mandats", [])
+        enriched.append(rep)
+    return enriched + representants[3:]
+
+
+# ==========================================================================
 # Aggregate all sources into a single company_info
 # ==========================================================================
 
@@ -279,6 +421,20 @@ async def get_full_company_info(siren: str) -> dict | None:
                 company_info["procedure_collective_existe"] = True
                 company_info["procedures_collectives"] = [pub]
                 break
+
+    # INPI RNE enrichment (optional — requires INPI_USER + INPI_PASSWORD)
+    inpi_data = await fetch_inpi_rne(siren)
+    if inpi_data and company_info.get("representants"):
+        company_info["representants"] = _enrich_representants_from_inpi(
+            company_info["representants"], inpi_data
+        )
+        company_info["inpi_rne_raw"] = inpi_data  # Store for audit
+
+    # Cross-mandate enrichment (free, uses API Recherche Entreprises)
+    if company_info.get("representants"):
+        company_info["representants"] = await enrich_with_cross_mandates(
+            siren, company_info["representants"]
+        )
 
     print(f"[Papperclip] Aggregated data for {company_info.get('nom_entreprise', siren)}: "
           f"{len(company_info.get('representants', []))} dirigeants, "
