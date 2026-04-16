@@ -172,7 +172,6 @@ export default function GlobalCopilot() {
 
   const handleSend = async (e?: React.FormEvent, directValue?: string) => {
     if (e) e.preventDefault();
-
     const query = directValue || input;
     if (!query.trim() || isLoading) return;
 
@@ -182,37 +181,86 @@ export default function GlobalCopilot() {
       content: query,
       timestamp: Date.now(),
     };
-
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    try {
-      const res = await fetch(`/api/copilot/query?q=${encodeURIComponent(query)}`);
-      if (!res.ok) throw new Error("Connexion API echouee");
-      const data = await res.json();
+    const assistantId = (Date.now() + 1).toString();
+    // Add empty assistant message immediately for streaming display
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    }]);
 
-      if (data.targets_updated) {
-        window.dispatchEvent(new CustomEvent("targets-updated"));
+    try {
+      const res = await fetch(`/api/copilot/stream?q=${encodeURIComponent(query)}`);
+      if (!res.ok || !res.body) throw new Error("Stream unavailable");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let source: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.chunk) {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantId
+                  ? { ...m, content: m.content + event.chunk }
+                  : m
+              ));
+            }
+            if (event.done) {
+              source = event.source;
+              if (event.targets_updated) {
+                window.dispatchEvent(new CustomEvent("targets-updated"));
+              }
+            }
+          } catch {
+            // ignore malformed SSE line
+          }
+        }
       }
 
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.response || "Je n'ai pas pu traiter cette demande. Veuillez reessayer.",
-        timestamp: Date.now(),
-        source: data.source || undefined,
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      // Set final source badge
+      if (source) {
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId ? { ...m, source: source as Message["source"] } : m
+        ));
+      }
     } catch (err) {
       console.error(err);
-      const errorMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "ERREUR DE CONNEXION: Impossible d'etablir le lien avec les processeurs EDRCF. Verifiez le statut du serveur.",
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      // Fallback: try non-streaming endpoint
+      try {
+        const res = await fetch(`/api/copilot/query?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data.targets_updated) {
+          window.dispatchEvent(new CustomEvent("targets-updated"));
+        }
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: data.response || "Erreur de connexion.", source: data.source }
+            : m
+        ));
+      } catch {
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: "ERREUR DE CONNEXION: Impossible de joindre le serveur EDRCF." }
+            : m
+        ));
+      }
     } finally {
       setIsLoading(false);
     }

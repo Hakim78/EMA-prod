@@ -188,11 +188,67 @@ export default function ReportPage() {
            </div>
         </section>
 
-        {/* 03. Entry Path */}
+        {/* 03. Directors */}
+        {(target.dirigeants ?? []).length > 0 && (
+          <section>
+            <h2 className="text-xs font-black uppercase tracking-[0.4em] text-gray-400 mb-8 flex items-center gap-4">
+              <span className="w-1.5 h-6 bg-black rounded-full" /> 03. KEY PRINCIPALS
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {(target.dirigeants ?? []).slice(0, 4).map((d, i) => (
+                <div key={i} className="p-6 border border-gray-100 rounded-3xl bg-gray-50/50">
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{d.role || "Dirigeant"}</div>
+                  <div className="text-base font-black uppercase tracking-tight">{d.name}</div>
+                  {(d as any).age > 0 && (
+                    <div className={`text-xs font-bold mt-1 ${(d as any).age >= 60 ? "text-amber-600" : "text-gray-400"}`}>
+                      {(d as any).age} ans{(d as any).age >= 60 ? " — Succession à surveiller" : ""}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 04. Signal Intelligence */}
+        {(target.topSignals ?? []).length > 0 && (
+          <section>
+            <h2 className="text-xs font-black uppercase tracking-[0.4em] text-gray-400 mb-8 flex items-center gap-4">
+              <span className="w-1.5 h-6 bg-black rounded-full" /> 04. SIGNAL INTELLIGENCE
+            </h2>
+            <div className="space-y-3">
+              {(target.topSignals ?? []).map((s, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 border border-gray-100 rounded-2xl">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
+                    s.severity === "high" ? "bg-red-500" :
+                    s.severity === "medium" ? "bg-amber-400" : "bg-gray-300"
+                  }`} />
+                  <div className="flex-1">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{s.family}</div>
+                    <div className="text-sm font-black uppercase">{s.label}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-lg font-black">+{s.points}</div>
+                    <div className="text-[8px] font-black text-gray-400 uppercase">pts</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 p-6 bg-black text-white rounded-4xl flex items-center justify-between">
+              <div>
+                <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Score de convergence M&A</div>
+                <div className="text-xs font-bold text-gray-300">{target.priorityLevel}</div>
+              </div>
+              <div className="text-5xl font-black">{target.globalScore}<span className="text-2xl text-gray-600">/100</span></div>
+            </div>
+          </section>
+        )}
+
+        {/* 05. Entry Path */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-12">
            <div>
               <h2 className="text-xs font-black uppercase tracking-[0.4em] text-gray-400 mb-8 flex items-center gap-3">
-                 <Crosshair size={18} /> 03. ACTIVATION PROTOCOL
+                 <Crosshair size={18} /> 05. ACTIVATION PROTOCOL
               </h2>
               <div className="space-y-8">
                  <div>
@@ -242,7 +298,7 @@ export default function ReportPage() {
         {/* Footer */}
         <div className="mt-12 pt-12 border-t border-black flex flex-col sm:flex-row justify-between items-center gap-6 text-[8px] font-black text-gray-400 uppercase tracking-widest">
            <div className="flex gap-8">
-              <span>EDRCF-ARCHIVE-V5</span>
+              <span>EDRCF-ARCHIVE-V6</span>
               <span>CONFIDENTIALITY LEVEL: INTERNAL</span>
               <span>GEN-TIME: {mounted ? currentTime : "Sync..."}</span>
            </div>
