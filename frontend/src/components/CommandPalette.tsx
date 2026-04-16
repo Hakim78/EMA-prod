@@ -29,26 +29,51 @@ export function CommandPalette() {
   }, []);
 
   // Fetch targets when searching with debounce
+  // 1. Search local cache first; 2. Fall back to real API (Papperclip) if no results
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (search.length > 1) {
-        fetch(`${API_URL}/api/targets?q=${encodeURIComponent(search)}`)
-          .then(res => res.json())
-          .then(data => {
-            const results: SearchResult[] = data.data.map((t: Target) => ({
-              id: t.id,
-              name: t.name,
-              sector: t.sector,
-              type: "target",
-              path: `/targets/${t.id}`
-            }));
-            setTargets(results);
-          })
-          .catch(err => console.error("Search failed:", err));
-      } else {
+    const timer = setTimeout(async () => {
+      if (search.length < 2) {
         setTargets([]);
+        return;
       }
-    }, 300);
+
+      const toResult = (t: Target): SearchResult => ({
+        id: t.id,
+        name: t.name,
+        sector: t.sector,
+        type: "target",
+        path: `/targets/${t.id}`
+      });
+
+      try {
+        // Step 1 – local in-memory targets
+        const localRes = await fetch(`${API_URL}/api/targets?q=${encodeURIComponent(search)}`);
+        const localData = await localRes.json();
+        const localResults: SearchResult[] = (localData.data || []).map(toResult);
+
+        if (localResults.length > 0) {
+          setTargets(localResults);
+          return;
+        }
+
+        // Step 2 – real API lookup (gov APIs via Papperclip)
+        const apiRes = await fetch(`${API_URL}/api/targets/search-pappers?q=${encodeURIComponent(search)}`);
+        const apiData = await apiRes.json();
+        const apiResults: SearchResult[] = (apiData.data || [])
+          .filter((c: { siren?: string; name?: string }) => c.siren && c.name)
+          .map((c: { siren: string; name: string; code_naf?: string; libelle_naf?: string }, i: number) => ({
+            id: c.siren,
+            name: c.name,
+            sector: c.libelle_naf || c.code_naf || "Entreprise",
+            type: "target" as const,
+            path: `/targets/${c.siren}`
+          }));
+
+        setTargets(apiResults);
+      } catch (err) {
+        console.error("Search failed:", err);
+      }
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [search]);
