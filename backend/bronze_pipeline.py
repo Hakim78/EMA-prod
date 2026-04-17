@@ -21,9 +21,6 @@ Usage CLI :
 """
 
 import asyncio
-import csv
-import gzip
-import io
 import os
 import sys
 import time
@@ -64,28 +61,31 @@ SILVER_TABLE     = "silver_ma"      # ~50-80K PME/ETI éligibles
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-SIRENE_URL_FALLBACK = "https://files.data.gouv.fr/insee-sirene/StockUniteLegale_utf8.csv.gz"
-DATAGOUV_API        = "https://www.data.gouv.fr/api/1/datasets/558dbb8c88ee386afc0c7d9b/"
-LOCAL_GZ            = "/tmp/sirene_ul.csv.gz"
+DATAGOUV_API            = "https://www.data.gouv.fr/api/1/datasets/5b7ffc618b4c4169d30727e0/"
+SIRENE_PARQUET_FALLBACK = "https://object.files.data.gouv.fr/data-pipeline-open/siren/stock/StockUniteLegale_utf8.parquet"
+SIRENE_ZIP_FALLBACK     = "https://object.files.data.gouv.fr/data-pipeline-open/siren/stock/StockUniteLegale_utf8.zip"
 
 
-def get_sirene_url() -> str:
+def get_sirene_url(prefer: str = "parquet") -> str:
     """Interroge l'API data.gouv.fr pour obtenir l'URL courante du fichier SIRENE.
-    Retourne l'URL du premier .gz trouvé, sinon l'URL de fallback."""
+    prefer='parquet' → fichier Parquet (DuckDB natif, recommandé)
+    prefer='zip'     → fichier ZIP CSV (fallback)
+    """
     try:
         req = urllib.request.Request(DATAGOUV_API, headers={"User-Agent": "EdRCF/6.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             import json as _json
             data = _json.loads(resp.read())
+            ext = ".parquet" if prefer == "parquet" else ".zip"
             for res in data.get("resources", []):
                 url   = res.get("url", "")
                 title = res.get("title", "").lower()
-                if "stockuniteleg" in title and url.endswith(".csv.gz"):
-                    print(f"[BRONZE] URL SIRENE trouvée : {url}")
+                if "stockuniteleg" in title and "historique" not in title and url.endswith(ext):
+                    print(f"[BRONZE] URL SIRENE ({prefer}) : {url}")
                     return url
     except Exception as e:
         print(f"[BRONZE] data.gouv.fr API error: {e} — fallback URL")
-    return SIRENE_URL_FALLBACK
+    return SIRENE_PARQUET_FALLBACK if prefer == "parquet" else SIRENE_ZIP_FALLBACK
 
 UPSERT_BATCH = 500   # lignes par appel Supabase
 
@@ -214,57 +214,6 @@ def setup_tables() -> None:
 # BRONZE — chargement des 16M entités SIRENE
 # =============================================================================
 
-async def download_sirene(dest: str = LOCAL_GZ) -> str:
-    """Télécharge le fichier SIRENE CSV.gz (~2.5 Go) avec progression."""
-    if os.path.exists(dest):
-        size_mb = os.path.getsize(dest) / 1e6
-        print(f"[BRONZE] Fichier déjà présent : {dest} ({size_mb:.0f} Mo) — téléchargement ignoré.")
-        return dest
-
-    print(f"[BRONZE] Téléchargement SIRENE → {dest} …")
-    downloaded = 0
-    last_log   = 0
-
-    async with httpx.AsyncClient(timeout=None, follow_redirects=True) as client:
-        async with client.stream("GET", SIRENE_URL) as r:
-            r.raise_for_status()
-            total = int(r.headers.get("content-length", 0))
-            with open(dest, "wb") as fout:
-                async for chunk in r.aiter_bytes(65536):
-                    fout.write(chunk)
-                    downloaded += len(chunk)
-                    mb = downloaded / 1e6
-                    if mb - last_log >= 100:
-                        pct = f"{downloaded/total*100:.1f}%" if total else "?"
-                        print(f"  {mb:.0f} Mo téléchargés ({pct})")
-                        last_log = mb
-
-    print(f"[BRONZE] Téléchargement terminé : {downloaded/1e6:.0f} Mo")
-    return dest
-
-
-BRONZE_BATCH = 50_000   # lignes par INSERT batch
-
-
-def _parse_row(row: dict) -> tuple:
-    """Extrait les 9 colonnes utiles d'une ligne SIRENE brute."""
-    naf  = (row.get("activitePrincipaleUniteLegale") or "").replace(".", "")
-    dept = (row.get("codeCommuneEtablissementSiege") or "")[:2]
-    date_raw = row.get("dateCreationUniteLegale") or ""
-    date_val = date_raw[:10] if date_raw else None
-    return (
-        row.get("siren") or "",
-        row.get("denominationUniteLegale") or "",
-        naf,
-        dept,
-        row.get("trancheEffectifsUniteLegale") or "",
-        date_val,
-        row.get("categorieJuridiqueUniteLegale") or "",
-        row.get("categorieEntreprise") or "",
-        row.get("etatAdministratifUniteLegale") or "",
-    )
-
-
 def load_bronze(source: str | None = None) -> int:
     """
     Charge toutes les entités SIRENE dans Bronze via streaming Python + batch INSERT.
@@ -273,7 +222,7 @@ def load_bronze(source: str | None = None) -> int:
     Retourne le nombre de lignes insérées.
     """
     global _PIPELINE_STATUS
-    url = source or get_sirene_url()
+    url = source or get_sirene_url(prefer="parquet")
     con = _get_connection()
 
     _PIPELINE_STATUS.update({"step": "bronze_load", "rows_loaded": 0, "error": None})
@@ -281,41 +230,30 @@ def load_bronze(source: str | None = None) -> int:
     print(f"[BRONZE] Vidage table existante…")
     con.execute(f"DELETE FROM {BRONZE_TABLE}")
 
-    print(f"[BRONZE] Stream depuis {url} (batch {BRONZE_BATCH:,} lignes)…")
-    t0        = time.time()
-    total     = 0
-    batch     = []
-    last_log  = 0
+    print(f"[BRONZE] Chargement Parquet depuis {url} via DuckDB httpfs…")
+    t0 = time.time()
 
-    insert_sql = f"""
+    # httpfs + read_parquet : MotherDuck streame directement depuis object storage
+    # Pas de fichier temporaire, pas de Python CSV parsing
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    con.execute(f"""
         INSERT INTO {BRONZE_TABLE}
             (siren, denomination, naf, dept, effectif_tranche,
              date_creation, categorie_juridique, categorie_entreprise,
              etat_administratif)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
-
-    # urllib.request + gzip.open() = stream nativement sans fichier temporaire
-    req = urllib.request.Request(url, headers={"User-Agent": "EdRCF/6.0"})
-    with urllib.request.urlopen(req, timeout=3600) as resp:
-        with gzip.open(resp, "rt", encoding="utf-8", errors="replace") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                batch.append(_parse_row(row))
-                if len(batch) >= BRONZE_BATCH:
-                    con.executemany(insert_sql, batch)
-                    total += len(batch)
-                    batch = []
-                    if total - last_log >= 500_000:
-                        elapsed = time.time() - t0
-                        print(f"  [BRONZE] {total:,} lignes — {elapsed/60:.1f} min")
-                        _PIPELINE_STATUS["rows_loaded"] = total
-                        last_log = total
-
-    # Flush dernier batch
-    if batch:
-        con.executemany(insert_sql, batch)
-        total += len(batch)
+        SELECT
+            siren                                                   AS siren,
+            denominationUniteLegale                                 AS denomination,
+            REPLACE(COALESCE(activitePrincipaleUniteLegale,''),'.',''
+                                                                    ) AS naf,
+            LEFT(COALESCE(codeCommuneEtablissementSiege,''), 2)     AS dept,
+            trancheEffectifsUniteLegale                             AS effectif_tranche,
+            TRY_CAST(dateCreationUniteLegale AS DATE)               AS date_creation,
+            categorieJuridiqueUniteLegale                           AS categorie_juridique,
+            categorieEntreprise                                     AS categorie_entreprise,
+            etatAdministratifUniteLegale                            AS etat_administratif
+        FROM read_parquet('{url}')
+    """)
 
     count = con.execute(f"SELECT COUNT(*) FROM {BRONZE_TABLE}").fetchone()[0]
     elapsed = time.time() - t0
@@ -577,8 +515,7 @@ async def _run_async(cmd: str, args: list[str]) -> None:
         setup_tables()
 
     elif cmd == "load-bronze":
-        gz = await download_sirene()
-        load_bronze(gz)
+        load_bronze()
 
     elif cmd == "build-silver":
         build_silver()
@@ -593,8 +530,7 @@ async def _run_async(cmd: str, args: list[str]) -> None:
 
     elif cmd == "full":
         setup_tables()
-        gz = await download_sirene()
-        load_bronze(gz)
+        load_bronze()
         build_silver()
         await sync_silver_to_supabase(top_n=5000)
 
