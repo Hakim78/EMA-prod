@@ -2605,6 +2605,46 @@ async def admin_load_bronze(
     }
 
 
+@app.get("/api/admin/fix-dept")
+async def admin_fix_dept(
+    background_tasks: BackgroundTasks,
+    secret: str = Query(default=""),
+):
+    """
+    Backfill la colonne dept dans Bronze depuis StockEtablissement (sièges).
+    À lancer une fois après un load-bronze fait sans dept (NULL).
+    Durée estimée : 5-15 min (UPDATE en place, pas de rechargement).
+    """
+    _check_admin_secret(secret)
+
+    async def _run_fix():
+        import bronze_pipeline as bp
+        bp._PIPELINE_STATUS.update({
+            "running": True, "step": "fix_dept", "error": None,
+            "started_at": datetime.utcnow().isoformat(), "finished_at": None,
+        })
+        try:
+            updated = await asyncio.to_thread(bp.fix_bronze_dept)
+            bp._PIPELINE_STATUS.update({
+                "running": False, "step": "fix_dept_done",
+                "rows_loaded": updated, "finished_at": datetime.utcnow().isoformat(),
+            })
+            print(f"[ADMIN] fix_dept terminé : {updated:,} lignes.")
+        except Exception as e:
+            bp._PIPELINE_STATUS.update({
+                "running": False, "step": "error",
+                "error": str(e), "finished_at": datetime.utcnow().isoformat(),
+            })
+            print(f"[ADMIN] Erreur fix_dept: {e}")
+
+    background_tasks.add_task(_run_fix)
+    return {
+        "status": "started",
+        "message": "Backfill dept lancé en arrière-plan (~5-15 min). "
+                   "Suivre la progression via /api/admin/bronze-stats",
+    }
+
+
 # =============================================================================
 # /api/admin/index-stats — Stats de sirene_index
 # =============================================================================

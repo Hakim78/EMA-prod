@@ -61,31 +61,49 @@ SILVER_TABLE     = "silver_ma"      # ~50-80K PME/ETI éligibles
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-DATAGOUV_API            = "https://www.data.gouv.fr/api/1/datasets/5b7ffc618b4c4169d30727e0/"
-SIRENE_PARQUET_FALLBACK = "https://object.files.data.gouv.fr/data-pipeline-open/siren/stock/StockUniteLegale_utf8.parquet"
-SIRENE_ZIP_FALLBACK     = "https://object.files.data.gouv.fr/data-pipeline-open/siren/stock/StockUniteLegale_utf8.zip"
+DATAGOUV_API = "https://www.data.gouv.fr/api/1/datasets/5b7ffc618b4c4169d30727e0/"
+
+# Fallbacks directs — utilisés si l'API data.gouv.fr est indisponible
+_BASE_OBJECT = "https://object.files.data.gouv.fr/data-pipeline-open/siren/stock"
+SIRENE_UL_PARQUET_FALLBACK   = f"{_BASE_OBJECT}/StockUniteLegale_utf8.parquet"
+SIRENE_ETAB_PARQUET_FALLBACK = f"{_BASE_OBJECT}/StockEtablissement_utf8.parquet"
 
 
-def get_sirene_url(prefer: str = "parquet") -> str:
-    """Interroge l'API data.gouv.fr pour obtenir l'URL courante du fichier SIRENE.
-    prefer='parquet' → fichier Parquet (DuckDB natif, recommandé)
-    prefer='zip'     → fichier ZIP CSV (fallback)
+def _fetch_sirene_urls() -> dict:
+    """Interroge l'API data.gouv.fr et retourne un dict {keyword: url} pour les fichiers Parquet SIRENE.
+    Cherche 'stockuniteleg' (unités légales) et 'stocketabli' (établissements).
     """
+    result = {}
     try:
         req = urllib.request.Request(DATAGOUV_API, headers={"User-Agent": "EdRCF/6.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             import json as _json
             data = _json.loads(resp.read())
-            ext = ".parquet" if prefer == "parquet" else ".zip"
             for res in data.get("resources", []):
                 url   = res.get("url", "")
                 title = res.get("title", "").lower()
-                if "stockuniteleg" in title and "historique" not in title and url.endswith(ext):
-                    print(f"[BRONZE] URL SIRENE ({prefer}) : {url}")
-                    return url
+                if "historique" in title or not url.endswith(".parquet"):
+                    continue
+                if "stockuniteleg" in title:
+                    result["ul"] = url
+                    print(f"[BRONZE] URL UnitéLégale : {url}")
+                elif "stocketabli" in title:
+                    result["etab"] = url
+                    print(f"[BRONZE] URL Etablissement : {url}")
     except Exception as e:
-        print(f"[BRONZE] data.gouv.fr API error: {e} — fallback URL")
-    return SIRENE_PARQUET_FALLBACK if prefer == "parquet" else SIRENE_ZIP_FALLBACK
+        print(f"[BRONZE] data.gouv.fr API error: {e} — fallback URLs")
+    return result
+
+
+def get_sirene_urls() -> tuple[str, str]:
+    """Retourne (ul_url, etab_url) pour les fichiers Parquet SIRENE.
+    ul_url   → StockUniteLegale  (siren, 16M)
+    etab_url → StockEtablissement (siret, ~30M) — utilisé uniquement pour extraire le dept du siège
+    """
+    urls = _fetch_sirene_urls()
+    ul_url   = urls.get("ul",   SIRENE_UL_PARQUET_FALLBACK)
+    etab_url = urls.get("etab", SIRENE_ETAB_PARQUET_FALLBACK)
+    return ul_url, etab_url
 
 UPSERT_BATCH = 500   # lignes par appel Supabase
 
@@ -214,27 +232,29 @@ def setup_tables() -> None:
 # BRONZE — chargement des 16M entités SIRENE
 # =============================================================================
 
-def load_bronze(source: str | None = None) -> int:
+def load_bronze(ul_url: str | None = None, etab_url: str | None = None) -> int:
     """
-    Charge toutes les entités SIRENE dans Bronze via streaming Python + batch INSERT.
-    Streame le CSV.gz depuis data.gouv.fr sans écrire de fichier temporaire.
-    Met à jour _PIPELINE_STATUS toutes les 500K lignes.
+    Charge toutes les entités SIRENE dans Bronze.
+    Jointure LEFT JOIN avec StockEtablissement pour récupérer le dept du siège.
+    MotherDuck lit les deux Parquet en streaming server-side — aucun fichier temporaire.
     Retourne le nombre de lignes insérées.
     """
     global _PIPELINE_STATUS
-    url = source or get_sirene_url(prefer="parquet")
-    con = _get_connection()
 
+    resolved_ul, resolved_etab = get_sirene_urls()
+    ul_url   = ul_url   or resolved_ul
+    etab_url = etab_url or resolved_etab
+
+    con = _get_connection()
     _PIPELINE_STATUS.update({"step": "bronze_load", "rows_loaded": 0, "error": None})
 
     print(f"[BRONZE] Vidage table existante…")
     con.execute(f"DELETE FROM {BRONZE_TABLE}")
 
-    print(f"[BRONZE] Chargement Parquet depuis {url} via DuckDB httpfs…")
+    print(f"[BRONZE] UL   : {ul_url}")
+    print(f"[BRONZE] ETAB : {etab_url}")
     t0 = time.time()
 
-    # httpfs + read_parquet : MotherDuck streame directement depuis object storage
-    # Pas de fichier temporaire, pas de Python CSV parsing
     con.execute("INSTALL httpfs; LOAD httpfs;")
     con.execute(f"""
         INSERT INTO {BRONZE_TABLE}
@@ -242,17 +262,21 @@ def load_bronze(source: str | None = None) -> int:
              date_creation, categorie_juridique, categorie_entreprise,
              etat_administratif)
         SELECT
-            siren                                                   AS siren,
-            denominationUniteLegale                                 AS denomination,
-            REPLACE(COALESCE(activitePrincipaleUniteLegale,''),'.',''
-                                                                    ) AS naf,
-            NULL                                                     AS dept,
-            trancheEffectifsUniteLegale                             AS effectif_tranche,
-            TRY_CAST(dateCreationUniteLegale AS DATE)               AS date_creation,
-            categorieJuridiqueUniteLegale                           AS categorie_juridique,
-            categorieEntreprise                                     AS categorie_entreprise,
-            etatAdministratifUniteLegale                            AS etat_administratif
-        FROM read_parquet('{url}')
+            ul.siren                                                          AS siren,
+            ul.denominationUniteLegale                                        AS denomination,
+            REPLACE(COALESCE(ul.activitePrincipaleUniteLegale,''), '.', '')   AS naf,
+            LEFT(COALESCE(e.codeCommuneEtablissement, ''), 2)                 AS dept,
+            ul.trancheEffectifsUniteLegale                                    AS effectif_tranche,
+            TRY_CAST(ul.dateCreationUniteLegale AS DATE)                      AS date_creation,
+            ul.categorieJuridiqueUniteLegale                                  AS categorie_juridique,
+            ul.categorieEntreprise                                            AS categorie_entreprise,
+            ul.etatAdministratifUniteLegale                                   AS etat_administratif
+        FROM read_parquet('{ul_url}') AS ul
+        LEFT JOIN (
+            SELECT siren, codeCommuneEtablissement
+            FROM read_parquet('{etab_url}')
+            WHERE etablissementSiege = 'true'
+        ) AS e ON ul.siren = e.siren
     """)
 
     count = con.execute(f"SELECT COUNT(*) FROM {BRONZE_TABLE}").fetchone()[0]
@@ -261,6 +285,40 @@ def load_bronze(source: str | None = None) -> int:
     con.close()
     print(f"[BRONZE] ✅ {count:,} entités en {elapsed/60:.1f} min.")
     return count
+
+
+def fix_bronze_dept(etab_url: str | None = None) -> int:
+    """
+    Backfill la colonne dept sur Bronze existant sans recharger les 29M lignes.
+    Lit uniquement les sièges depuis StockEtablissement et fait un UPDATE ciblé.
+    Retourne le nombre de lignes mises à jour.
+    """
+    _, resolved_etab = get_sirene_urls()
+    etab_url = etab_url or resolved_etab
+
+    con = _get_connection()
+    print(f"[BRONZE] fix_dept depuis {etab_url}…")
+    t0 = time.time()
+
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    con.execute(f"""
+        UPDATE {BRONZE_TABLE} AS b
+        SET dept = LEFT(COALESCE(e.codeCommuneEtablissement, ''), 2)
+        FROM (
+            SELECT siren, codeCommuneEtablissement
+            FROM read_parquet('{etab_url}')
+            WHERE etablissementSiege = 'true'
+        ) AS e
+        WHERE b.siren = e.siren
+    """)
+
+    updated = con.execute(
+        f"SELECT COUNT(*) FROM {BRONZE_TABLE} WHERE dept IS NOT NULL AND dept != ''"
+    ).fetchone()[0]
+    elapsed = time.time() - t0
+    con.close()
+    print(f"[BRONZE] ✅ dept backfillé : {updated:,} lignes en {elapsed/60:.1f} min.")
+    return updated
 
 
 # =============================================================================
