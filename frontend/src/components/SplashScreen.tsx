@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
 import { Zap } from "lucide-react";
-// @ts-expect-error — JSON import from public dir
 import radarPulse from "../../public/lottie/radar-pulse.json";
 
 export default function SplashScreen() {
