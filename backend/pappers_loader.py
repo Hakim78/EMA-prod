@@ -63,7 +63,7 @@ async def load_from_supabase() -> list | None:
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(
-                f"{SUPABASE_URL}/rest/v1/edrcf_companies?select=data&order=score.desc&limit=200",
+                f"{SUPABASE_URL}/rest/v1/edrcf_companies?select=data&order=score.desc&limit=1000",
                 headers={
                     "apikey": SUPABASE_KEY,
                     "Authorization": f"Bearer {SUPABASE_KEY}",

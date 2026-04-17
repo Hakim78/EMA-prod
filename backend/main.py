@@ -136,10 +136,10 @@ async def lifespan(app):
         # 2. Local JSON cache (warm instances only)
         _load_targets_sync()
 
-    # 3. Last resort: fetch 50 companies from free gov APIs
+    # 3. Last resort: fetch companies from free gov APIs (200 target)
     if not enriched_targets:
         try:
-            fetched = await load_targets_from_papperclip(count=50)
+            fetched = await load_targets_from_papperclip(count=200)
             if fetched:
                 save_cache(fetched)
                 await save_to_supabase(fetched)
@@ -2425,16 +2425,19 @@ async def refresh_targets():
 
 
 @app.get("/api/admin/refresh-db")
-async def admin_refresh_db(secret: str = Query(default="")):
-    """Cron-safe endpoint: refresh 50 companies from Papperclip and save to Supabase.
-    Optional: protect with CRON_SECRET env var."""
+async def admin_refresh_db(
+    secret: str = Query(default=""),
+    count: int = Query(default=200, ge=10, le=500),
+):
+    """Cron-safe endpoint: refresh companies from Papperclip + BODACC and save to Supabase.
+    Optional: protect with CRON_SECRET env var. count param controls target size (default 200)."""
     cron_secret = os.getenv("CRON_SECRET", "")
     if cron_secret and secret != cron_secret:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     global enriched_targets, raw_targets
     try:
-        fetched = await load_targets_from_papperclip(count=50)
+        fetched = await load_targets_from_papperclip(count=count)
         if fetched:
             save_cache(fetched)
             await save_to_supabase(fetched)
@@ -2450,6 +2453,62 @@ async def admin_refresh_db(secret: str = Query(default="")):
         raise
     except Exception as e:
         raise HTTPException(500, f"Refresh failed: {e}")
+
+
+@app.get("/api/admin/load-sector")
+async def admin_load_sector(
+    naf: str = Query(..., description="NAF code, e.g. 62.01Z"),
+    count: int = Query(default=10, ge=1, le=50),
+    label: str = Query(default=""),
+    secret: str = Query(default=""),
+):
+    """On-demand: load companies from a specific NAF code and add to the live pool.
+    Skips SIRENs already in the pool. Returns the new targets added."""
+    cron_secret = os.getenv("CRON_SECRET", "")
+    if cron_secret and secret != cron_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    global enriched_targets, raw_targets
+
+    existing_sirens = {t.get("siren") for t in raw_targets}
+    results = await _papperclip_search(code_naf=naf, per_page=count)
+
+    new_raw: list = []
+    for company in results:
+        siren = company.get("siren", "")
+        if siren and siren not in existing_sirens:
+            existing_sirens.add(siren)
+            new_raw.append(company)
+
+    if not new_raw:
+        return {"added": 0, "total": len(enriched_targets), "message": "No new companies found for this NAF code"}
+
+    new_targets = []
+    base_idx = len(raw_targets) + 1
+    for i, company in enumerate(new_raw):
+        siren = company.get("siren", "")
+        try:
+            company_info = await _papperclip_get_company(siren)
+            if not company_info:
+                continue
+            target = build_target(idx=base_idx + i, company_info=company_info, search_info=company)
+            new_targets.append(target)
+        except Exception as e:
+            print(f"[load-sector] Error for {siren}: {e}")
+
+    if new_targets:
+        async with _targets_lock:
+            raw_targets.extend(new_targets)
+            new_enriched = [enrich_target(c) for c in new_targets]
+            enriched_targets.extend(new_enriched)
+        await save_to_supabase(new_targets)
+
+    return {
+        "added": len(new_targets),
+        "total": len(enriched_targets),
+        "sector_label": label or naf,
+        "companies": [{"name": t["name"], "siren": t["siren"], "score": t.get("globalScore", 0)} for t in new_targets],
+    }
 
 
 if __name__ == "__main__":

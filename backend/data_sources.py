@@ -528,58 +528,160 @@ def _tranche_to_effectif(tranche: str) -> str:
 # Startup pipeline: load initial targets from free sources
 # ==========================================================================
 
-# Search profiles — one per target sector, matched to NAF codes
+# Search profiles — NAF codes × per_page target = ~300 unique companies
+# Each profile runs one API call (7 req/s limit, fully respected)
 _LOAD_PROFILES = [
-    # --- Courtage / Assurance (heat 91 — surchauffe) ---
-    {"label": "Courtage assurance",              "code_naf": "66.22Z", "per_page": 6},
-    {"label": "Activites auxiliaires assurance", "code_naf": "66.29Z", "per_page": 4},
-    # --- Holding / Gestion actifs (signaux patrimoniaux) ---
-    {"label": "Holding gestion actifs",          "code_naf": "64.20Z", "per_page": 5},
-    {"label": "Capital-investissement",          "code_naf": "64.30Z", "per_page": 3},
-    # --- Logistique / Transport (heat 58) ---
-    {"label": "Transport routier fret",          "code_naf": "49.41A", "per_page": 5},
-    {"label": "Transport express messagerie",    "code_naf": "49.41B", "per_page": 4},
-    # --- BTP / Construction (heat 45) ---
-    {"label": "Construction batiments",          "code_naf": "41.20A", "per_page": 4},
-    {"label": "Travaux installation electrique", "code_naf": "43.21A", "per_page": 3},
-    # --- Services B2B / Conseil (heat 68) ---
-    {"label": "Conseil management",              "code_naf": "70.22Z", "per_page": 5},
-    {"label": "Activites comptabilite audit",    "code_naf": "69.20Z", "per_page": 4},
-    # --- MedTech / Sante (heat 75) ---
-    {"label": "Fabrication materiel medical",    "code_naf": "32.50A", "per_page": 4},
-    {"label": "Cliniques et hopitaux prives",    "code_naf": "86.10Z", "per_page": 3},
-    # --- Industrie / Tech (heat 82) ---
-    {"label": "Fabrication machines ind.",       "code_naf": "28.99B", "per_page": 4},
-    {"label": "Fabrication composants electro.", "code_naf": "26.11Z", "per_page": 3},
-    # --- Agroalimentaire (heat 52) ---
-    {"label": "Industrie agroalimentaire",       "code_naf": "10.89Z", "per_page": 3},
-    {"label": "Fabrication vins",                "code_naf": "11.02A", "per_page": 2},
-    # --- Energie / CleanTech (heat 87) ---
-    {"label": "Production energie renouvelable", "code_naf": "35.11Z", "per_page": 3},
-    {"label": "Services efficacite energetique", "code_naf": "71.12B", "per_page": 2},
+    # ── Courtage / Assurance (heat 91) ───────────────────────────────
+    {"label": "Courtage assurance",              "code_naf": "66.22Z", "per_page": 8},
+    {"label": "Activites auxiliaires assurance", "code_naf": "66.29Z", "per_page": 6},
+    {"label": "Gestion de fonds",                "code_naf": "64.30Z", "per_page": 5},
+    {"label": "Gestion patrimoine conseil",      "code_naf": "66.30Z", "per_page": 5},
+    # ── Holding / Gestion actifs ──────────────────────────────────────
+    {"label": "Holding gestion actifs",          "code_naf": "64.20Z", "per_page": 6},
+    {"label": "Activites fiduciaires",           "code_naf": "64.19Z", "per_page": 4},
+    # ── Logistique / Transport ────────────────────────────────────────
+    {"label": "Transport routier fret",          "code_naf": "49.41A", "per_page": 6},
+    {"label": "Transport express messagerie",    "code_naf": "49.41B", "per_page": 5},
+    {"label": "Entreposage logistique",          "code_naf": "52.10B", "per_page": 5},
+    {"label": "Affrètement / organisation tpt",  "code_naf": "52.29A", "per_page": 4},
+    # ── BTP / Construction ────────────────────────────────────────────
+    {"label": "Construction batiments",          "code_naf": "41.20A", "per_page": 6},
+    {"label": "Travaux installation electrique", "code_naf": "43.21A", "per_page": 5},
+    {"label": "Travaux plomberie CVC",           "code_naf": "43.22A", "per_page": 4},
+    {"label": "Travaux gros oeuvre",             "code_naf": "43.99C", "per_page": 4},
+    {"label": "Construction immeubles",          "code_naf": "41.10A", "per_page": 4},
+    # ── Services B2B / Conseil ────────────────────────────────────────
+    {"label": "Conseil management",              "code_naf": "70.22Z", "per_page": 7},
+    {"label": "Activites comptabilite audit",    "code_naf": "69.20Z", "per_page": 6},
+    {"label": "Conseil juridique",               "code_naf": "69.10Z", "per_page": 5},
+    {"label": "Recrutement RH",                  "code_naf": "78.10Z", "per_page": 5},
+    {"label": "Services securite",               "code_naf": "80.10Z", "per_page": 4},
+    {"label": "Nettoyage batiments",             "code_naf": "81.21Z", "per_page": 4},
+    {"label": "Services facilities management",  "code_naf": "81.10Z", "per_page": 4},
+    # ── MedTech / Sante ───────────────────────────────────────────────
+    {"label": "Fabrication materiel medical",    "code_naf": "32.50A", "per_page": 5},
+    {"label": "Cliniques et hopitaux prives",    "code_naf": "86.10Z", "per_page": 4},
+    {"label": "Pharmacies de detail",            "code_naf": "47.73Z", "per_page": 4},
+    {"label": "Fabrication produits pharma",     "code_naf": "21.20Z", "per_page": 4},
+    {"label": "Analyses medecine",               "code_naf": "86.90B", "per_page": 3},
+    # ── Industrie / Tech ──────────────────────────────────────────────
+    {"label": "Fabrication machines ind.",       "code_naf": "28.99B", "per_page": 5},
+    {"label": "Fabrication composants electro.", "code_naf": "26.11Z", "per_page": 4},
+    {"label": "Fabrication équipements auto",    "code_naf": "29.32Z", "per_page": 4},
+    {"label": "Metallurgie / fonderie",          "code_naf": "24.52Z", "per_page": 4},
+    {"label": "Chaudronnerie serrurerie",        "code_naf": "25.12Z", "per_page": 4},
+    {"label": "Fabrication emballage metal",     "code_naf": "25.91Z", "per_page": 3},
+    # ── IT / SaaS / Digital ───────────────────────────────────────────
+    {"label": "Activités informatiques",         "code_naf": "62.01Z", "per_page": 6},
+    {"label": "Conseil systemes informatiques",  "code_naf": "62.02A", "per_page": 5},
+    {"label": "Edition logiciels applicatifs",   "code_naf": "58.29C", "per_page": 5},
+    {"label": "Portails internet",               "code_naf": "63.12Z", "per_page": 4},
+    # ── Agroalimentaire ───────────────────────────────────────────────
+    {"label": "Industrie agroalimentaire",       "code_naf": "10.89Z", "per_page": 5},
+    {"label": "Fabrication vins / spiritueux",   "code_naf": "11.02A", "per_page": 4},
+    {"label": "Boulangerie / Patisserie indus.",  "code_naf": "10.71A", "per_page": 4},
+    {"label": "Transformation viandes",          "code_naf": "10.11Z", "per_page": 3},
+    # ── Energie / CleanTech ───────────────────────────────────────────
+    {"label": "Production energie renouvelable", "code_naf": "35.11Z", "per_page": 5},
+    {"label": "Services efficacite energetique", "code_naf": "71.12B", "per_page": 4},
+    {"label": "Recuperation materiaux valorises","code_naf": "38.31Z", "per_page": 4},
+    {"label": "Traitement eaux usees",           "code_naf": "37.00Z", "per_page": 3},
+    # ── Commerce de gros / Distribution ──────────────────────────────
+    {"label": "Commerce gros produits indus.",   "code_naf": "46.69Z", "per_page": 5},
+    {"label": "Commerce gros equipement ind.",   "code_naf": "46.63Z", "per_page": 4},
+    {"label": "Commerce gros alimentation",      "code_naf": "46.39B", "per_page": 4},
+    {"label": "Commerce gros medicaments",       "code_naf": "46.46Z", "per_page": 4},
+    # ── Tourisme / Hotellerie ─────────────────────────────────────────
+    {"label": "Hotellerie de plein air",         "code_naf": "55.30Z", "per_page": 4},
+    {"label": "Hotels classiques",               "code_naf": "55.10Z", "per_page": 4},
+    {"label": "Restaurants gastronomiques",      "code_naf": "56.10A", "per_page": 4},
+    # ── Immobilier ────────────────────────────────────────────────────
+    {"label": "Promotion immobiliere",           "code_naf": "41.10B", "per_page": 5},
+    {"label": "Administration biens immobiliers","code_naf": "68.32A", "per_page": 4},
+    # ── Education / Formation ─────────────────────────────────────────
+    {"label": "Formation professionnelle",       "code_naf": "85.59B", "per_page": 5},
+    {"label": "Enseignement superieur prive",    "code_naf": "85.42Z", "per_page": 4},
+    # ── Auto / Mobility ───────────────────────────────────────────────
+    {"label": "Commerce vehicules neufs",        "code_naf": "45.11Z", "per_page": 4},
+    {"label": "Reparation vehicules",            "code_naf": "45.20A", "per_page": 4},
+    # ── Communication / Media ─────────────────────────────────────────
+    {"label": "Relations publiques / RP",        "code_naf": "73.11Z", "per_page": 4},
+    {"label": "Edition revues et periodiques",   "code_naf": "58.14Z", "per_page": 3},
+    # ── Aeronautique / Defense ────────────────────────────────────────
+    {"label": "Construction aeronefs",           "code_naf": "30.30Z", "per_page": 3},
+    {"label": "Fabrication equipements defense", "code_naf": "30.40Z", "per_page": 3},
 ]
 
 
-async def load_targets_from_papperclip(count: int = 10) -> list:
-    """Load initial M&A target companies from free government APIs.
+async def load_bodacc_hot_sirens(rows: int = 100) -> list[str]:
+    """Fetch SIRENs from BODACC with recent M&A-relevant announcements.
 
-    Pipeline: search by NAF -> deduplicate -> enrich with BODACC -> build_target().
-    Compatible with build_target() / detect_signals() from pappers_loader.py.
+    Targets: cession de fonds + modification de dirigeant (last 90 days).
+    These companies carry the strongest M&A signals.
+    """
+    sirens: list[str] = []
+    seen: set[str] = set()
+
+    queries = [
+        "typeavis_lib:Cession",
+        "typeavis_lib:Modification",
+    ]
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        for q in queries:
+            if len(sirens) >= rows:
+                break
+            try:
+                resp = await client.get(
+                    BODACC_API,
+                    params={
+                        "dataset": "annonces-commerciales",
+                        "q": q,
+                        "sort": "dateparution",
+                        "rows": min(rows, 50),
+                        "fields": "siren,typeavis_lib,dateparution",
+                    },
+                )
+                if resp.status_code != 200:
+                    continue
+                records = resp.json().get("records", [])
+                for rec in records:
+                    siren = str(rec.get("fields", {}).get("siren", "")).strip()
+                    if siren and len(siren) == 9 and siren not in seen:
+                        seen.add(siren)
+                        sirens.append(siren)
+            except Exception as e:
+                print(f"[BODACC-bulk] Error for query '{q}': {e}")
+
+    print(f"[BODACC-bulk] Found {len(sirens)} hot SIRENs from recent announcements")
+    return sirens
+
+
+async def load_targets_from_papperclip(count: int = 200, include_bodacc: bool = True) -> list:
+    """Load M&A target companies from free government APIs.
+
+    Pipeline:
+      1. NAF-profile search (60 profiles × per_page) → base universe
+      2. BODACC hot-SIRENs (recent cessions/modifications) → signal-rich additions
+      3. Deduplication → enrich with BODACC publications → build_target()
+
+    count: max total targets to build (default 200)
+    include_bodacc: also load companies from recent BODACC events
     """
     from pappers_loader import build_target  # local import to avoid circular at module level
 
     seen_sirens: set = set()
-    raw_companies: list = []
+    raw_companies: list = []   # list of search-info dicts
 
     print(f"[Papperclip] Starting load pipeline (target: {count} companies)...")
 
+    # ── Phase 1: NAF profile search ──────────────────────────────────
     for profile in _LOAD_PROFILES:
         if len(raw_companies) >= count:
             break
         label = profile["label"]
         code_naf = profile.get("code_naf", "")
-        per_page = profile.get("per_page", 5)
-        print(f"[Papperclip] Searching: {label}...")
+        per_page = min(profile.get("per_page", 5), 25)  # API max 25
         try:
             results = await search_companies_gouv(code_naf=code_naf, per_page=per_page)
             added = 0
@@ -591,30 +693,44 @@ async def load_targets_from_papperclip(count: int = 10) -> list:
                     added += 1
                     if len(raw_companies) >= count:
                         break
-            print(f"[Papperclip]   -> {added} new companies (pool: {len(raw_companies)})")
+            if added:
+                print(f"[Papperclip] {label}: +{added} (pool {len(raw_companies)})")
         except Exception as e:
-            print(f"[Papperclip]   -> Search error for {label}: {e}")
+            print(f"[Papperclip] Search error for {label}: {e}")
 
-    print(f"[Papperclip] Collected {len(raw_companies)} unique companies. Enriching with BODACC...")
+    # ── Phase 2: BODACC hot SIRENs (cession / modification dirigeant) ─
+    if include_bodacc and len(raw_companies) < count:
+        remaining = count - len(raw_companies)
+        hot_sirens = await load_bodacc_hot_sirens(rows=min(remaining + 20, 100))
+        bodacc_added = 0
+        for siren in hot_sirens:
+            if siren not in seen_sirens and len(raw_companies) < count:
+                seen_sirens.add(siren)
+                # Create a minimal search-info stub — will be enriched below
+                raw_companies.append({"siren": siren, "nom_entreprise": "", "_from_bodacc": True})
+                bodacc_added += 1
+        print(f"[Papperclip] BODACC hot SIRENs: +{bodacc_added} (pool {len(raw_companies)})")
 
+    print(f"[Papperclip] Collected {len(raw_companies)} unique companies. Enriching...")
+
+    # ── Phase 3: Enrich all companies ────────────────────────────────
     targets = []
     for idx, company in enumerate(raw_companies, start=1):
         siren = company.get("siren", "")
-        nom = company.get("nom_entreprise", "N/A")
+        nom = company.get("nom_entreprise", "") or siren
         print(f"[Papperclip] Enriching {idx}/{len(raw_companies)}: {nom} ({siren})...")
         try:
             company_info = await get_full_company_info(siren)
             if not company_info:
-                print(f"[Papperclip]   -> Skipped (no detail data)")
                 continue
             target = build_target(idx=idx, company_info=company_info, search_info=company)
             targets.append(target)
             print(
-                f"[Papperclip]   -> OK: {target['name']} | {target['sector']} "
-                f"| {len(target['active_signals'])} signals"
+                f"[Papperclip]   OK: {target['name']} | {target['sector']} "
+                f"| score placeholder | {len(target['active_signals'])} signals"
             )
         except Exception as e:
-            print(f"[Papperclip]   -> Error for {siren}: {e}")
+            print(f"[Papperclip]   Error for {siren}: {e}")
 
     print(f"[Papperclip] Pipeline complete: {len(targets)} targets built.")
     return targets

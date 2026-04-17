@@ -21,6 +21,8 @@ import {
   Layers,
   RotateCcw,
   Network,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -216,6 +218,32 @@ export default function TargetsPage() {
   const regions = apiFilters?.regions || Array.from(new Set(targets.map((t) => t.region).filter(Boolean)));
   const structures = apiFilters?.structures || ["Familiale", "PE-backed", "Groupe côté"];
   const ebitdaRanges = apiFilters?.ebitda_ranges || ["< 3M", "3-10M", "10-30M", "> 30M"];
+
+  // ── NAF Sector importer ───────────────────────────────────────────
+  const [showImport, setShowImport] = useState(false);
+  const [importNaf, setImportNaf] = useState("");
+  const [importCount, setImportCount] = useState(10);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ added: number; total: number } | null>(null);
+
+  const handleImportSector = async () => {
+    if (!importNaf.trim()) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const res = await fetch(`/api/admin/load-sector?naf=${encodeURIComponent(importNaf.trim())}&count=${importCount}`);
+      const data = await res.json();
+      setImportResult({ added: data.added ?? 0, total: data.total ?? 0 });
+      if (data.added > 0) {
+        fetchTargets();
+        window.dispatchEvent(new CustomEvent("targets-updated"));
+      }
+    } catch {
+      setImportResult({ added: -1, total: 0 });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleExportCSV = () => {
     if (filteredAndSortedTargets.length === 0) return;
@@ -582,9 +610,67 @@ export default function TargetsPage() {
               >
                 <Download size={15} /> <span className="hidden sm:inline">Export CSV</span>
               </button>
+              <button
+                onClick={() => { setShowImport(v => !v); setImportResult(null); }}
+                className={`flex-1 sm:flex-none px-3 py-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-wider
+                  ${showImport ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/3 border-white/10 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/20"}`}
+                title="Importer un secteur via code NAF"
+              >
+                <Plus size={15} /> <span className="hidden sm:inline">Importer</span>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* ── NAF Sector Importer Panel ─────────────────────────── */}
+        <AnimatePresence>
+          {showImport && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                <div className="flex-1 min-w-0">
+                  <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1.5">Code NAF</label>
+                  <input
+                    value={importNaf}
+                    onChange={e => setImportNaf(e.target.value)}
+                    placeholder="ex: 62.01Z, 66.22Z, 49.41A…"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-indigo-500/50 transition-all font-mono"
+                    onKeyDown={e => e.key === "Enter" && handleImportSector()}
+                  />
+                </div>
+                <div className="flex-none">
+                  <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1.5">Quantité</label>
+                  <select
+                    value={importCount}
+                    onChange={e => setImportCount(Number(e.target.value))}
+                    className="bg-black/40 border border-white/10 rounded-xl py-2.5 px-3 text-sm text-gray-200 outline-none focus:border-indigo-500/50"
+                  >
+                    {[5, 10, 20, 30, 50].map(n => <option key={n} value={n}>{n} entités</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={handleImportSector}
+                  disabled={importing || !importNaf.trim()}
+                  className="flex-none px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-40 flex items-center gap-2"
+                >
+                  {importing ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  {importing ? "Chargement…" : "Importer"}
+                </button>
+                {importResult && (
+                  <div className={`text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl border flex-none
+                    ${importResult.added > 0 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : importResult.added === 0 ? "text-amber-400 bg-amber-500/10 border-amber-500/20" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}`}
+                  >
+                    {importResult.added > 0 ? `+${importResult.added} ajoutées · ${importResult.total} total` : importResult.added === 0 ? "Déjà en base" : "Erreur"}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── KPI Summary Strip ─────────────────────────────────── */}
         {!loading && targets.length > 0 && (
