@@ -236,18 +236,17 @@ def setup_tables() -> None:
 # BRONZE — chargement des 16M entités SIRENE
 # =============================================================================
 
-def load_bronze(ul_url: str | None = None, etab_url: str | None = None) -> int:
+def load_bronze(ul_url: str | None = None) -> int:
     """
-    Charge toutes les entités SIRENE dans Bronze.
-    Jointure LEFT JOIN avec StockEtablissement pour récupérer le dept du siège.
-    MotherDuck lit les deux Parquet en streaming server-side — aucun fichier temporaire.
+    Charge toutes les entités SIRENE (StockUniteLegale) dans Bronze.
+    dept = NULL à ce stade — sera renseigné dans build_silver() sur les ~87K
+    lignes filtrées (JOIN avec StockEtablissement sur un sous-ensemble, bien plus rapide).
     Retourne le nombre de lignes insérées.
     """
     global _PIPELINE_STATUS
 
-    resolved_ul, resolved_etab = get_sirene_urls()
-    ul_url   = ul_url   or resolved_ul
-    etab_url = etab_url or resolved_etab
+    resolved_ul, _ = get_sirene_urls()
+    ul_url = ul_url or resolved_ul
 
     con = _get_connection()
     _PIPELINE_STATUS.update({"step": "bronze_load", "rows_loaded": 0, "error": None})
@@ -255,8 +254,7 @@ def load_bronze(ul_url: str | None = None, etab_url: str | None = None) -> int:
     print(f"[BRONZE] Vidage table existante…")
     con.execute(f"DELETE FROM {BRONZE_TABLE}")
 
-    print(f"[BRONZE] UL   : {ul_url}")
-    print(f"[BRONZE] ETAB : {etab_url}")
+    print(f"[BRONZE] UL : {ul_url}")
     t0 = time.time()
 
     con.execute("INSTALL httpfs; LOAD httpfs;")
@@ -266,21 +264,16 @@ def load_bronze(ul_url: str | None = None, etab_url: str | None = None) -> int:
              date_creation, categorie_juridique, categorie_entreprise,
              etat_administratif)
         SELECT
-            ul.siren                                                          AS siren,
-            ul.denominationUniteLegale                                        AS denomination,
-            REPLACE(COALESCE(ul.activitePrincipaleUniteLegale,''), '.', '')   AS naf,
-            LEFT(COALESCE(e.codeCommuneEtablissement, ''), 2)                 AS dept,
-            ul.trancheEffectifsUniteLegale                                    AS effectif_tranche,
-            TRY_CAST(ul.dateCreationUniteLegale AS DATE)                      AS date_creation,
-            ul.categorieJuridiqueUniteLegale                                  AS categorie_juridique,
-            ul.categorieEntreprise                                            AS categorie_entreprise,
-            ul.etatAdministratifUniteLegale                                   AS etat_administratif
-        FROM read_parquet('{ul_url}') AS ul
-        LEFT JOIN (
-            SELECT siren, codeCommuneEtablissement
-            FROM read_parquet('{etab_url}')
-            WHERE etablissementSiege = 'true'
-        ) AS e ON ul.siren = e.siren
+            siren                                                           AS siren,
+            denominationUniteLegale                                         AS denomination,
+            REPLACE(COALESCE(activitePrincipaleUniteLegale,''), '.', '')    AS naf,
+            NULL                                                            AS dept,
+            trancheEffectifsUniteLegale                                     AS effectif_tranche,
+            TRY_CAST(dateCreationUniteLegale AS DATE)                       AS date_creation,
+            categorieJuridiqueUniteLegale                                   AS categorie_juridique,
+            categorieEntreprise                                             AS categorie_entreprise,
+            etatAdministratifUniteLegale                                    AS etat_administratif
+        FROM read_parquet('{ul_url}')
     """)
 
     count = con.execute(f"SELECT COUNT(*) FROM {BRONZE_TABLE}").fetchone()[0]
@@ -289,40 +282,6 @@ def load_bronze(ul_url: str | None = None, etab_url: str | None = None) -> int:
     con.close()
     print(f"[BRONZE] ✅ {count:,} entités en {elapsed/60:.1f} min.")
     return count
-
-
-def fix_bronze_dept(etab_url: str | None = None) -> int:
-    """
-    Backfill la colonne dept sur Bronze existant sans recharger les 29M lignes.
-    Lit uniquement les sièges depuis StockEtablissement et fait un UPDATE ciblé.
-    Retourne le nombre de lignes mises à jour.
-    """
-    _, resolved_etab = get_sirene_urls()
-    etab_url = etab_url or resolved_etab
-
-    con = _get_connection()
-    print(f"[BRONZE] fix_dept depuis {etab_url}…")
-    t0 = time.time()
-
-    con.execute("INSTALL httpfs; LOAD httpfs;")
-    con.execute(f"""
-        UPDATE {BRONZE_TABLE} AS b
-        SET dept = LEFT(COALESCE(e.codeCommuneEtablissement, ''), 2)
-        FROM (
-            SELECT siren, codeCommuneEtablissement
-            FROM read_parquet('{etab_url}')
-            WHERE etablissementSiege = 'true'
-        ) AS e
-        WHERE b.siren = e.siren
-    """)
-
-    updated = con.execute(
-        f"SELECT COUNT(*) FROM {BRONZE_TABLE} WHERE dept IS NOT NULL AND dept != ''"
-    ).fetchone()[0]
-    elapsed = time.time() - t0
-    con.close()
-    print(f"[BRONZE] ✅ dept backfillé : {updated:,} lignes en {elapsed/60:.1f} min.")
-    return updated
 
 
 # =============================================================================
@@ -347,35 +306,40 @@ def _high_ma_naf_sql() -> str:
     return ", ".join(f"'{c}'" for c in sorted(HIGH))
 
 
-def build_silver() -> int:
+def build_silver(etab_url: str | None = None) -> int:
     """
-    Filtre la table Bronze → Silver avec les critères M&A et calcule le score.
+    Filtre Bronze → Silver avec les critères M&A et calcule le score.
+    Enrichit dept via JOIN StockEtablissement sur les ~87K lignes éligibles
+    (bien plus rapide qu'un JOIN sur les 29M lignes Bronze).
     Retourne le nombre de lignes dans Silver.
     """
-    con = _get_connection()
+    _, resolved_etab = get_sirene_urls()
+    etab_url = etab_url or resolved_etab
 
+    con = _get_connection()
     print("[SILVER] Construction de la couche Silver…")
     t0 = time.time()
 
     con.execute(f"DELETE FROM {SILVER_TABLE}")
+    con.execute("INSTALL httpfs; LOAD httpfs;")
 
     con.execute(f"""
         INSERT INTO {SILVER_TABLE}
             (siren, denomination, naf, dept, effectif_tranche,
              date_creation, categorie_juridique, categorie_entreprise, ma_score)
         SELECT
-            siren,
-            denomination,
-            naf,
-            dept,
-            effectif_tranche,
-            date_creation,
-            categorie_juridique,
-            categorie_entreprise,
-            -- Score M&A 0-100 (sans appel API)
+            b.siren,
+            b.denomination,
+            b.naf,
+            -- dept : JOIN StockEtablissement uniquement sur ~87K lignes éligibles
+            LEFT(COALESCE(e.codeCommuneEtablissement, ''), 2)   AS dept,
+            b.effectif_tranche,
+            b.date_creation,
+            b.categorie_juridique,
+            b.categorie_entreprise,
+            -- Score M&A 0-100
             LEAST(100,
-                -- Effectif (0-25 pts)
-                CASE effectif_tranche
+                CASE b.effectif_tranche
                     WHEN '11' THEN 15  WHEN '12' THEN 20
                     WHEN '21' THEN 25  WHEN '22' THEN 25
                     WHEN '31' THEN 20  WHEN '32' THEN 18
@@ -384,18 +348,16 @@ def build_silver() -> int:
                     ELSE 0
                 END
                 +
-                -- Ancienneté (0-20 pts)
                 CASE
-                    WHEN date_creation IS NULL                           THEN 0
-                    WHEN YEAR(CURRENT_DATE) - YEAR(date_creation) BETWEEN 3  AND 4  THEN 8
-                    WHEN YEAR(CURRENT_DATE) - YEAR(date_creation) BETWEEN 5  AND 9  THEN 15
-                    WHEN YEAR(CURRENT_DATE) - YEAR(date_creation) BETWEEN 10 AND 25 THEN 20
-                    WHEN YEAR(CURRENT_DATE) - YEAR(date_creation) > 25              THEN 12
+                    WHEN b.date_creation IS NULL                               THEN 0
+                    WHEN YEAR(CURRENT_DATE) - YEAR(b.date_creation) BETWEEN 3  AND 4  THEN 8
+                    WHEN YEAR(CURRENT_DATE) - YEAR(b.date_creation) BETWEEN 5  AND 9  THEN 15
+                    WHEN YEAR(CURRENT_DATE) - YEAR(b.date_creation) BETWEEN 10 AND 25 THEN 20
+                    WHEN YEAR(CURRENT_DATE) - YEAR(b.date_creation) > 25              THEN 12
                     ELSE 0
                 END
                 +
-                -- Forme juridique (0-15 pts)
-                CASE categorie_juridique
+                CASE b.categorie_juridique
                     WHEN '5498' THEN 15  WHEN '5499' THEN 15
                     WHEN '5710' THEN 15  WHEN '5720' THEN 15
                     WHEN '5410' THEN 14  WHEN '5422' THEN 14
@@ -405,21 +367,24 @@ def build_silver() -> int:
                     ELSE 0
                 END
                 +
-                -- Catégorie entreprise (0-15 pts)
-                CASE categorie_entreprise
+                CASE b.categorie_entreprise
                     WHEN 'ETI' THEN 15
                     WHEN 'PME' THEN 10
                     ELSE 0
                 END
                 +
-                -- NAF à forte activité M&A (0-5 pts)
-                CASE WHEN naf IN ({_high_ma_naf_sql()}) THEN 5 ELSE 0 END
+                CASE WHEN b.naf IN ({_high_ma_naf_sql()}) THEN 5 ELSE 0 END
             ) AS ma_score
-        FROM {BRONZE_TABLE}
-        WHERE etat_administratif = 'A'
-          AND categorie_entreprise IN ('PME', 'ETI')
-          AND naf IN ({_naf_list_sql()})
-          AND effectif_tranche IN ({_effectif_list_sql()})
+        FROM {BRONZE_TABLE} AS b
+        LEFT JOIN (
+            SELECT siren, codeCommuneEtablissement
+            FROM read_parquet('{etab_url}')
+            WHERE etablissementSiege = 'true'
+        ) AS e ON b.siren = e.siren
+        WHERE b.etat_administratif = 'A'
+          AND b.categorie_entreprise IN ('PME', 'ETI')
+          AND b.naf IN ({_naf_list_sql()})
+          AND b.effectif_tranche IN ({_effectif_list_sql()})
     """)
 
     count = con.execute(f"SELECT COUNT(*) FROM {SILVER_TABLE}").fetchone()[0]
