@@ -87,7 +87,9 @@ def _fetch_sirene_urls() -> dict:
                 if "stockuniteleg" in title:
                     result["ul"] = url
                     print(f"[BRONZE] URL UnitéLégale : {url}")
-                elif "stocketabli" in title:
+                elif ("stocketabli" in title
+                      and "lien" not in title
+                      and "succession" not in title):
                     result["etab"] = url
                     print(f"[BRONZE] URL Etablissement : {url}")
     except Exception as e:
