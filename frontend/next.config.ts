@@ -6,19 +6,15 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    if (process.env.NODE_ENV === "production") {
-      // In production (Vercel experimentalServices), backend is mounted at /_/backend
-      return [
-        {
-          source: "/api/:path*",
-          destination: "/_/backend/api/:path*",
-        },
-      ];
-    }
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://demoema-backend.onrender.com"
+        : "http://localhost:8000");
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8000/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

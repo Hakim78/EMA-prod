@@ -176,6 +176,11 @@ app.add_middleware(
 _load_targets_sync()
 
 
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
 async def _add_company_to_targets(siren: str) -> Optional[dict]:
     """Fetch a company from Pappers, build a target, and add it to enriched_targets.
     Returns the enriched target dict, or None if it fails.
