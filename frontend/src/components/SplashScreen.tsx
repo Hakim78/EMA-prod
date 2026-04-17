@@ -11,10 +11,11 @@ export default function SplashScreen() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Show once per browser session
-    if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem("edrcf-splash-shown")) {
+    // Show once per browser session (version-keyed so new deploys re-show it)
+    const KEY = "edrcf-splash-v6";
+    if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, "1");
       setVisible(true);
-      sessionStorage.setItem("edrcf-splash-shown", "1");
       // Begin fade-out at 2.4s, fully gone at 3s
       const t = setTimeout(() => setVisible(false), 2400);
       return () => clearTimeout(t);

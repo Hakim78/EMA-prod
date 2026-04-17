@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Network, Search, X, ArrowUpRight, AlertTriangle, Building2, Users, GitBranch, Zap, Activity, TrendingUp, Eye } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -9,6 +10,34 @@ import Lottie from "lottie-react";
 import radarPulse from "../../../public/lottie/radar-pulse.json";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
+
+// Catches any crash inside ForceGraph2D so it doesn't bubble to the page error boundary
+class GraphErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  componentDidCatch(err: Error, info: ErrorInfo) {
+    console.warn("[Graph] canvas error caught:", err, info);
+  }
+  static getDerivedStateFromError() { return { crashed: true }; }
+  render() {
+    if (this.state.crashed) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-3">
+            <Activity size={32} className="text-indigo-400 mx-auto animate-pulse" />
+            <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Rechargement du graphe…</p>
+            <button
+              onClick={() => this.setState({ crashed: false })}
+              className="text-[9px] font-black text-indigo-400 uppercase tracking-wider hover:text-indigo-300"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface GraphNode {
   id: string;
@@ -66,18 +95,6 @@ export default function RelationshipGraph() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [loading, setLoading] = useState(true);
   const fgRef = useRef<any>(null);
-  const animFrameRef = useRef<number>(0);
-  const [tick, setTick] = useState(0);
-
-  // Animation tick for pulsing nodes
-  useEffect(() => {
-    const animate = () => {
-      setTick(t => t + 1);
-      animFrameRef.current = requestAnimationFrame(animate);
-    };
-    animFrameRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, []);
 
   useEffect(() => {
     fetch("/api/graph")
@@ -105,6 +122,7 @@ export default function RelationshipGraph() {
   }, [search, activeFilter, graphData]);
 
   const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    try {
     const { x, y } = node;
     // Guard: skip nodes whose positions haven't been computed yet by the force sim
     if (!isFinite(x) || !isFinite(y)) return;
@@ -218,9 +236,11 @@ export default function RelationshipGraph() {
       ctx.fillStyle = isCompany ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.7)";
       ctx.fillText(label, x, y + r + 5 / globalScale);
     }
-  }, [selectedNode, hoveredNode, tick]);
+    } catch { /* prevent canvas errors from propagating to React */ }
+  }, [selectedNode, hoveredNode]);
 
   const linkCanvasObject = useCallback((link: any, ctx: CanvasRenderingContext2D) => {
+    try {
     const start = link.source;
     const end = link.target;
     if (!isFinite(start?.x) || !isFinite(start?.y) || !isFinite(end?.x) || !isFinite(end?.y)) return;
@@ -252,6 +272,7 @@ export default function RelationshipGraph() {
     }
     ctx.stroke();
     ctx.setLineDash([]);
+    } catch { /* prevent canvas errors from propagating to React */ }
   }, []);
 
   const typeLabel = (type: string) => {
@@ -376,25 +397,27 @@ export default function RelationshipGraph() {
                 </div>
               </div>
             ) : (
-              <ForceGraph2D
-                ref={fgRef}
-                graphData={filteredData}
-                backgroundColor="#030305"
-                nodeLabel={() => ""}
-                nodeCanvasObject={nodeCanvasObject}
-                linkCanvasObject={linkCanvasObject}
-                onNodeClick={(node: any) => setSelectedNode(node)}
-                onNodeHover={(node: any) => setHoveredNode(node)}
-                nodeRelSize={1}
-                linkDirectionalParticles={(link: any) => link.type === "cross_mandate" ? 3 : 0}
-                linkDirectionalParticleWidth={2}
-                linkDirectionalParticleColor={(link: any) => "#f97316"}
-                linkDirectionalParticleSpeed={0.005}
-                d3AlphaDecay={0.02}
-                d3VelocityDecay={0.3}
-                warmupTicks={60}
-                cooldownTicks={200}
-              />
+              <GraphErrorBoundary>
+                <ForceGraph2D
+                  ref={fgRef}
+                  graphData={filteredData}
+                  backgroundColor="#030305"
+                  nodeLabel={() => ""}
+                  nodeCanvasObject={nodeCanvasObject}
+                  linkCanvasObject={linkCanvasObject}
+                  onNodeClick={(node: any) => setSelectedNode(node)}
+                  onNodeHover={(node: any) => setHoveredNode(node)}
+                  nodeRelSize={1}
+                  linkDirectionalParticles={(link: any) => link.type === "cross_mandate" ? 3 : 0}
+                  linkDirectionalParticleWidth={2}
+                  linkDirectionalParticleColor={() => "#f97316"}
+                  linkDirectionalParticleSpeed={0.005}
+                  d3AlphaDecay={0.02}
+                  d3VelocityDecay={0.3}
+                  warmupTicks={60}
+                  cooldownTicks={200}
+                />
+              </GraphErrorBoundary>
             )}
           </div>
         </div>
