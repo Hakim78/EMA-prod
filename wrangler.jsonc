@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  "name": "demomea",
+  "main": "frontend/.open-next/worker.js",
+  "compatibility_date": "2025-03-25",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": "frontend/.open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "build": {
+    "command": "cd frontend && npm install --no-audit --no-fund && npx opennextjs-cloudflare build"
+  }
+}

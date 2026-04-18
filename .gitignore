@@ -10,6 +10,10 @@ coverage
 .next/
 out/
 
+# opennext / cloudflare workers
+.open-next/
+.wrangler/
+
 # production
 build
 

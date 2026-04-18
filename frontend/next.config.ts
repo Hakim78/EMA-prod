@@ -8,7 +8,9 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // "standalone" produit un bundle minimal pour Docker (VPS).
+  // Sur Cloudflare Workers (OpenNext), on laisse la sortie Next par défaut.
+  ...(process.env.BUILD_TARGET === "docker" && { output: "standalone" as const }),
   eslint: {
     // eslint-config-next v15 uses legacy format incompatible with flat config.
     // Type checking is handled by TypeScript during build.
