@@ -682,13 +682,6 @@ def load_bodacc_dila(since: str = "2023-01-01") -> int:
     since_year = int(since.split("-")[0])
     current_year = datetime.now().year
 
-    # Vide la table avant rechargement
-    con = _get_connection()
-    try:
-        con.execute(f"DELETE FROM {BODACC_TABLE}")
-    finally:
-        con.close()
-
     total_inserted = 0
 
     # ── Années complètes depuis FluxHistorique ──────────────────────────────
@@ -725,10 +718,16 @@ def load_bodacc_dila(since: str = "2023-01-01") -> int:
         total_inserted += inserted
 
     if total_inserted == 0:
-        print("[DILA] Aucune donnée extraite.")
+        print("[DILA] Aucune donnée extraite — table existante préservée.")
     else:
+        # Purge des anciennes données SEULEMENT si le rechargement a réussi
         con = _get_connection()
         try:
+            existing = con.execute(f"SELECT COUNT(*) FROM {BODACC_TABLE}").fetchone()[0]
+            if existing > total_inserted:
+                con.execute(
+                    f"DELETE FROM {BODACC_TABLE} WHERE loaded_at < (SELECT MAX(loaded_at) FROM {BODACC_TABLE})"
+                )
             for t, n in con.execute(
                 f"SELECT type_annonce, COUNT(*) FROM {BODACC_TABLE} GROUP BY 1"
             ).fetchall():
