@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     const backendUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       (process.env.NODE_ENV === "production"
-        ? "https://demoema-backend.onrender.com"
+        ? "https://demoema.onrender.com"
         : "http://localhost:8000");
     return [
       {
