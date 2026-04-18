@@ -172,8 +172,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Admin pipeline router (Bronze/Silver/BODACC/RNE/Pappers)
+from routers.admin import router as _admin_router
+app.include_router(_admin_router)
+
 # Ensure targets are loaded even if lifespan doesn't run (Vercel serverless)
 _load_targets_sync()
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
 
 
 async def _add_company_to_targets(siren: str) -> Optional[dict]:
@@ -1613,12 +1622,18 @@ async def copilot_stream_endpoint(q: str = Query(...)):
                 chunk_size = 40
                 for i in range(0, len(text), chunk_size):
                     yield f"data: {json.dumps({'chunk': text[i:i+chunk_size]})}\n\n"
-                yield f"data: {json.dumps({'done': True, 'source': result.get('source', 'rule-based'), 'targets_updated': targets_updated})}\n\n"
+                done_event: dict = {'done': True, 'source': result.get('source', 'rule-based'), 'targets_updated': targets_updated}
+                if targets_updated:
+                    done_event['targets_count'] = len(enriched_targets)
+                yield f"data: {json.dumps(done_event)}\n\n"
                 return
             except Exception as e:
                 yield f"data: {json.dumps({'chunk': 'Erreur de connexion. Veuillez réessayer.'})}\n\n"
 
-        yield f"data: {json.dumps({'done': True, 'source': 'ai', 'targets_updated': targets_updated})}\n\n"
+        done_event = {'done': True, 'source': 'ai', 'targets_updated': targets_updated}
+        if targets_updated:
+            done_event['targets_count'] = len(enriched_targets)
+        yield f"data: {json.dumps(done_event)}\n\n"
 
     return StreamingResponse(
         generate(),
@@ -1769,16 +1784,15 @@ async def copilot_query(q: str = Query(...)):
     if wants_pappers and "chiffre_affaires_min" not in pappers_filters:
         pappers_filters["chiffre_affaires_min"] = "3000000"
 
-    # Force limit to 10 results
-    pappers_filters["par_page"] = "10"
+    pappers_filters["par_page"] = "50"
 
     if wants_pappers and PAPPERS_MCP_URL:
         try:
             pappers_data = await search_pappers(**pappers_filters)
             if isinstance(pappers_data, dict) and "resultats" in pappers_data:
-                resultats = pappers_data["resultats"][:10]
+                resultats = pappers_data["resultats"][:50]
                 total = pappers_data.get("total", 0)
-                pappers_lines = [f"\nPappers ({total} resultats, 10 affiches):"]
+                pappers_lines = [f"\nPappers ({total} resultats, {len(resultats)} affiches):"]
                 for r in resultats:
                     nom = r.get("nom_entreprise", "?")
                     siren = r.get("siren", "?")
@@ -2533,6 +2547,10 @@ def _supabase_headers_main() -> dict:
         "Authorization": f"Bearer {_SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
+
+
+# NOTE: /api/admin/bronze-stats, /load-bronze, /load-bodacc, /load-rne,
+#       /load-pappers, /run-all → voir routers/admin.py (inclus ci-dessus)
 
 
 # =============================================================================

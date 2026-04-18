@@ -6,15 +6,15 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    // In production, Vercel routes (vercel.json) intercept /api/* before Next.js
-    // This rewrite only applies in local development
-    if (process.env.NODE_ENV === "production") {
-      return [];
-    }
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://demoema.onrender.com"
+        : "http://localhost:8000");
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8000/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },

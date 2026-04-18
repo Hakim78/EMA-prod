@@ -7,7 +7,7 @@ import {
   Terminal, User, Activity, Target, Zap, TrendingUp,
   MessageSquare, Layers, Bot, Database, Copy, Check, Trash2, Keyboard
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface Message {
   id: string;
@@ -15,6 +15,7 @@ interface Message {
   content: string;
   timestamp: number;
   source?: "claude-ai" | "rule-based";
+  targets_count?: number;
 }
 
 /** Render simple markdown: **bold**, bullet lists, line breaks */
@@ -123,6 +124,7 @@ export default function GlobalCopilot() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -226,6 +228,11 @@ export default function GlobalCopilot() {
               source = event.source;
               if (event.targets_updated) {
                 window.dispatchEvent(new CustomEvent("targets-updated"));
+                if (event.targets_count) {
+                  setMessages(prev => prev.map(m =>
+                    m.id === assistantId ? { ...m, targets_count: event.targets_count } : m
+                  ));
+                }
               }
             }
           } catch {
@@ -397,6 +404,21 @@ export default function GlobalCopilot() {
                           `}>
                             {m.role === "assistant" ? renderMarkdown(m.content) : m.content}
                           </div>
+
+                          {m.role === "assistant" && m.targets_count && (
+                            <button
+                              onClick={() => { setIsOpen(false); router.push("/targets"); }}
+                              className="mt-2 mr-4 w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 hover:border-indigo-400/40 transition-all active:scale-[0.98] group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Database size={13} className="shrink-0 text-indigo-400" />
+                                <span className="text-[11px] font-bold">
+                                  Voir les {m.targets_count} entreprises trouvées
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-indigo-400 group-hover:translate-x-0.5 transition-transform">→</span>
+                            </button>
+                          )}
 
                           <div className={`flex items-center gap-2 mt-1.5 px-1 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                             <span className="text-[8px] opacity-30 font-bold uppercase tracking-widest">
