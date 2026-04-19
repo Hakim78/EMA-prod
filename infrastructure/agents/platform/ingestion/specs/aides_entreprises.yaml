@@ -1,0 +1,26 @@
+source_id: aides_entreprises
+source_num: 104
+layer: 15
+couche: "Subventions & aides publiques"
+name: "aides-entreprises.fr — catalogue aides FR"
+description: "Catalogue aides publiques disponibles aux entreprises FR. Signal budget public sectoriel + pipeline France 2030."
+endpoint: "https://aides-entreprises.fr/api/aides"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+rate_limit:
+  requests_per_second: 3
+license: "Etalab 2.0"
+bronze_table: "bronze.aides_entreprises_raw"
+bronze_fields:
+  - {name: aide_id, type: "VARCHAR(64)", source_path: "id", primary_key: true}
+  - {name: nom, type: "VARCHAR(512)", source_path: "nom"}
+  - {name: operateur, type: "VARCHAR(255)", source_path: "operateur"}
+  - {name: type_aide, type: "VARCHAR(64)", source_path: "type"}
+  - {name: montant_min, type: "NUMERIC", source_path: "montantMin"}
+  - {name: montant_max, type: "NUMERIC", source_path: "montantMax"}
+  - {name: taux_max, type: "NUMERIC", source_path: "tauxMax"}
+  - {name: date_debut, type: "DATE", source_path: "dateDebut", parser: "date"}
+  - {name: date_fin, type: "DATE", source_path: "dateFin", parser: "date"}
+conflict_strategy: "ON CONFLICT (aide_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

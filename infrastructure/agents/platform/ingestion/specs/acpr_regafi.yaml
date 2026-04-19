@@ -1,0 +1,25 @@
+source_id: acpr_regafi
+source_num: 82
+layer: 12
+couche: "Compliance & sanctions"
+name: "ACPR REGAFI — banques/assurances autorisées"
+description: "Registre officiel établissements financiers et assurantiels autorisés en FR. Check compliance."
+endpoint: "https://www.regafi.fr/api/v1/institutions"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+page_size: 100
+max_pages_per_run: 20
+rate_limit:
+  requests_per_second: 3
+license: "Public data ACPR"
+bronze_table: "bronze.acpr_regafi_raw"
+bronze_fields:
+  - {name: cib, type: "VARCHAR(16)", primary_key: true}
+  - {name: denomination, type: "VARCHAR(512)"}
+  - {name: siren, type: "CHAR(9)"}
+  - {name: categorie, type: "VARCHAR(64)"}
+  - {name: statut_agrement, type: "VARCHAR(64)"}
+  - {name: date_agrement, type: "DATE"}
+conflict_strategy: "ON CONFLICT (cib) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

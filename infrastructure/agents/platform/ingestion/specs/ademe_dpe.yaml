@@ -1,0 +1,35 @@
+source_id: ademe_dpe
+source_num: 74
+layer: 11
+couche: Immobilier
+name: ADEME DPE — performance énergétique bâtiments
+description: 'Source #74 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://koumoul.com/data-fair/api/v1/datasets/dpe-france/lines
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.ademe_dpe_raw
+bronze_fields:
+- name: dpe_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: code_insee
+  type: VARCHAR(8)
+  primary_key: false
+- name: surface_habitable
+  type: NUMERIC
+  primary_key: false
+- name: classe_consommation
+  type: VARCHAR(8)
+  primary_key: false
+- name: classe_ges
+  type: VARCHAR(8)
+  primary_key: false
+- name: date_visite
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (dpe_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

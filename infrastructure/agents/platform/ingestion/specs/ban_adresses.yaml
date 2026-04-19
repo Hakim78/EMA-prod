@@ -1,0 +1,35 @@
+source_id: ban_adresses
+source_num: 72
+layer: 11
+couche: Immobilier
+name: BAN — Base Adresse Nationale
+description: 'Source #72 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api-adresse.data.gouv.fr/search/
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.ban_adresses_raw
+bronze_fields:
+- name: ban_id
+  type: VARCHAR(32)
+  primary_key: true
+- name: label
+  type: VARCHAR(512)
+  primary_key: false
+- name: code_postal
+  type: VARCHAR(8)
+  primary_key: false
+- name: commune
+  type: VARCHAR(255)
+  primary_key: false
+- name: geo_lon
+  type: NUMERIC
+  primary_key: false
+- name: geo_lat
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (ban_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

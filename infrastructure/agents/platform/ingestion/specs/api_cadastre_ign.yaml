@@ -1,0 +1,32 @@
+source_id: api_cadastre_ign
+source_num: 71
+layer: 11
+couche: Immobilier
+name: API Cadastre IGN — parcelles
+description: 'Source #71 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://apicarto.ign.fr/api/cadastre/parcelle
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.cadastre_parcelles_raw
+bronze_fields:
+- name: parcelle_id
+  type: VARCHAR(32)
+  primary_key: true
+- name: code_insee
+  type: VARCHAR(8)
+  primary_key: false
+- name: section
+  type: VARCHAR(8)
+  primary_key: false
+- name: numero
+  type: VARCHAR(8)
+  primary_key: false
+- name: contenance
+  type: INT
+  primary_key: false
+conflict_strategy: ON CONFLICT (parcelle_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

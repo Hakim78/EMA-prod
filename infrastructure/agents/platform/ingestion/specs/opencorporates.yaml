@@ -1,0 +1,28 @@
+source_id: opencorporates
+source_num: 10
+layer: 2
+couche: "Identifiants internationaux"
+name: "OpenCorporates — 200M entreprises 140 pays"
+description: "Snapshot gelé 2019 (pas de deltas gratuits). Source fallback GLEIF+Wikidata pour filiales internationales."
+endpoint: "https://api.opencorporates.com/v0.4/companies/search"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "on_demand"
+sla_minutes: 1440
+mode: lookup_by_name
+rate_limit:
+  requests_per_second: 1
+  daily_limit: 500
+  notes: "Limite free tier agressive. Payant au-delà."
+license: "ODbL (Open Data Commons)"
+bronze_table: "bronze.opencorporates_companies_raw"
+bronze_fields:
+  - {name: jurisdiction_code, type: "VARCHAR(16)", source_path: "company.jurisdiction_code"}
+  - {name: company_number, type: "VARCHAR(64)", source_path: "company.company_number"}
+  - {name: name, type: "VARCHAR(512)", source_path: "company.name"}
+  - {name: status, type: "VARCHAR(64)", source_path: "company.current_status"}
+  - {name: incorporation_date, type: "DATE", source_path: "company.incorporation_date", parser: "date"}
+  - {name: dissolution_date, type: "DATE", source_path: "company.dissolution_date", parser: "date"}
+  - {name: opencorporates_url, type: "VARCHAR(512)", source_path: "company.opencorporates_url"}
+primary_key: "(jurisdiction_code, company_number)"
+conflict_strategy: "ON CONFLICT (jurisdiction_code, company_number) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

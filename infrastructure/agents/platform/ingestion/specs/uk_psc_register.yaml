@@ -1,0 +1,32 @@
+source_id: uk_psc_register
+source_num: 45
+layer: 7
+couche: Ownership
+name: UK PSC Register — People with Significant Control
+description: 'Source #45 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.company-information.service.gov.uk/search/persons-with-significant-control
+auth: api_key_basic
+pattern: rest_api_key_basic
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.uk_psc_raw
+bronze_fields:
+- name: psc_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: company_number
+  type: VARCHAR(16)
+  primary_key: false
+- name: name
+  type: VARCHAR(512)
+  primary_key: false
+- name: natures_of_control
+  type: TEXT[]
+  primary_key: false
+- name: notified_on
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (psc_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

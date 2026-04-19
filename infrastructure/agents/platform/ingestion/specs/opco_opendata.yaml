@@ -1,0 +1,35 @@
+source_id: opco_opendata
+source_num: 68
+layer: 10
+couche: Emploi
+name: OPCO Open Data — formations financées
+description: 'Source #68 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.data.gouv.fr/api/1/datasets/opco-formations/
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.opco_formations_raw
+bronze_fields:
+- name: formation_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: opco
+  type: VARCHAR(64)
+  primary_key: false
+- name: siren_entreprise
+  type: CHAR(9)
+  primary_key: false
+- name: type_action
+  type: VARCHAR(128)
+  primary_key: false
+- name: duree_heures
+  type: INT
+  primary_key: false
+- name: date
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (formation_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

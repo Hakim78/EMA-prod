@@ -1,0 +1,35 @@
+source_id: euronext
+source_num: 24
+layer: 4
+couche: Marchés cotés
+name: Euronext Open Data — cours, capi, free float
+description: 'Source #24 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://live.euronext.com/api/v1/instruments
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.euronext_instruments_raw
+bronze_fields:
+- name: isin
+  type: VARCHAR(12)
+  primary_key: true
+- name: ticker
+  type: VARCHAR(16)
+  primary_key: false
+- name: name
+  type: VARCHAR(512)
+  primary_key: false
+- name: mic
+  type: VARCHAR(8)
+  primary_key: false
+- name: sector
+  type: VARCHAR(128)
+  primary_key: false
+- name: market_cap
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (isin) DO UPDATE SET payload = EXCLUDED.payload, ingested_at
+  = now()

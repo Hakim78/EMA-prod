@@ -1,0 +1,29 @@
+source_id: autorite_concurrence
+source_num: 37
+layer: 6
+couche: "Juridique & contentieux"
+name: "Autorité de la Concurrence — décisions ententes / concentrations"
+description: "Décisions ADLC (autorisation opérations de concentration). Source critique M&A FR."
+endpoint: "https://www.autoritedelaconcurrence.fr/api/decisions"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+page_size: 50
+max_pages_per_run: 20
+backfill_days_first_run: 90
+incremental_hours: 48
+incremental_field: date_decision
+rate_limit:
+  requests_per_second: 2
+license: "Public data"
+bronze_table: "bronze.adlc_decisions_raw"
+bronze_fields:
+  - {name: decision_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: numero, type: "VARCHAR(32)"}
+  - {name: type_decision, type: "VARCHAR(64)"}
+  - {name: date_decision, type: "DATE"}
+  - {name: parties, type: "TEXT"}
+  - {name: secteur, type: "VARCHAR(255)"}
+  - {name: montant_amende, type: "NUMERIC"}
+conflict_strategy: "ON CONFLICT (decision_id) DO NOTHING"

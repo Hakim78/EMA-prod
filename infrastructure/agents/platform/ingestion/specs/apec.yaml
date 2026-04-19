@@ -1,0 +1,30 @@
+source_id: apec
+source_num: 67
+layer: 10
+couche: "Emploi & RH"
+name: "APEC Open Data — offres cadres"
+description: "Offres d'emploi cadres FR. Signal recrutement senior (dim 4 scoring M&A)."
+endpoint: "https://data.apec.fr/api/records/1.0/search"
+auth: none
+pattern: rest_json_opendatasoft_legacy
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+page_size: 100
+max_pages_per_run: 30
+backfill_days_first_run: 14
+incremental_hours: 48
+incremental_field: date_publication
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.apec_offres_raw"
+bronze_fields:
+  - {name: offre_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: intitule, type: "VARCHAR(512)"}
+  - {name: entreprise, type: "VARCHAR(512)"}
+  - {name: siren, type: "CHAR(9)"}
+  - {name: lieu, type: "VARCHAR(255)"}
+  - {name: date_publication, type: "DATE"}
+  - {name: type_contrat, type: "VARCHAR(32)"}
+  - {name: fonction, type: "VARCHAR(128)"}
+conflict_strategy: "ON CONFLICT (offre_id) DO NOTHING"

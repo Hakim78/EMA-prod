@@ -1,0 +1,35 @@
+source_id: ted_europa
+source_num: 48
+layer: 8
+couche: Marchés publics
+name: TED — marchés publics UE
+description: 'Source #48 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://ted.europa.eu/api/v3.0/notices/search
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.ted_notices_raw
+bronze_fields:
+- name: notice_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: publication_date
+  type: DATE
+  primary_key: false
+- name: cpv
+  type: VARCHAR(16)
+  primary_key: false
+- name: contracting_authority
+  type: VARCHAR(512)
+  primary_key: false
+- name: value_eur
+  type: NUMERIC
+  primary_key: false
+- name: country
+  type: VARCHAR(8)
+  primary_key: false
+conflict_strategy: ON CONFLICT (notice_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

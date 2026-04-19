@@ -1,0 +1,38 @@
+source_id: gdelt
+source_num: 118
+layer: 17
+couche: Presse/sentiment
+name: GDELT 2.0 — événements mondiaux
+description: 'Source #118 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.gdeltproject.org/api/v2/doc/doc
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=1
+sla_minutes: 120
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.gdelt_events_raw
+bronze_fields:
+- name: url
+  type: VARCHAR(1024)
+  primary_key: true
+- name: title
+  type: TEXT
+  primary_key: false
+- name: seendate
+  type: TIMESTAMPTZ
+  primary_key: false
+- name: domain
+  type: VARCHAR(255)
+  primary_key: false
+- name: language
+  type: VARCHAR(8)
+  primary_key: false
+- name: country
+  type: VARCHAR(8)
+  primary_key: false
+- name: tone
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (url) DO UPDATE SET payload = EXCLUDED.payload, ingested_at
+  = now()

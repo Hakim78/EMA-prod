@@ -1,0 +1,32 @@
+source_id: orias
+source_num: 136
+layer: 18
+couche: Sectoriel
+name: ORIAS — intermédiaires assurance
+description: 'Source #136 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.orias.fr/api/v1/immatriculations
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.orias_raw
+bronze_fields:
+- name: numero_orias
+  type: VARCHAR(32)
+  primary_key: true
+- name: denomination
+  type: VARCHAR(512)
+  primary_key: false
+- name: siren
+  type: CHAR(9)
+  primary_key: false
+- name: activites
+  type: TEXT[]
+  primary_key: false
+- name: date_immatriculation
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (numero_orias) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

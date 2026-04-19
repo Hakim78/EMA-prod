@@ -1,0 +1,36 @@
+source_id: france_travail
+source_num: 63
+layer: 10
+couche: "Emploi & RH"
+name: "France Travail API — offres d'emploi publiques"
+description: "Flux continu offres emploi FR. Signal croissance / pivot sectoriel (recrutements massifs = signal M&A)."
+endpoint: "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
+auth: oauth2_client_credentials
+auth_token_url: "https://entreprise.pole-emploi.fr/connexion/oauth2/access_token?realm=/partenaire"
+auth_scope: "api_offresdemploiv2 o2dsoffre"
+auth_env_vars:
+  client_id: FRANCE_TRAVAIL_CLIENT_ID
+  client_secret: FRANCE_TRAVAIL_CLIENT_SECRET
+pattern: rest_json_oauth2
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+backfill_days_first_run: 7
+page_size: 150
+max_pages_per_run: 20
+incremental_field: dateCreation
+rate_limit:
+  requests_per_second: 2
+  daily_limit: 3000
+license: "Etalab 2.0 — réutilisation libre"
+bronze_table: "bronze.france_travail_offres_raw"
+bronze_fields:
+  - {name: offre_id, type: "VARCHAR(64)", source_path: "id", primary_key: true}
+  - {name: intitule, type: "VARCHAR(512)", source_path: "intitule"}
+  - {name: entreprise_nom, type: "VARCHAR(512)", source_path: "entreprise.nom"}
+  - {name: entreprise_siret, type: "CHAR(14)", source_path: "entreprise.siret"}
+  - {name: type_contrat, type: "VARCHAR(32)", source_path: "typeContrat"}
+  - {name: lieu_travail, type: "VARCHAR(255)", source_path: "lieuTravail.libelle"}
+  - {name: date_creation, type: "DATE", source_path: "dateCreation", parser: "date"}
+  - {name: salaire_libelle, type: "VARCHAR(255)", source_path: "salaire.libelle"}
+  - {name: rome_code, type: "VARCHAR(16)", source_path: "romeCode"}
+conflict_strategy: "ON CONFLICT (offre_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

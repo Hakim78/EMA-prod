@@ -1,0 +1,29 @@
+source_id: basias
+source_num: 88
+layer: 13
+couche: ESG
+name: BASIAS — anciens sites industriels
+description: 'Source #88 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.data.gouv.fr/api/1/datasets/basias-sites-industriels/
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=8760
+sla_minutes: 525660
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.basias_sites_raw
+bronze_fields:
+- name: code_basias
+  type: VARCHAR(32)
+  primary_key: true
+- name: raison_sociale
+  type: VARCHAR(512)
+  primary_key: false
+- name: code_insee
+  type: VARCHAR(8)
+  primary_key: false
+- name: activite_principale
+  type: TEXT
+  primary_key: false
+conflict_strategy: ON CONFLICT (code_basias) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

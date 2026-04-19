@@ -1,0 +1,32 @@
+source_id: rge_qualifications
+source_num: 94
+layer: 13
+couche: ESG
+name: RGE qualifications — certifications travaux
+description: 'Source #94 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://data.ademe.fr/api/records/1.0/search
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.rge_certifs_raw
+bronze_fields:
+- name: rge_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: siret
+  type: CHAR(14)
+  primary_key: false
+- name: nom_entreprise
+  type: VARCHAR(512)
+  primary_key: false
+- name: domaine_travaux
+  type: VARCHAR(255)
+  primary_key: false
+- name: date_fin_validite
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (rge_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

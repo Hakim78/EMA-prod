@@ -1,0 +1,29 @@
+source_id: agribalyse
+source_num: 92
+layer: 13
+couche: ESG
+name: Agribalyse — ACV agricoles
+description: 'Source #92 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.agribalyse.ademe.fr/api/v1/products
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=8760
+sla_minutes: 525660
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.agribalyse_products_raw
+bronze_fields:
+- name: ciqual_code
+  type: VARCHAR(16)
+  primary_key: true
+- name: label
+  type: VARCHAR(512)
+  primary_key: false
+- name: gwp100
+  type: NUMERIC
+  primary_key: false
+- name: acidification
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (ciqual_code) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

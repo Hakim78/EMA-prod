@@ -1,0 +1,31 @@
+source_id: decp
+source_num: 47
+layer: 8
+couche: "Marchés publics"
+name: "DECP — Données Essentielles des Contrats Publics FR"
+description: "1M+ attributions marchés publics/an. Source killer feature scoring M&A / compliance."
+endpoint: "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/decp-v3-marches-valides/records"
+auth: none
+pattern: rest_json_opendatasoft
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+backfill_days_first_run: 90
+incremental_hours: 180
+page_size: 100
+max_pages_per_run: 50
+incremental_field: datenotification
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.decp_marches_raw"
+bronze_fields:
+  - {name: marche_id, type: "VARCHAR(128)", source_path: "id", primary_key: true}
+  - {name: acheteur_siret, type: "CHAR(14)", source_path: "acheteur.id"}
+  - {name: acheteur_nom, type: "VARCHAR(512)", source_path: "acheteur.nom"}
+  - {name: titulaire_siret, type: "CHAR(14)", source_path: "titulaires[0].id"}
+  - {name: titulaire_nom, type: "VARCHAR(512)", source_path: "titulaires[0].denominationsociale"}
+  - {name: montant_ht, type: "NUMERIC", source_path: "montant"}
+  - {name: date_notification, type: "DATE", source_path: "datenotification", parser: "date"}
+  - {name: cpv, type: "VARCHAR(16)", source_path: "codecpv"}
+  - {name: objet, type: "TEXT", source_path: "objet"}
+conflict_strategy: "ON CONFLICT (marche_id) DO NOTHING"

@@ -1,0 +1,23 @@
+source_id: hatvp
+source_num: 95
+layer: 14
+couche: "Lobbying & influence"
+name: "HATVP — Haute Autorité pour la Transparence de la Vie Publique"
+description: "Répertoire lobbyistes FR : 3215+ représentants inscrits + déclarations activités. Signal M&A secteurs régulés."
+endpoint: "https://www.hatvp.fr/open-data/ri/representants-interets.json"
+auth: none
+pattern: rest_json_bulk
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+license: "Etalab 2.0"
+bronze_table: "bronze.hatvp_representants_raw"
+bronze_fields:
+  - {name: representant_id, type: "VARCHAR(64)", source_path: "id", primary_key: true}
+  - {name: denomination, type: "VARCHAR(512)", source_path: "denomination"}
+  - {name: siren, type: "CHAR(9)", source_path: "siren"}
+  - {name: secteur_activite, type: "VARCHAR(255)", source_path: "secteurActivite"}
+  - {name: date_inscription, type: "DATE", source_path: "dateInscription", parser: "date"}
+  - {name: adresse_ville, type: "VARCHAR(255)", source_path: "adresseVille"}
+  - {name: nb_deputes, type: "INT", source_path: "nbDeputes"}
+  - {name: chiffre_affaires_lobbying, type: "NUMERIC", source_path: "caLobbying"}
+conflict_strategy: "ON CONFLICT (representant_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

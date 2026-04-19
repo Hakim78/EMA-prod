@@ -1,0 +1,26 @@
+source_id: ademe_bilans_ges
+source_num: 84
+layer: 13
+couche: "ESG, environnement, énergie"
+name: "ADEME Bilans GES — émissions CO2 obligatoires"
+description: "Bilans gaz à effet de serre entreprises >500 salariés (obligation légale). Score scoring M&A dim 10 ESG."
+endpoint: "https://bilans-ges.ademe.fr/api/v1/bilans-ges"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+page_size: 100
+max_pages_per_run: 20
+rate_limit:
+  requests_per_second: 3
+license: "Etalab 2.0"
+bronze_table: "bronze.ademe_bilans_ges_raw"
+bronze_fields:
+  - {name: bilan_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: siren, type: "CHAR(9)"}
+  - {name: raison_sociale, type: "VARCHAR(512)"}
+  - {name: annee_reporting, type: "INT"}
+  - {name: emissions_scope1_tco2e, type: "NUMERIC"}
+  - {name: emissions_scope2_tco2e, type: "NUMERIC"}
+  - {name: emissions_scope3_tco2e, type: "NUMERIC"}
+conflict_strategy: "ON CONFLICT (bilan_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

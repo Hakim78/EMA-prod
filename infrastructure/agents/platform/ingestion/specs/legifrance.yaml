@@ -1,0 +1,32 @@
+source_id: legifrance
+source_num: 35
+layer: 6
+couche: Juridique
+name: Légifrance — JORF, CE, CC, décrets
+description: 'Source #35 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.piste.gouv.fr/dila/legifrance/lf-engine-app
+auth: oauth2_client_credentials
+pattern: rest_oauth2_client_credentials
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.legifrance_textes_raw
+bronze_fields:
+- name: text_id
+  type: VARCHAR(128)
+  primary_key: true
+- name: nature
+  type: VARCHAR(64)
+  primary_key: false
+- name: date_publication
+  type: DATE
+  primary_key: false
+- name: titre
+  type: TEXT
+  primary_key: false
+- name: nor
+  type: VARCHAR(32)
+  primary_key: false
+conflict_strategy: ON CONFLICT (text_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

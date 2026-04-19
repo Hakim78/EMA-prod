@@ -1,0 +1,28 @@
+source_id: inpi_brevets
+source_num: 51
+layer: 9
+couche: "Propriété intellectuelle & R&D"
+name: "INPI Brevets — dépôts FR depuis 1902"
+description: "Brevets INPI France. Score scoring M&A dim 8 Innovation PI."
+endpoint: "https://data.inpi.fr/api/brevets/search"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+page_size: 100
+max_pages_per_run: 30
+backfill_days_first_run: 90
+incremental_hours: 200
+incremental_field: date_depot
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.inpi_brevets_raw"
+bronze_fields:
+  - {name: numero_publication, type: "VARCHAR(64)", primary_key: true}
+  - {name: titre, type: "TEXT"}
+  - {name: siren_deposant, type: "CHAR(9)"}
+  - {name: nom_deposant, type: "VARCHAR(512)"}
+  - {name: date_depot, type: "DATE"}
+  - {name: ipc_classes, type: "TEXT[]"}
+conflict_strategy: "ON CONFLICT (numero_publication) DO NOTHING"

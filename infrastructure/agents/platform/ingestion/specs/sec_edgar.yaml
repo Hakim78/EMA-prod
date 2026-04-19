@@ -1,0 +1,26 @@
+source_id: sec_edgar
+source_num: 25
+layer: 4
+couche: "Marchés cotés & international"
+name: "SEC EDGAR — filings US"
+description: "Filings SEC (10-K, 20-F, 8-K). Pour filiales US de groupes FR + IPO monitoring."
+endpoint: "https://data.sec.gov/submissions/CIK0000320193.json"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+rate_limit:
+  requests_per_second: 10
+  notes: "SEC requires User-Agent avec email — cf. headers"
+license: "Public domain US government"
+bronze_table: "bronze.sec_edgar_filings_raw"
+bronze_fields:
+  - {name: accession_number, type: "VARCHAR(64)", primary_key: true}
+  - {name: cik, type: "VARCHAR(16)"}
+  - {name: company_name, type: "VARCHAR(512)"}
+  - {name: form_type, type: "VARCHAR(32)"}
+  - {name: filing_date, type: "DATE"}
+  - {name: report_date, type: "DATE"}
+conflict_strategy: "ON CONFLICT (accession_number) DO NOTHING"
+headers:
+  User-Agent: "DEMOEMA ingestion contact@demoema.fr"

@@ -1,0 +1,23 @@
+source_id: ansm
+source_num: 127
+layer: 18
+couche: "Sectoriel spécialisé"
+name: "ANSM — Agence Nationale Sécurité Médicament"
+description: "Médicaments AMM, retraits, procédures. Spécifique secteur santé scoring."
+endpoint: "https://ansm.sante.fr/api/v1/decisions"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+rate_limit:
+  requests_per_second: 3
+license: "Etalab 2.0"
+bronze_table: "bronze.ansm_decisions_raw"
+bronze_fields:
+  - {name: decision_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: type_decision, type: "VARCHAR(64)"}
+  - {name: date_decision, type: "DATE"}
+  - {name: laboratoire, type: "VARCHAR(512)"}
+  - {name: medicament_cis, type: "VARCHAR(32)"}
+  - {name: motif, type: "TEXT"}
+conflict_strategy: "ON CONFLICT (decision_id) DO NOTHING"

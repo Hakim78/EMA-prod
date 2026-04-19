@@ -1,0 +1,32 @@
+source_id: dgccrf_sanctions
+source_num: 38
+layer: 6
+couche: Juridique
+name: DGCCRF sanctions — pratiques commerciales
+description: 'Source #38 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.economie.gouv.fr/dgccrf/api/sanctions
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.dgccrf_sanctions_raw
+bronze_fields:
+- name: sanction_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: entreprise
+  type: VARCHAR(512)
+  primary_key: false
+- name: date_decision
+  type: DATE
+  primary_key: false
+- name: montant_amende
+  type: NUMERIC
+  primary_key: false
+- name: motif
+  type: TEXT
+  primary_key: false
+conflict_strategy: ON CONFLICT (sanction_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

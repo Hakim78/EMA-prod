@@ -1,0 +1,27 @@
+source_id: eurostat
+source_num: 139
+layer: 19
+couche: "Europe & international"
+name: "Eurostat — macro-éco UE"
+description: "Indicateurs macro UE : PIB, inflation, démographie, entreprises par pays. Pour benchmark sectoriel européen."
+endpoint: "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
+auth: none
+pattern: rest_json_eurostat
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+rate_limit:
+  requests_per_second: 2
+license: "Eurostat reuse policy — attribution requise"
+bronze_table: "bronze.eurostat_indicators_raw"
+bronze_fields:
+  - {name: dataset_code, type: "VARCHAR(64)", source_path: "dataset"}
+  - {name: indicator_key, type: "VARCHAR(128)", source_path: "key"}
+  - {name: country, type: "VARCHAR(8)", source_path: "geo"}
+  - {name: period, type: "VARCHAR(16)", source_path: "time"}
+  - {name: value, type: "NUMERIC", source_path: "value"}
+primary_key: "(dataset_code, indicator_key)"
+conflict_strategy: "ON CONFLICT (dataset_code, indicator_key) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"
+datasets_priorité:
+  - "nama_10_gdp"  # PIB
+  - "sbs_na_sca_r2"  # Démographie entreprises
+  - "nrg_pc_202"  # Prix énergie

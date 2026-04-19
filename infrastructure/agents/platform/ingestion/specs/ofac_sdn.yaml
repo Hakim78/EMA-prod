@@ -1,0 +1,32 @@
+source_id: ofac_sdn
+source_num: 79
+layer: 12
+couche: Compliance
+name: OFAC SDN — US Treasury sanctions
+description: 'Source #79 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.treasury.gov/ofac/downloads/sdn.json
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.ofac_sdn_raw
+bronze_fields:
+- name: sdn_id
+  type: VARCHAR(32)
+  primary_key: true
+- name: name
+  type: VARCHAR(512)
+  primary_key: false
+- name: type
+  type: VARCHAR(32)
+  primary_key: false
+- name: program
+  type: VARCHAR(128)
+  primary_key: false
+- name: date_added
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (sdn_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

@@ -1,0 +1,32 @@
+source_id: esane
+source_num: 17
+layer: 3
+couche: Comptes & finances
+name: ESANE INSEE — benchmarks sectoriels CA/marge
+description: 'Source #17 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.insee.fr/fr/statistiques/esane/data.json
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=8760
+sla_minutes: 525660
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.esane_sectoriels_raw
+bronze_fields:
+- name: naf
+  type: VARCHAR(8)
+  primary_key: false
+- name: annee
+  type: INT
+  primary_key: false
+- name: ca_median
+  type: NUMERIC
+  primary_key: false
+- name: marge_mediane
+  type: NUMERIC
+  primary_key: false
+- name: nb_entreprises
+  type: INT
+  primary_key: false
+conflict_strategy: ON CONFLICT (naf_annee) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

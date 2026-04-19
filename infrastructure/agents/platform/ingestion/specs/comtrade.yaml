@@ -1,0 +1,25 @@
+source_id: comtrade
+source_num: 142
+layer: 19
+couche: "Europe & international"
+name: "UN Comtrade — commerce international"
+description: "Flux import/export bilatéraux pays-produits. Signal internationalisation entreprises."
+endpoint: "https://comtradeapi.un.org/public/v1/preview"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+rate_limit:
+  requests_per_second: 1
+  daily_limit: 100
+license: "UN open data"
+bronze_table: "bronze.comtrade_flows_raw"
+bronze_fields:
+  - {name: flow_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: period, type: "VARCHAR(16)"}
+  - {name: reporter_iso, type: "VARCHAR(8)"}
+  - {name: partner_iso, type: "VARCHAR(8)"}
+  - {name: trade_flow, type: "VARCHAR(32)"}
+  - {name: commodity_code, type: "VARCHAR(16)"}
+  - {name: trade_value_usd, type: "NUMERIC"}
+conflict_strategy: "ON CONFLICT (flow_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

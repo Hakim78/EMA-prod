@@ -1,0 +1,32 @@
+source_id: nosdeputes
+source_num: 97
+layer: 14
+couche: Lobbying
+name: NosDéputés.fr — auditions parlementaires
+description: 'Source #97 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.nosdeputes.fr/deputes/json
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.nosdeputes_raw
+bronze_fields:
+- name: depute_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: nom
+  type: VARCHAR(255)
+  primary_key: false
+- name: prenom
+  type: VARCHAR(255)
+  primary_key: false
+- name: groupe
+  type: VARCHAR(64)
+  primary_key: false
+- name: circonscription
+  type: VARCHAR(64)
+  primary_key: false
+conflict_strategy: ON CONFLICT (depute_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

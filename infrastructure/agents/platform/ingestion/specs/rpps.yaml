@@ -1,0 +1,24 @@
+source_id: rpps
+source_num: 130
+layer: 18
+couche: "Sectoriel spécialisé"
+name: "RPPS — Répertoire Partagé Professionnels Santé"
+description: "700K professionnels santé FR avec identifiants. Mapping pro santé ↔ établissements."
+endpoint: "https://annuaire.sante.fr/api/v1/professionnels"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+rate_limit:
+  requests_per_second: 3
+license: "Etalab 2.0"
+bronze_table: "bronze.rpps_professionnels_raw"
+bronze_fields:
+  - {name: rpps, type: "VARCHAR(16)", primary_key: true}
+  - {name: nom, type: "VARCHAR(255)"}
+  - {name: prenom, type: "VARCHAR(255)"}
+  - {name: profession, type: "VARCHAR(128)"}
+  - {name: specialite, type: "VARCHAR(128)"}
+  - {name: siret_etab, type: "CHAR(14)"}
+  - {name: commune, type: "VARCHAR(255)"}
+conflict_strategy: "ON CONFLICT (rpps) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

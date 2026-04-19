@@ -1,0 +1,28 @@
+source_id: openalex
+source_num: 60
+layer: 9
+couche: "Propriété intellectuelle & R&D"
+name: "OpenAlex — 250M articles scientifiques mondiaux"
+description: "Publications + citations + affiliations institutionnelles. Score scoring M&A dim 8 R&D (croisement siren ↔ chercheurs)."
+endpoint: "https://api.openalex.org/works"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+page_size: 50
+max_pages_per_run: 20
+incremental_field: publication_date
+rate_limit:
+  requests_per_second: 10
+license: "CC0 (public domain)"
+bronze_table: "bronze.openalex_works_raw"
+bronze_fields:
+  - {name: openalex_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: title, type: "TEXT"}
+  - {name: publication_year, type: "INT"}
+  - {name: publication_date, type: "DATE"}
+  - {name: cited_by_count, type: "INT"}
+  - {name: authorships, type: "JSONB"}
+  - {name: institutions, type: "TEXT[]"}
+conflict_strategy: "ON CONFLICT (openalex_id) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"
+query_filter_default: "authorships.institutions.country_code:FR"

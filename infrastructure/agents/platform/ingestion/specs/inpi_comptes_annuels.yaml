@@ -1,0 +1,41 @@
+source_id: inpi_comptes_annuels
+source_num: 16
+layer: 3
+couche: Comptes & finances
+name: INPI Comptes annuels — bilans PDF + XBRL
+description: 'Source #16 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://data.inpi.fr/api/companies/comptes
+auth: oauth2_client_credentials
+pattern: rest_oauth2_client_credentials
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.inpi_comptes_raw
+bronze_fields:
+- name: depot_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: siren
+  type: CHAR(9)
+  primary_key: false
+- name: exercice_debut
+  type: DATE
+  primary_key: false
+- name: exercice_fin
+  type: DATE
+  primary_key: false
+- name: ca
+  type: NUMERIC
+  primary_key: false
+- name: ebitda
+  type: NUMERIC
+  primary_key: false
+- name: total_bilan
+  type: NUMERIC
+  primary_key: false
+- name: capitaux_propres
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (depot_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

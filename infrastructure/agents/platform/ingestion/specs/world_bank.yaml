@@ -1,0 +1,30 @@
+source_id: world_bank
+source_num: 141
+layer: 19
+couche: "Europe & international"
+name: "World Bank Open Data — indicateurs pays"
+description: "PIB, démographie, GINI pour pays-clients/fournisseurs. Enrichissement contexte pays."
+endpoint: "https://api.worldbank.org/v2/country/all/indicator/NY.GDP.MKTP.CD"
+auth: none
+pattern: rest_json_wb
+refresh_trigger: "interval_hours=2160"
+sla_minutes: 129600
+rate_limit:
+  requests_per_second: 5
+page_size: 500
+max_pages_per_run: 10
+license: "CC BY-4.0"
+bronze_table: "bronze.world_bank_indicators_raw"
+bronze_fields:
+  - {name: country_code, type: "VARCHAR(8)", source_path: "country.id"}
+  - {name: country_name, type: "VARCHAR(255)", source_path: "country.value"}
+  - {name: indicator_code, type: "VARCHAR(64)", source_path: "indicator.id"}
+  - {name: indicator_name, type: "VARCHAR(255)", source_path: "indicator.value"}
+  - {name: year, type: "INT", source_path: "date"}
+  - {name: value, type: "NUMERIC", source_path: "value"}
+primary_key: "(country_code, indicator_code, year)"
+conflict_strategy: "ON CONFLICT (country_code, indicator_code, year) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"
+indicators_priorité:
+  - "NY.GDP.MKTP.CD"  # PIB courant USD
+  - "SL.UEM.TOTL.ZS"  # chômage
+  - "SP.POP.TOTL"  # population

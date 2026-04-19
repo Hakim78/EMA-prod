@@ -1,0 +1,32 @@
+source_id: inpi_marques
+source_num: 52
+layer: 9
+couche: PI/R&D
+name: INPI Marques — marques actives FR
+description: 'Source #52 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://data.inpi.fr/api/marques/search
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.inpi_marques_raw
+bronze_fields:
+- name: numero_national
+  type: VARCHAR(32)
+  primary_key: true
+- name: denomination
+  type: VARCHAR(512)
+  primary_key: false
+- name: siren_titulaire
+  type: CHAR(9)
+  primary_key: false
+- name: date_depot
+  type: DATE
+  primary_key: false
+- name: classes_nice
+  type: INT[]
+  primary_key: false
+conflict_strategy: ON CONFLICT (numero_national) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

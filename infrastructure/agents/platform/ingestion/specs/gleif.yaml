@@ -1,0 +1,27 @@
+source_id: gleif
+source_num: 9
+layer: 2
+couche: "Identifiants internationaux"
+name: "GLEIF — Global Legal Entity Identifier"
+description: "80-100K LEI FR, hierarchies parent/filiales. Résolution entités multi-sources."
+endpoint: "https://api.gleif.org/api/v1/lei-records"
+auth: none
+pattern: rest_json_jsonapi
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+page_size: 200
+max_pages_per_run: 50
+query_filter: "filter[entity.legalAddress.country]=FR"
+rate_limit:
+  requests_per_second: 5
+license: "ODbL (Open Data Commons)"
+bronze_table: "bronze.gleif_lei_raw"
+bronze_fields:
+  - {name: lei, type: "VARCHAR(20)", source_path: "id", primary_key: true}
+  - {name: legal_name, type: "VARCHAR(512)", source_path: "attributes.entity.legalName.name"}
+  - {name: country, type: "VARCHAR(8)", source_path: "attributes.entity.legalAddress.country"}
+  - {name: status, type: "VARCHAR(32)", source_path: "attributes.entity.status"}
+  - {name: parent_lei, type: "VARCHAR(20)", source_path: "relationships.direct-parent.data.id"}
+  - {name: ultimate_parent_lei, type: "VARCHAR(20)", source_path: "relationships.ultimate-parent.data.id"}
+  - {name: siren, type: "CHAR(9)", source_path: "attributes.entity.registeredAs"}
+conflict_strategy: "ON CONFLICT (lei) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

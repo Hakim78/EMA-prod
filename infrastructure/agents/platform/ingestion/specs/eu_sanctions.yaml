@@ -1,0 +1,35 @@
+source_id: eu_sanctions
+source_num: 78
+layer: 12
+couche: Compliance
+name: EU Sanctions Map
+description: 'Source #78 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://webgate.ec.europa.eu/fsd/fsf/public/files/jsonFullSanctionsList/content
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.eu_sanctions_raw
+bronze_fields:
+- name: subject_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: name
+  type: VARCHAR(512)
+  primary_key: false
+- name: type
+  type: VARCHAR(32)
+  primary_key: false
+- name: programme
+  type: VARCHAR(128)
+  primary_key: false
+- name: date_listing
+  type: DATE
+  primary_key: false
+- name: country
+  type: VARCHAR(8)
+  primary_key: false
+conflict_strategy: ON CONFLICT (subject_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

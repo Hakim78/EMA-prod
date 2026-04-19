@@ -1,0 +1,22 @@
+source_id: annuaire_entreprises
+source_num: 5
+layer: 1
+couche: "Identification entreprise"
+name: "annuaire-entreprises.data.gouv.fr — vue consolidée officielle"
+description: "5M entreprises, fusion INSEE + INPI + RNE. Format très proche recherche_entreprises mais portail officiel."
+endpoint: "https://recherche-entreprises.api.gouv.fr/search"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "on_demand"
+sla_minutes: 60
+rate_limit:
+  requests_per_second: 7
+license: "Etalab 2.0"
+bronze_table: "bronze.annuaire_entreprises_raw"
+bronze_fields:
+  - {name: siren, type: "CHAR(9)", source_path: "siren", primary_key: true}
+  - {name: nom_complet, type: "VARCHAR(512)", source_path: "nom_complet"}
+  - {name: naf, type: "VARCHAR(8)", source_path: "activite_principale"}
+  - {name: siege_commune, type: "VARCHAR(255)", source_path: "siege.libelle_commune"}
+  - {name: etat, type: "VARCHAR(32)", source_path: "etat_administratif"}
+conflict_strategy: "ON CONFLICT (siren) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

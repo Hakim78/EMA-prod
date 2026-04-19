@@ -1,0 +1,38 @@
+source_id: transparence_sante
+source_num: 98
+layer: 14
+couche: Lobbying
+name: Transparence Santé — paiements industrie↔médecins
+description: 'Source #98 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.data.gouv.fr/api/1/datasets/transparence-sante/
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.transparence_sante_raw
+bronze_fields:
+- name: declaration_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: entreprise
+  type: VARCHAR(512)
+  primary_key: false
+- name: beneficiaire_nom
+  type: VARCHAR(255)
+  primary_key: false
+- name: beneficiaire_rpps
+  type: VARCHAR(16)
+  primary_key: false
+- name: montant
+  type: NUMERIC
+  primary_key: false
+- name: date_declaration
+  type: DATE
+  primary_key: false
+- name: nature
+  type: VARCHAR(128)
+  primary_key: false
+conflict_strategy: ON CONFLICT (declaration_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

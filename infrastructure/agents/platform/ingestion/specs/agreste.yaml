@@ -1,0 +1,32 @@
+source_id: agreste
+source_num: 133
+layer: 18
+couche: Sectoriel
+name: Agreste — stats agricoles
+description: 'Source #133 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://agreste.agriculture.gouv.fr/api/v1/series
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=720
+sla_minutes: 43260
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.agreste_series_raw
+bronze_fields:
+- name: series_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: indicateur
+  type: VARCHAR(255)
+  primary_key: false
+- name: region
+  type: VARCHAR(64)
+  primary_key: false
+- name: annee
+  type: INT
+  primary_key: false
+- name: valeur
+  type: NUMERIC
+  primary_key: false
+conflict_strategy: ON CONFLICT (series_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

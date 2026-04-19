@@ -1,0 +1,32 @@
+source_id: amf_geco
+source_num: 23
+layer: 4
+couche: Marchés cotés
+name: AMF GECO — décisions, agréments
+description: 'Source #23 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://geco.amf-france.org/api/v1/decisions
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.amf_geco_raw
+bronze_fields:
+- name: decision_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: date_decision
+  type: DATE
+  primary_key: false
+- name: type
+  type: VARCHAR(64)
+  primary_key: false
+- name: societe
+  type: VARCHAR(512)
+  primary_key: false
+- name: description
+  type: TEXT
+  primary_key: false
+conflict_strategy: ON CONFLICT (decision_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

@@ -1,0 +1,27 @@
+source_id: bpifrance
+source_num: 103
+layer: 15
+couche: "Subventions & aides publiques"
+name: "Bpifrance Open Data — prêts, garanties publiées"
+description: "Prêts publics + garanties Bpifrance aux PME/ETI. Signal financement M&A."
+endpoint: "https://data.bpifrance.fr/api/records/1.0/search"
+auth: none
+pattern: rest_json_opendatasoft_legacy
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+page_size: 100
+max_pages_per_run: 30
+backfill_days_first_run: 180
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.bpifrance_aides_raw"
+bronze_fields:
+  - {name: aide_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: siren_beneficiaire, type: "CHAR(9)"}
+  - {name: raison_sociale, type: "VARCHAR(512)"}
+  - {name: programme, type: "VARCHAR(128)"}
+  - {name: type_aide, type: "VARCHAR(64)"}
+  - {name: montant, type: "NUMERIC"}
+  - {name: date_decision, type: "DATE"}
+conflict_strategy: "ON CONFLICT (aide_id) DO NOTHING"

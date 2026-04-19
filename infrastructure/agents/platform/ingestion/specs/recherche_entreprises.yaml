@@ -1,0 +1,32 @@
+source_id: recherche_entreprises
+source_num: 1
+layer: 1
+couche: "Identification entreprise"
+name: "API Recherche Entreprises — annuaire-entreprises.data.gouv.fr"
+description: "5M entreprises FR actives. Fallback identification + dirigeants."
+endpoint: "https://recherche-entreprises.api.gouv.fr/search"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "on_demand"
+sla_minutes: 60
+mode: lookup_by_query
+rate_limit:
+  requests_per_second: 7
+  daily_limit: 50000
+license: "Etalab 2.0"
+bronze_table: "bronze.recherche_entreprises_raw"
+bronze_fields:
+  - {name: siren, type: "CHAR(9)", source_path: "siren", primary_key: true}
+  - {name: nom_complet, type: "VARCHAR(512)", source_path: "nom_complet"}
+  - {name: nom_raison_sociale, type: "VARCHAR(512)", source_path: "nom_raison_sociale"}
+  - {name: naf, type: "VARCHAR(8)", source_path: "activite_principale"}
+  - {name: tranche_effectifs, type: "VARCHAR(8)", source_path: "tranche_effectif_salarie"}
+  - {name: date_creation, type: "DATE", source_path: "date_creation", parser: "date"}
+  - {name: siege_commune, type: "VARCHAR(255)", source_path: "siege.libelle_commune"}
+  - {name: siege_dept, type: "VARCHAR(8)", source_path: "siege.departement"}
+  - {name: etat, type: "VARCHAR(32)", source_path: "etat_administratif"}
+  - {name: categorie, type: "VARCHAR(16)", source_path: "categorie_entreprise"}
+conflict_strategy: "ON CONFLICT (siren) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"
+query_seed:
+  description: "On enrichit par batch les SIRENs BODACC qui manquent dans recherche_entreprises"
+  source_sql: "SELECT DISTINCT siren FROM bronze.bodacc_annonces_raw WHERE siren IS NOT NULL AND siren NOT IN (SELECT siren FROM bronze.recherche_entreprises_raw) LIMIT 1000"

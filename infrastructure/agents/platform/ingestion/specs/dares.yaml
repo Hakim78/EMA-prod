@@ -1,0 +1,29 @@
+source_id: dares
+source_num: 64
+layer: 10
+couche: Emploi
+name: DARES — tensions métiers
+description: 'Source #64 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://data.dares.travail-emploi.gouv.fr/api/records/1.0/search
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.dares_tensions_raw
+bronze_fields:
+- name: code_rome
+  type: VARCHAR(16)
+  primary_key: false
+- name: region
+  type: VARCHAR(64)
+  primary_key: false
+- name: tension_indicateur
+  type: NUMERIC
+  primary_key: false
+- name: date_observation
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (rome_region) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

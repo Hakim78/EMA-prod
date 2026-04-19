@@ -1,0 +1,27 @@
+source_id: crt_sh
+source_num: 106
+layer: 16
+couche: "Web, digital & cyber"
+name: "Certificate Transparency (crt.sh) — logs TLS publics"
+description: "Sous-domaines/projets cachés d'entreprises via certificats TLS. Signal web M&A (nouveau projet, produit stealth)."
+endpoint: "https://crt.sh/"
+auth: none
+pattern: rest_html_query
+refresh_trigger: "on_demand"
+sla_minutes: 60
+mode: lookup_by_domain
+rate_limit:
+  requests_per_second: 1
+  daily_limit: 100
+  notes: "crt.sh bannit fréquemment, usage parcimonieux : <100 req/h"
+license: "Public data, no explicit license"
+bronze_table: "bronze.crt_sh_certificates_raw"
+bronze_fields:
+  - {name: cert_id, type: "BIGINT", source_path: "id", primary_key: true}
+  - {name: common_name, type: "VARCHAR(512)", source_path: "common_name"}
+  - {name: name_value, type: "TEXT", source_path: "name_value"}
+  - {name: issuer_name, type: "VARCHAR(512)", source_path: "issuer_name"}
+  - {name: not_before, type: "TIMESTAMPTZ", source_path: "not_before"}
+  - {name: not_after, type: "TIMESTAMPTZ", source_path: "not_after"}
+conflict_strategy: "ON CONFLICT (cert_id) DO NOTHING"
+query_mode: "crt.sh?q={domain}&output=json — GET paramétré"

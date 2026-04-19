@@ -1,0 +1,32 @@
+source_id: anssi_cert_fr
+source_num: 39
+layer: 6
+couche: Juridique
+name: ANSSI CERT-FR — alertes cyber
+description: 'Source #39 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.cert.ssi.gouv.fr/api/alerte
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.anssi_alertes_raw
+bronze_fields:
+- name: ref
+  type: VARCHAR(64)
+  primary_key: true
+- name: date_emission
+  type: DATE
+  primary_key: false
+- name: niveau
+  type: VARCHAR(32)
+  primary_key: false
+- name: titre
+  type: VARCHAR(512)
+  primary_key: false
+- name: produits_affectes
+  type: TEXT[]
+  primary_key: false
+conflict_strategy: ON CONFLICT (ref) DO UPDATE SET payload = EXCLUDED.payload, ingested_at
+  = now()

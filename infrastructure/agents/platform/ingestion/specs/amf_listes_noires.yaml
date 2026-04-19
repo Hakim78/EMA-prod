@@ -1,0 +1,29 @@
+source_id: amf_listes_noires
+source_num: 81
+layer: 12
+couche: Compliance
+name: AMF listes noires — entités non autorisées
+description: 'Source #81 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://www.data.gouv.fr/api/1/datasets/liste-noire-amf/
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.amf_listes_noires_raw
+bronze_fields:
+- name: entite_id
+  type: VARCHAR(64)
+  primary_key: true
+- name: denomination
+  type: VARCHAR(512)
+  primary_key: false
+- name: type_alerte
+  type: VARCHAR(64)
+  primary_key: false
+- name: date_alerte
+  type: DATE
+  primary_key: false
+conflict_strategy: ON CONFLICT (entite_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

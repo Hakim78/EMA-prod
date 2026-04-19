@@ -1,0 +1,24 @@
+source_id: basol
+source_num: 87
+layer: 13
+couche: "ESG, environnement, énergie"
+name: "BASOL — sites pollués actifs MTE"
+description: "Sites pollués en cours de traitement. Critical due diligence M&A secteur industrie."
+endpoint: "https://www.data.gouv.fr/api/1/datasets/basol-base-de-donnees-des-sites-et-sols-pollues/"
+auth: none
+pattern: rest_json_datagouv_resource
+refresh_trigger: "interval_hours=720"
+sla_minutes: 43200
+rate_limit:
+  requests_per_second: 3
+license: "Etalab 2.0"
+bronze_table: "bronze.basol_sites_raw"
+bronze_fields:
+  - {name: code_basol, type: "VARCHAR(32)", primary_key: true}
+  - {name: nom_usuel, type: "VARCHAR(512)"}
+  - {name: siret, type: "CHAR(14)"}
+  - {name: commune, type: "VARCHAR(255)"}
+  - {name: statut, type: "VARCHAR(64)"}
+  - {name: date_maj, type: "DATE"}
+  - {name: polluants, type: "TEXT[]"}
+conflict_strategy: "ON CONFLICT (code_basol) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

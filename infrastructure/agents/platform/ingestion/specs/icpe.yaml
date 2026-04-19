@@ -1,0 +1,26 @@
+source_id: icpe
+source_num: 89
+layer: 13
+couche: "ESG, environnement, énergie"
+name: "ICPE Géorisques — Installations Classées Protection Environnement"
+description: "500K installations industrielles réglementées. Score ESG + risque M&A."
+endpoint: "https://www.georisques.gouv.fr/api/v1/installations_classees"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=168"
+sla_minutes: 10080
+page_size: 100
+max_pages_per_run: 50
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.icpe_installations_raw"
+bronze_fields:
+  - {name: code_aiot, type: "VARCHAR(32)", primary_key: true}
+  - {name: raison_sociale, type: "VARCHAR(512)"}
+  - {name: siret, type: "CHAR(14)"}
+  - {name: regime, type: "VARCHAR(64)"}
+  - {name: statut, type: "VARCHAR(64)"}
+  - {name: code_commune, type: "VARCHAR(8)"}
+  - {name: nature_exploitation, type: "TEXT"}
+conflict_strategy: "ON CONFLICT (code_aiot) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

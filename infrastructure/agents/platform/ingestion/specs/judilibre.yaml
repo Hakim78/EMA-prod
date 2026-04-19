@@ -1,0 +1,40 @@
+source_id: judilibre
+source_num: 34
+layer: 6
+couche: "Juridique & contentieux"
+name: "Judilibre — Cour de Cassation + Cours d'appel + TJ + prud'hommes"
+description: "5M décisions justice FR. Source scoring M&A juridique/reglementaire."
+endpoint: "https://api.piste.gouv.fr/cassation/judilibre/v1.0/search"
+auth: oauth2_client_credentials
+auth_token_url: "https://oauth.piste.gouv.fr/api/oauth/token"
+auth_scope: "openid"
+auth_env_vars:
+  client_id: PISTE_CLIENT_ID
+  client_secret: PISTE_CLIENT_SECRET
+pattern: rest_json_oauth2
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+backfill_days_first_run: 7
+incremental_hours: 48
+page_size: 50
+max_pages_per_run: 20
+incremental_field: date_decision
+rate_limit:
+  requests_per_second: 2
+  daily_limit: 10000
+license: "Open Licence 2.0 via data.gouv.fr"
+bronze_table: "bronze.judilibre_decisions_raw"
+bronze_fields:
+  - {name: decision_id, type: "VARCHAR(128)", source_path: "id", primary_key: true}
+  - {name: juridiction, type: "VARCHAR(64)", source_path: "jurisdiction"}
+  - {name: chamber, type: "VARCHAR(64)", source_path: "chamber"}
+  - {name: date_decision, type: "DATE", source_path: "decision_date", parser: "date"}
+  - {name: theme, type: "VARCHAR(512)", source_path: "themes|title"}
+  - {name: numero_affaire, type: "VARCHAR(64)", source_path: "number"}
+  - {name: solution, type: "VARCHAR(128)", source_path: "solution"}
+conflict_strategy: "ON CONFLICT (decision_id) DO NOTHING"
+rgpd_notes: "Décisions publiées anonymisées par défaut par Cour de Cassation. Respecter pseudonymisation."
+query_params_default:
+  date_start: "auto_incremental"
+  date_end: "today"
+  sort: "date_decision_desc"

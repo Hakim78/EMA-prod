@@ -1,0 +1,28 @@
+source_id: conseil_etat
+source_num: 40
+layer: 6
+couche: "Juridique & contentieux"
+name: "Conseil d'État ArianeWeb — jurisprudence administrative"
+description: "Décisions CE + cours administratives. Score scoring M&A dim 6 juridique."
+endpoint: "https://www.conseil-etat.fr/api/arianeweb/v1/search"
+auth: none
+pattern: rest_json_public
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+page_size: 50
+max_pages_per_run: 10
+backfill_days_first_run: 30
+incremental_hours: 48
+incremental_field: date_lecture
+rate_limit:
+  requests_per_second: 2
+license: "Open Licence 2.0 via data.gouv.fr"
+bronze_table: "bronze.conseil_etat_decisions_raw"
+bronze_fields:
+  - {name: decision_id, type: "VARCHAR(64)", primary_key: true}
+  - {name: numero, type: "VARCHAR(32)"}
+  - {name: formation, type: "VARCHAR(64)"}
+  - {name: date_lecture, type: "DATE"}
+  - {name: solution, type: "VARCHAR(128)"}
+  - {name: resume, type: "TEXT"}
+conflict_strategy: "ON CONFLICT (decision_id) DO NOTHING"

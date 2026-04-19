@@ -1,0 +1,31 @@
+source_id: boamp
+source_num: 46
+layer: 8
+couche: "Marchés publics"
+name: "BOAMP — Bulletin Officiel des Annonces des Marchés Publics"
+description: "100K+ appels d'offres/an. Signal amont DECP (avant attribution)."
+endpoint: "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records"
+auth: none
+pattern: rest_json_opendatasoft
+refresh_trigger: "interval_hours=24"
+sla_minutes: 1500
+backfill_days_first_run: 30
+incremental_hours: 48
+page_size: 100
+max_pages_per_run: 30
+incremental_field: dateparution
+rate_limit:
+  requests_per_second: 5
+license: "Etalab 2.0"
+bronze_table: "bronze.boamp_avis_raw"
+bronze_fields:
+  - {name: avis_id, type: "VARCHAR(128)", source_path: "idweb", primary_key: true}
+  - {name: date_parution, type: "DATE", source_path: "dateparution", parser: "date"}
+  - {name: date_limite, type: "DATE", source_path: "datelimitereponse", parser: "date"}
+  - {name: objet, type: "TEXT", source_path: "objet"}
+  - {name: acheteur, type: "VARCHAR(512)", source_path: "nomacheteur"}
+  - {name: cpv, type: "VARCHAR(16)", source_path: "codecpv"}
+  - {name: type_avis, type: "VARCHAR(64)", source_path: "typeavis"}
+  - {name: lieu_execution, type: "VARCHAR(255)", source_path: "lieuexecution"}
+  - {name: montant_estime, type: "NUMERIC", source_path: "montantestime"}
+conflict_strategy: "ON CONFLICT (avis_id) DO NOTHING"

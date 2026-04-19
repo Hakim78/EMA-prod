@@ -1,0 +1,38 @@
+source_id: github_api
+source_num: 111
+layer: 16
+couche: Web/digital
+name: GitHub API — repos, employés tech
+description: 'Source #111 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.github.com/search/repositories
+auth: api_key_bearer
+pattern: rest_api_key_bearer
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.github_repos_raw
+bronze_fields:
+- name: repo_id
+  type: BIGINT
+  primary_key: true
+- name: full_name
+  type: VARCHAR(255)
+  primary_key: false
+- name: language
+  type: VARCHAR(64)
+  primary_key: false
+- name: stargazers_count
+  type: INT
+  primary_key: false
+- name: forks_count
+  type: INT
+  primary_key: false
+- name: created_at
+  type: TIMESTAMPTZ
+  primary_key: false
+- name: homepage
+  type: VARCHAR(512)
+  primary_key: false
+conflict_strategy: ON CONFLICT (repo_id) DO UPDATE SET payload = EXCLUDED.payload,
+  ingested_at = now()

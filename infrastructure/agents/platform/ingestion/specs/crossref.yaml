@@ -1,0 +1,32 @@
+source_id: crossref
+source_num: 61
+layer: 9
+couche: PI/R&D
+name: CrossRef — DOI, citations
+description: 'Source #61 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.crossref.org/works
+auth: none
+pattern: rest_json_public
+refresh_trigger: interval_hours=168
+sla_minutes: 10140
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.crossref_works_raw
+bronze_fields:
+- name: doi
+  type: VARCHAR(128)
+  primary_key: true
+- name: title
+  type: TEXT
+  primary_key: false
+- name: publisher
+  type: VARCHAR(255)
+  primary_key: false
+- name: published_date
+  type: DATE
+  primary_key: false
+- name: is_referenced_by_count
+  type: INT
+  primary_key: false
+conflict_strategy: ON CONFLICT (doi) DO UPDATE SET payload = EXCLUDED.payload, ingested_at
+  = now()

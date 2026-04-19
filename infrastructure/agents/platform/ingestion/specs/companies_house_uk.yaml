@@ -1,0 +1,26 @@
+source_id: companies_house_uk
+source_num: 26
+layer: 4
+couche: "Marchés cotés & international"
+name: "Companies House UK — registre officiel"
+description: "Toutes entreprises UK. Pour filiales UK de groupes FR. 100% gratuit avec API key."
+endpoint: "https://api.company-information.service.gov.uk/search/companies"
+auth: api_key_basic
+auth_env_vars:
+  api_key: COMPANIES_HOUSE_UK_KEY
+pattern: rest_json_basic_auth
+refresh_trigger: "on_demand"
+sla_minutes: 1440
+rate_limit:
+  requests_per_second: 6
+  daily_limit: 600
+license: "Open Government Licence v3.0"
+bronze_table: "bronze.companies_house_uk_raw"
+bronze_fields:
+  - {name: company_number, type: "VARCHAR(16)", primary_key: true}
+  - {name: company_name, type: "VARCHAR(512)"}
+  - {name: company_status, type: "VARCHAR(64)"}
+  - {name: date_of_creation, type: "DATE"}
+  - {name: address, type: "JSONB"}
+  - {name: sic_codes, type: "TEXT[]"}
+conflict_strategy: "ON CONFLICT (company_number) DO UPDATE SET payload = EXCLUDED.payload, ingested_at = now()"

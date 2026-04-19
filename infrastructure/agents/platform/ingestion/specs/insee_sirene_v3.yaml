@@ -1,0 +1,41 @@
+source_id: insee_sirene_v3
+source_num: 2
+layer: 1
+couche: Identification
+name: INSEE SIRENE V3 API — deltas quotidiens
+description: 'Source #2 ARCHITECTURE_DATA_V2. Bronze ingestion raw — traité ensuite
+  par silver/gold/mart.'
+endpoint: https://api.insee.fr/entreprises/sirene/V3.11/siret
+auth: oauth2_client_credentials
+pattern: rest_oauth2_client_credentials
+refresh_trigger: interval_hours=24
+sla_minutes: 1500
+license: Public / Etalab 2.0 par défaut
+bronze_table: bronze.insee_sirene_siret_raw
+bronze_fields:
+- name: siret
+  type: CHAR(14)
+  primary_key: true
+- name: siren
+  type: CHAR(9)
+  primary_key: false
+- name: naf
+  type: VARCHAR(8)
+  primary_key: false
+- name: denomination
+  type: VARCHAR(512)
+  primary_key: false
+- name: code_postal
+  type: VARCHAR(8)
+  primary_key: false
+- name: commune
+  type: VARCHAR(255)
+  primary_key: false
+- name: date_creation
+  type: DATE
+  primary_key: false
+- name: etat
+  type: VARCHAR(32)
+  primary_key: false
+conflict_strategy: ON CONFLICT (siret) DO UPDATE SET payload = EXCLUDED.payload, ingested_at
+  = now()

@@ -1,0 +1,34 @@
+source_id: bodacc
+source_num: 30
+layer: 5
+couche: "Publications légales & procédures"
+name: "BODACC — Bulletin Officiel des Annonces Civiles et Commerciales"
+description: "48M annonces. Source primaire killer feature #1 Alertes pré-cession."
+endpoint: "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records"
+auth: none
+pattern: rest_json_opendatasoft
+refresh_trigger: "interval_hours=1"
+sla_minutes: 90
+backfill_days_first_run: 30
+incremental_hours: 48
+page_size: 100
+max_pages_per_run: 50
+incremental_field: dateparution
+rate_limit:
+  requests_per_second: 5
+  daily_limit: null
+license: "Etalab 2.0 (réutilisation libre commercial)"
+bronze_table: "bronze.bodacc_annonces_raw"
+bronze_fields:
+  - {name: annonce_id, type: "VARCHAR(128)", source_path: "id", primary_key: true}
+  - {name: date_publication, type: "DATE", source_path: "dateparution", parser: "date"}
+  - {name: type_avis, type: "VARCHAR(64)", source_path: "typeavis"}
+  - {name: familleavis_lib, type: "VARCHAR(128)", source_path: "familleavis_lib"}
+  - {name: departement, type: "VARCHAR(8)", source_path: "departement_nom_officiel|cp"}
+  - {name: ville, type: "VARCHAR(255)", source_path: "ville"}
+  - {name: registre, type: "VARCHAR(64)", source_path: "registre"}
+  - {name: numero_annonce, type: "VARCHAR(64)", source_path: "numeroannonce"}
+  - {name: tribunal, type: "VARCHAR(255)", source_path: "tribunal"}
+  - {name: siren, type: "CHAR(9)", extractor: "extract_siren_from_listepersonnes"}
+conflict_strategy: "ON CONFLICT (annonce_id) DO NOTHING"
+rgpd_notes: "Données publiques Etalab, pas de données personnelles sensibles"

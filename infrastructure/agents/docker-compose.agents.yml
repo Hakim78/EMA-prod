@@ -1,0 +1,63 @@
+# DEMOEMA Agents Stack — Ollama Cloud Pro + Datalake Postgres dédié
+# Lancement : docker compose -f docker-compose.agents.yml up -d
+
+services:
+  datalake-db:
+    image: postgres:16-alpine
+    container_name: demomea-datalake-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: datalake
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATALAKE_POSTGRES_ROOT_PASSWORD}
+      DATALAKE_AGENTS_PASSWORD: ${DATALAKE_AGENTS_PASSWORD}
+      DATALAKE_RO_PASSWORD: ${DATALAKE_RO_PASSWORD}
+    volumes:
+      - datalake-data:/var/lib/postgresql/data
+      - ./datalake-init:/docker-entrypoint-initdb.d:ro
+    expose:
+      - "5432"
+    networks:
+      - agents-net
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d datalake"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  agents-platform:
+    build:
+      context: ./platform
+    container_name: demomea-agents-platform
+    restart: unless-stopped
+    depends_on:
+      datalake-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PROMPTS_DIR: /app/prompts
+      DOCS_DIR: /app/docs
+    volumes:
+      - ./prompts:/app/prompts:ro
+      - ./docs:/app/docs:ro
+      # Hot-reload : fetchers générés par agent persistés sur host
+      - ./platform/ingestion/sources:/app/ingestion/sources:rw
+      - ./platform/ingestion/specs:/app/ingestion/specs:ro
+    expose:
+      - "8100"
+    networks:
+      - agents-net
+      - web              # accès via Caddy principal DEMOEMA
+
+networks:
+  agents-net:
+    driver: bridge
+  web:
+    external: true
+    name: demoema_web
+
+volumes:
+  datalake-data:
+    driver: local
