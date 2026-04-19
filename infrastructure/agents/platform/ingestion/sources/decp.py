@@ -20,9 +20,9 @@ log = logging.getLogger(__name__)
 
 DECP_ENDPOINT = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/decp-v3-marches-valides/records"
 PAGE_SIZE = 100
-MAX_PAGES_PER_RUN = 50  # ~5000 marchés par run (sécurité quota)
+MAX_PAGES_PER_RUN = 1000  # ~5000 marchés par run (sécurité quota)
 # Fenêtre de backfill initial large (DECP publie avec 1-3j de délai typique)
-BACKFILL_DAYS_FIRST_RUN = 90
+BACKFILL_DAYS_FIRST_RUN = 1825
 INCREMENTAL_HOURS = 180
 
 

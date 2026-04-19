@@ -19,7 +19,7 @@ from config import settings
 log = logging.getLogger(__name__)
 
 BODACC_ENDPOINT = "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records"
-BODACC_EXPORT_URL = "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/exports/json"
+BODACC_EXPORT_URL = "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/exports/csv?delimiter=%3B&quote=%22"
 PAGE_SIZE = 100
 MAX_PAGES_PER_RUN = 500
 # FULL historique par bulk export streamé (48M annonces possible mais long)
@@ -29,8 +29,8 @@ BULK_BATCH_SIZE = 1000  # commit tous les 1000 rows
 
 
 async def fetch_bodacc_full() -> dict:
-    """FULL historical BODACC via /exports/json streaming (48M annonces max).
-    Beaucoup plus rapide que la pagination offset (qui plafonne à 10K).
+    """FULL historical BODACC via /exports/csv streaming (48M annonces).
+    CSV = stream ligne par ligne, plus reliable que JSON array.
     Temps estimé : 60-120 min, taille 15-30 GB décompressé."""
     if not settings.database_url:
         return {"error": "DATABASE_URL non configuré", "rows": 0}
@@ -47,51 +47,69 @@ async def fetch_bodacc_full() -> dict:
             async with await psycopg.AsyncConnection.connect(settings.database_url) as conn:
                 async with conn.cursor() as cur:
                     batch: list[tuple] = []
-                    import json
-                    async for line in resp.aiter_lines():
-                        if not line.strip():
+                    import csv
+                    import io
+                    header = None
+                    buffer = ""
+                    async for chunk in resp.aiter_text(1024 * 1024):  # 1 MB chunks
+                        buffer += chunk
+                        lines = buffer.split("\n")
+                        buffer = lines.pop()  # garder le dernier incomplet
+                        if header is None and lines:
+                            reader = csv.reader(io.StringIO(lines[0]), delimiter=";", quotechar='"')
+                            header = next(reader, None)
+                            lines = lines[1:]
+                        if not header:
                             continue
-                        try:
-                            rec = json.loads(line)
-                        except Exception:
-                            errors += 1
-                            continue
-                        processed += 1
-                        annonce_id = _s(rec.get("id") or f"{rec.get('numeroannonce', '')}-{rec.get('dateparution', '')}")
-                        if not annonce_id:
-                            continue
-                        batch.append((
-                            annonce_id[:128],
-                            _parse_date(rec.get("dateparution")),
-                            _s(rec.get("typeavis"))[:64],
-                            _s(rec.get("familleavis_lib"))[:128],
-                            (_s(rec.get("departement_nom_officiel")) or _s(rec.get("cp")))[:8],
-                            _s(rec.get("ville"))[:255],
-                            _s(rec.get("registre"))[:64],
-                            _s(rec.get("numeroannonce"))[:64],
-                            _s(rec.get("tribunal"))[:255],
-                            _extract_siren(rec),
-                            Jsonb(rec),
-                        ))
-                        if len(batch) >= BULK_BATCH_SIZE:
+                        for line in lines:
+                            if not line.strip():
+                                continue
                             try:
-                                await cur.executemany(
-                                    """
-                                    INSERT INTO bronze.bodacc_annonces_raw
-                                      (annonce_id, date_publication, type_avis, familleavis_lib,
-                                       departement, ville, registre, numero_annonce, tribunal, siren, payload)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    ON CONFLICT (annonce_id) DO NOTHING
-                                    """,
-                                    batch,
-                                )
-                                inserted += cur.rowcount or 0
-                                await conn.commit()
-                                log.info("BODACC bulk : %d inserted / %d processed", inserted, processed)
-                            except Exception as e:
-                                log.warning("Batch error: %s", e)
-                                errors += len(batch)
-                            batch.clear()
+                                reader = csv.reader(io.StringIO(line), delimiter=";", quotechar='"')
+                                row = next(reader, None)
+                                if not row or len(row) < len(header):
+                                    continue
+                                rec = dict(zip(header, row))
+                            except Exception:
+                                errors += 1
+                                continue
+
+                            processed += 1
+                            annonce_id = _s(rec.get("id") or f"{rec.get('numeroannonce', '')}-{rec.get('dateparution', '')}")
+                            if not annonce_id:
+                                continue
+                            batch.append((
+                                annonce_id[:128],
+                                _parse_date(rec.get("dateparution")),
+                                _s(rec.get("typeavis"))[:64],
+                                _s(rec.get("familleavis_lib"))[:128],
+                                (_s(rec.get("departement_nom_officiel")) or _s(rec.get("cp")))[:8],
+                                _s(rec.get("ville"))[:255],
+                                _s(rec.get("registre"))[:64],
+                                _s(rec.get("numeroannonce"))[:64],
+                                _s(rec.get("tribunal"))[:255],
+                                _extract_siren(rec),
+                                Jsonb(rec),
+                            ))
+                            if len(batch) >= BULK_BATCH_SIZE:
+                                try:
+                                    await cur.executemany(
+                                        """
+                                        INSERT INTO bronze.bodacc_annonces_raw
+                                          (annonce_id, date_publication, type_avis, familleavis_lib,
+                                           departement, ville, registre, numero_annonce, tribunal, siren, payload)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        ON CONFLICT (annonce_id) DO NOTHING
+                                        """,
+                                        batch,
+                                    )
+                                    inserted += cur.rowcount or 0
+                                    await conn.commit()
+                                    log.info("BODACC bulk : %d inserted / %d processed", inserted, processed)
+                                except Exception as e:
+                                    log.warning("Batch error: %s", e)
+                                    errors += len(batch)
+                                batch.clear()
 
                     if batch:
                         try:

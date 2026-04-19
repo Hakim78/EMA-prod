@@ -20,8 +20,8 @@ log = logging.getLogger(__name__)
 
 GLEIF_ENDPOINT = "https://api.gleif.org/api/v1/lei-records"
 PAGE_SIZE = 200
-MAX_PAGES_PER_RUN = 50
-BACKFILL_DAYS_FIRST_RUN = 30
+MAX_PAGES_PER_RUN = 1000
+BACKFILL_DAYS_FIRST_RUN = 3650
 INCREMENTAL_HOURS = 24  # 1 jour pour couvrir les mises à jour quotidiennes
 
 
