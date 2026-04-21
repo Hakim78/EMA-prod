@@ -4,6 +4,43 @@ import { useState, useCallback } from "react";
 import ChatPanel from "@/components/search/ChatPanel";
 import ResultsPanel from "@/components/search/ResultsPanel";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
+import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
+
+function targetsToCompanies(targets: Target[]): SearchCompany[] {
+  return targets.map(t => ({
+    id:          t.id,
+    name:        t.name,
+    description: [t.sector, t.sub_sector].filter(Boolean).join(" · ") || t.sector,
+    country:     "France",
+    sector:      t.sector,
+    city:        t.city,
+    revenue:     t.financials?.revenue ?? undefined,
+    employees:   t.financials?.effectif ?? undefined,
+    score:       t.globalScore,
+    siren:       t.siren,
+  }));
+}
+
+function filtersToSearchFilters(options: FilterOptions): SearchFilter[] {
+  const pills: SearchFilter[] = [];
+  (options.sectors ?? []).slice(0, 3).forEach((s, i) =>
+    pills.push({ id: `sector-${i}`, type: "sector", label: s, value: s })
+  );
+  (options.regions ?? []).slice(0, 2).forEach((r, i) =>
+    pills.push({ id: `region-${i}`, type: "region", label: r, value: r })
+  );
+  return pills;
+}
+
+async function fetchTargets(query: string): Promise<{ companies: SearchCompany[]; filters: SearchFilter[] }> {
+  const r = await fetch(`/api/targets?q=${encodeURIComponent(query)}&limit=50`);
+  if (!r.ok) return { companies: [], filters: [] };
+  const d: TargetsApiResponse = await r.json();
+  return {
+    companies: targetsToCompanies(d.data ?? []),
+    filters:   filtersToSearchFilters(d.filters ?? { sectors: [], regions: [], structures: [], ebitda_ranges: [] }),
+  };
+}
 
 export default function SearchPage() {
   const [messages, setMessages] = useState<SearchMessage[]>([]);
@@ -26,6 +63,17 @@ export default function SearchPage() {
     setCompanies([]);
     setFilters([]);
     setHiddenIds(new Set());
+
+    let targetsLoaded = false;
+
+    const loadTargets = async () => {
+      if (targetsLoaded) return;
+      targetsLoaded = true;
+      try {
+        const { companies: cs, filters: fs } = await fetchTargets(query);
+        if (cs.length > 0) { setCompanies(cs); setFilters(fs); }
+      } catch { /* silent */ }
+    };
 
     try {
       const res = await fetch(`/api/copilot/stream?q=${encodeURIComponent(query)}`);
@@ -56,11 +104,12 @@ export default function SearchPage() {
                 m.id === aid ? { ...m, actions: [...(m.actions ?? []), ev.action] } : m
               ));
             }
-            if (ev.companies) setCompanies(ev.companies);
-            if (ev.filters)   setFilters(ev.filters);
+            if (ev.done) loadTargets();
           } catch { /* skip malformed SSE */ }
         }
       }
+      // Ensure targets loaded even if no explicit done event
+      await loadTargets();
     } catch {
       // Fallback : non-streaming
       try {
@@ -69,17 +118,16 @@ export default function SearchPage() {
         setMessages(p => p.map(m =>
           m.id === aid ? {
             ...m,
-            content:  d.response ?? "Aucun résultat.",
-            actions:  ["Recherche complète"],
+            content: d.response ?? "Aucun résultat.",
+            actions: ["Recherche complète"],
           } : m
         ));
-        if (d.companies) setCompanies(d.companies);
-        if (d.filters)   setFilters(d.filters);
       } catch {
         setMessages(p => p.map(m =>
           m.id === aid ? { ...m, content: "Erreur : serveur inaccessible." } : m
         ));
       }
+      await loadTargets();
     } finally {
       setLoading(false);
     }
