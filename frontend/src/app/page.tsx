@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ChatPanel from "@/components/search/ChatPanel";
 import ResultsPanel from "@/components/search/ResultsPanel";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
@@ -18,6 +19,7 @@ function targetsToCompanies(targets: Target[]): SearchCompany[] {
     employees:   t.financials?.effectif ?? undefined,
     score:       t.globalScore,
     siren:       t.siren,
+    signal:      t.topSignals?.[0]?.label ?? undefined,
   }));
 }
 
@@ -108,10 +110,8 @@ export default function SearchPage() {
           } catch { /* skip malformed SSE */ }
         }
       }
-      // Ensure targets loaded even if no explicit done event
       await loadTargets();
     } catch {
-      // Fallback : non-streaming
       try {
         const r = await fetch(`/api/copilot/query?q=${encodeURIComponent(query)}`);
         const d = await r.json();
@@ -141,31 +141,44 @@ export default function SearchPage() {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ companyId: id, stage: "Sourced" }),
-    }).catch(() => { /* silent — pipeline API optional */ });
+    }).catch(() => {});
   };
 
   return (
-    <div style={{
-      display:  "flex",
-      height:   "100%",
-      overflow: "hidden",
-      background: "var(--bg)",
-    }}>
-      <ChatPanel
-        messages={messages}
-        loading={loading}
-        onSend={send}
+    <PanelGroup
+      direction="horizontal"
+      style={{ height: "100%", overflow: "hidden", background: "var(--bg)" }}
+    >
+      <Panel defaultSize={30} minSize={20} maxSize={45}>
+        <ChatPanel messages={messages} loading={loading} onSend={send} />
+      </Panel>
+
+      <PanelResizeHandle style={{
+        width: 4,
+        background: "var(--border)",
+        cursor: "col-resize",
+        flexShrink: 0,
+        position: "relative",
+        transition: "background 0.15s",
+      }}
+        onDragging={(d) => {
+          const el = document.activeElement as HTMLElement | null;
+          if (el) el.style.background = d ? "var(--fg-dim)" : "var(--border)";
+        }}
       />
-      <ResultsPanel
-        companies={visibleCompanies}
-        filters={filters}
-        loading={loading}
-        savedIds={savedIds}
-        onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
-        onSave={handleSave}
-        onHide={id => setHiddenIds(h => new Set([...h, id]))}
-        onRowClick={company => console.log("Open HUD →", company.id, company.name)}
-      />
-    </div>
+
+      <Panel defaultSize={70}>
+        <ResultsPanel
+          companies={visibleCompanies}
+          filters={filters}
+          loading={loading}
+          savedIds={savedIds}
+          onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
+          onSave={handleSave}
+          onHide={id => setHiddenIds(h => new Set([...h, id]))}
+          onRowClick={company => console.log("Open HUD →", company.id, company.name)}
+        />
+      </Panel>
+    </PanelGroup>
   );
 }

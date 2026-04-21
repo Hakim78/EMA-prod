@@ -20,6 +20,7 @@ export interface SearchCompany {
   siren?: string;
   city?: string;
   logo?: string;
+  signal?: string;
 }
 
 export interface SearchFilter {

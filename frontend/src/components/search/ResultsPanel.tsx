@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import CompanyRow from "./CompanyRow";
 import FilterPill from "./FilterPill";
 import type { SearchCompany, SearchFilter } from "@/types/search";
@@ -19,8 +19,8 @@ interface Props {
   onRowClick: (company: SearchCompany) => void;
 }
 
-const COLUMNS = ["#", "Entreprise", "Description", "Match", "CA", "Localisation"];
-const COL_WIDTHS = "40px minmax(180px, 1fr) minmax(160px, 2fr) 70px 90px 90px";
+const COLUMNS = ["#", "Entreprise", "Score M&A", "CA", "Évol.", "Signal / Résumé", ""];
+const COL_WIDTHS = "36px minmax(160px,1fr) 80px 90px 70px minmax(200px,2fr) 80px";
 
 export default function ResultsPanel({
   companies, filters, loading, savedIds,
@@ -30,14 +30,13 @@ export default function ResultsPanel({
 
   return (
     <div style={{
-      flex: 1,
       height: "100%",
       display: "flex",
       flexDirection: "column",
       background: "var(--bg)",
       overflow: "hidden",
     }}>
-      {/* Top bar: title + pills + count */}
+      {/* Top bar */}
       <div style={{
         height: 48,
         borderBottom: "1px solid var(--border)",
@@ -48,11 +47,10 @@ export default function ResultsPanel({
         flexShrink: 0,
         background: "var(--bg-raise)",
       }}>
-        <span style={{ ...S, fontSize: 14, fontWeight: 500, color: "var(--fg)", flexShrink: 0 }}>
+        <span style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)", flexShrink: 0 }}>
           Entreprises
         </span>
 
-        {/* Active filter pills */}
         {filters.length > 0 && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
             {filters.map(f => (
@@ -62,25 +60,23 @@ export default function ResultsPanel({
         )}
         {filters.length === 0 && <div style={{ flex: 1 }} />}
 
-        {/* Count + export */}
         {companies.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
             {loading && (
-              <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>
-                Génération…
-              </span>
+              <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>Génération…</span>
             )}
             <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>
               {companies.length.toLocaleString("fr")} résultats
             </span>
-            <button style={{
-              display: "flex", alignItems: "center", gap: 4,
-              ...S, fontSize: 11, color: "var(--fg-muted)",
-              background: "transparent",
-              border: "1px solid var(--border)",
-              padding: "4px 10px",
-              cursor: "pointer",
-            }}
+            <button
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                ...S, fontSize: 11, color: "var(--fg-muted)",
+                background: "transparent",
+                border: "1px solid var(--border)",
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
             >
@@ -130,6 +126,24 @@ export default function ResultsPanel({
           ))
         )}
       </div>
+
+      {/* Footer status bar */}
+      <div style={{
+        height: 28,
+        borderTop: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 12px",
+        flexShrink: 0,
+        background: "var(--bg-alt)",
+      }}>
+        {["[S] Sauvegarder", "[H] Masquer", "[↵] Fiche détaillée", "[L] Lookalike", "[E] Export CSV"].map((tip, i) => (
+          <span key={i} style={{ ...M, fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.06em" }}>
+            {tip}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -140,12 +154,11 @@ function SkeletonRow({ index }: { index: number }) {
       display: "grid",
       gridTemplateColumns: COL_WIDTHS,
       padding: "0 16px",
-      height: 48,
+      height: 52,
       alignItems: "center",
       borderBottom: "1px solid var(--border)",
-      gap: 0,
     }}>
-      {[20, 120, 200, 30, 50, 60].map((w, i) => (
+      {[20, 130, 40, 50, 50, 180, 60].map((w, i) => (
         <div key={i} style={{
           height: 9,
           width: w,
@@ -169,7 +182,6 @@ function EmptyState() {
       gap: 12,
       padding: 40,
     }}>
-      <Search size={28} style={{ color: "var(--fg-dim)" }} />
       <span style={{ ...S, fontSize: 14, color: "var(--fg-muted)", textAlign: "center" }}>
         Lancez une recherche pour découvrir vos cibles
       </span>
