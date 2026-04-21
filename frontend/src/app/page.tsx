@@ -7,6 +7,7 @@ import ResultsPanel from "@/components/search/ResultsPanel";
 import CompanyHUD from "@/components/search/CompanyHUD";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
 import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
+import { addToPipeline } from "@/lib/pipeline";
 
 
 function targetsToCompanies(targets: Target[]): SearchCompany[] {
@@ -149,14 +150,18 @@ export default function SearchPage() {
     });
   }, []);
 
-  const visibleCompanies = companies.filter(c => !hiddenIds.has(c.id));
+  const visibleCompanies = companies.filter((c: SearchCompany) => !hiddenIds.has(c.id));
 
   const handleSave = (id: string) => {
-    setSavedIds(s => new Set([...s, id]));
-    fetch("/api/pipeline/add", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companyId: id, stage: "Sourced" }),
-    }).catch(() => {});
+    const company = companies.find((c: SearchCompany) => c.id === id);
+    if (!company) return;
+    setSavedIds((s: Set<string>) => new Set([...s, id]));
+    setHiddenIds((h: Set<string>) => new Set([...h, id]));
+    addToPipeline(company);
+  };
+
+  const handleToggleFilterMode = (id: string, mode: "include" | "must" | "exclude") => {
+    setFilters((f: SearchFilter[]) => f.map((p: SearchFilter) => p.id === id ? { ...p, mode } : p));
   };
 
   return (
@@ -173,9 +178,10 @@ export default function SearchPage() {
             loading={loading}
             savedIds={savedIds}
             aiInsights={aiInsights}
-            onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
+            onRemoveFilter={(id: string) => setFilters((f: SearchFilter[]) => f.filter((p: SearchFilter) => p.id !== id))}
+            onToggleFilterMode={handleToggleFilterMode}
             onSave={handleSave}
-            onHide={id => setHiddenIds(h => new Set([...h, id]))}
+            onHide={(id: string) => setHiddenIds((h: Set<string>) => new Set([...h, id]))}
             onRowClick={setSelectedCompany}
             onEnrich={handleEnrich}
           />

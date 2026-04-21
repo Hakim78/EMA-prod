@@ -31,4 +31,5 @@ export interface SearchFilter {
   label: string;
   value: string;
   icon?: string;
+  mode?: "include" | "must" | "exclude";
 }

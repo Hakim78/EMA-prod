@@ -8,8 +8,25 @@ import type { SearchCompany } from "@/types/search";
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
-export const COL_WIDTHS_BASE = "36px 76px minmax(150px,1.2fr) minmax(170px,1.8fr) 110px 90px";
-export const COL_WIDTHS_AI   = "36px 76px minmax(130px,1fr) minmax(150px,1.5fr) 100px 80px minmax(160px,1.5fr)";
+export type ColKey = "description" | "siren" | "country" | "score" | "revenue" | "signal" | "city";
+
+export const COL_DEFS: Record<ColKey, { label: string; width: string }> = {
+  description: { label: "Description",  width: "minmax(170px,1.8fr)" },
+  siren:       { label: "SIREN",        width: "110px" },
+  country:     { label: "Country",      width: "90px" },
+  score:       { label: "Score",        width: "80px" },
+  revenue:     { label: "CA",           width: "110px" },
+  signal:      { label: "Signal",       width: "minmax(120px,1fr)" },
+  city:        { label: "Ville",        width: "90px" },
+};
+
+export const DEFAULT_COLS: ColKey[] = ["description", "siren", "country"];
+
+export function buildGridTemplate(cols: ColKey[], showAI: boolean): string {
+  const colWidths = cols.map(k => COL_DEFS[k].width).join(" ");
+  const base = `36px 76px minmax(150px,1.2fr) ${colWidths}`;
+  return showAI ? `${base} minmax(160px,1.5fr)` : base;
+}
 
 const COUNTRY_FLAGS: Record<string, string> = {
   France: "🇫🇷", Germany: "🇩🇪", UK: "🇬🇧", Spain: "🇪🇸", Italy: "🇮🇹",
@@ -19,18 +36,20 @@ interface Props {
   company: SearchCompany;
   rank: number;
   saved: boolean;
+  cols: ColKey[];
   aiInsight?: string | "loading";
   onSave: () => void;
   onHide: () => void;
   onClick: () => void;
 }
 
-export default function CompanyRow({ company, rank, saved, aiInsight, onSave, onHide, onClick }: Props) {
+export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSave, onHide, onClick }: Props) {
   const [visible, setVisible] = useState(true);
   const [hovered, setHovered] = useState(false);
 
   const showAI = aiInsight !== undefined;
-  const COL_WIDTHS = showAI ? COL_WIDTHS_AI : COL_WIDTHS_BASE;
+  const gridTemplateColumns = buildGridTemplate(cols, showAI);
+  const flag = COUNTRY_FLAGS[company.country ?? "France"] ?? "🇫🇷";
 
   const handleHide = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,10 +59,77 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!saved) onSave();
+    if (!saved) {
+      setVisible(false);
+      setTimeout(onSave, 200);
+    }
   };
 
-  const flag = COUNTRY_FLAGS[company.country ?? "France"] ?? "🇫🇷";
+  function renderCol(key: ColKey) {
+    switch (key) {
+      case "description":
+        return (
+          <div key={key} style={{ paddingRight: 8 }}>
+            <span style={{
+              ...S, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5,
+              display: "-webkit-box", WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+            }}>
+              {company.description}
+            </span>
+          </div>
+        );
+      case "siren":
+        return (
+          <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
+            {company.siren ?? "—"}
+          </span>
+        );
+      case "country":
+        return (
+          <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>
+            {flag} {company.country ?? "France"}
+          </span>
+        );
+      case "score":
+        return (
+          <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 32, height: 4, background: "var(--bg-alt)", overflow: "hidden", flexShrink: 0 }}>
+              <div style={{
+                height: "100%", width: `${company.score ?? 0}%`,
+                background: (company.score ?? 0) >= 75 ? "var(--up)" : "var(--fg-muted)",
+              }} />
+            </div>
+            <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>{company.score ?? "—"}</span>
+          </div>
+        );
+      case "revenue":
+        return (
+          <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
+            {company.revenue ?? "—"}
+          </span>
+        );
+      case "signal":
+        return (
+          <span key={key} style={{
+            ...M, fontSize: 9, padding: "2px 6px",
+            border: company.signal ? "1px solid var(--signal)" : "1px solid var(--border)",
+            color: company.signal ? "var(--signal)" : "var(--fg-dim)",
+            letterSpacing: "0.06em", maxWidth: "100%",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            display: "inline-block",
+          }}>
+            {company.signal ?? "—"}
+          </span>
+        );
+      case "city":
+        return (
+          <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>
+            {company.city ?? "—"}
+          </span>
+        );
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -60,7 +146,7 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
             onMouseLeave={() => setHovered(false)}
             style={{
               display: "grid",
-              gridTemplateColumns: COL_WIDTHS,
+              gridTemplateColumns,
               padding: "0 16px",
               minHeight: 56,
               alignItems: "center",
@@ -70,12 +156,12 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
               cursor: "pointer",
             }}
           >
-            {/* # */}
+            {/* Rank */}
             <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>
               {String(rank).padStart(2, "0")}
             </span>
 
-            {/* Save + Hide — always visible */}
+            {/* Save + Hide */}
             <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
               <button onClick={handleSave} style={{
                 ...M, fontSize: 9, padding: "3px 6px",
@@ -97,7 +183,7 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
               </button>
             </div>
 
-            {/* Company: logo + name */}
+            {/* Company */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, paddingRight: 8 }}>
               <div style={{
                 width: 26, height: 26, flexShrink: 0,
@@ -107,35 +193,18 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
               }}>
                 {company.name.charAt(0).toUpperCase()}
               </div>
-              <span style={{ ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{
+                ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
                 {company.name}
               </span>
             </div>
 
-            {/* Description — 2 lines */}
-            <div style={{ paddingRight: 8 }}>
-              <span style={{
-                ...S, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-              }}>
-                {company.description}
-              </span>
-            </div>
+            {/* Dynamic columns */}
+            {cols.map(renderCol)}
 
-            {/* SIREN */}
-            <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
-              {company.siren ?? "—"}
-            </span>
-
-            {/* Country */}
-            <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>
-              {flag} {company.country ?? "France"}
-            </span>
-
-            {/* AI Insight — only when column is active */}
+            {/* AI Insight */}
             {showAI && (
               <div style={{ paddingRight: 8 }}>
                 {aiInsight === "loading" ? (
@@ -143,10 +212,8 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
                 ) : (
                   <span style={{
                     ...S, fontSize: 11, color: "#2563EB", lineHeight: 1.4,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical" as const,
-                    overflow: "hidden",
+                    display: "-webkit-box", WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as const, overflow: "hidden",
                   }}>
                     {aiInsight}
                   </span>
