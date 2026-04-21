@@ -72,10 +72,15 @@ export default function CompanyHUD({ company, onClose }: Props) {
                 {company.name}
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 5, flexWrap: "wrap" }}>
-                {company.website && (
-                  <a href={`https://${company.website}`} target="_blank" rel="noreferrer"
-                    style={{ ...S, fontSize: 11, color: "var(--primary)", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}>
-                    <Globe size={11} /> {company.website}
+                {company.siren && (
+                  <a
+                    href={`https://www.societe.com/cgi-bin/search?champs=${company.siren}`}
+                    target="_blank" rel="noreferrer"
+                    style={{ ...S, fontSize: 11, color: "var(--primary)", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}
+                    onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
+                    onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
+                  >
+                    <Globe size={11} /> Societe.com
                   </a>
                 )}
                 <a href="#" style={{ ...S, fontSize: 11, color: "var(--primary)", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}>
@@ -192,6 +197,14 @@ function SummaryTab({ company, employees, revenue, signals }: {
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* SIREN */}
+      {company.siren && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4, borderTop: "1px solid var(--border)" }}>
+          <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.08em" }}>SIREN</span>
+          <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)" }}>{company.siren}</span>
         </div>
       )}
     </div>

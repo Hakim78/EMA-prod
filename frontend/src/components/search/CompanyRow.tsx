@@ -129,11 +129,12 @@ export default function CompanyRow({ company, rank, saved, onSave, onHide, onCli
                   target="_blank"
                   rel="noreferrer"
                   onClick={e => e.stopPropagation()}
-                  style={{ ...S, fontSize: 11, color: "#2563EB", textDecoration: "none", display: "flex", alignItems: "center", gap: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  style={{ ...S, fontSize: 11, color: "#2563EB", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}
                   onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
                   onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
                 >
-                  <ExternalLink size={10} />{company.website}
+                  <ExternalLink size={10} />
+                  {company.siren ? "Societe.com" : company.website}
                 </a>
               ) : (
                 <span style={{ ...S, fontSize: 11, color: "var(--fg-dim)" }}>—</span>

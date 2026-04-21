@@ -20,6 +20,7 @@ function targetsToCompanies(targets: Target[]): SearchCompany[] {
     employees:   t.financials?.effectif ?? undefined,
     score:       t.globalScore,
     siren:       t.siren,
+    website:     t.siren ? `societe.com/cgi-bin/search?champs=${t.siren}` : undefined,
     signal:      t.topSignals?.[0]?.label ?? undefined,
     structure:   t.structure ?? undefined,
     founded:     t.creation_date ?? undefined,
