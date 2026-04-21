@@ -8,6 +8,13 @@ import CompanyHUD from "@/components/search/CompanyHUD";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
 import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
 
+function slugify(name: string) {
+  return name.toLowerCase()
+    .replace(/[àáâãäå]/g, "a").replace(/[éèêë]/g, "e")
+    .replace(/[îï]/g, "i").replace(/[ôö]/g, "o").replace(/[ùûü]/g, "u")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function targetsToCompanies(targets: Target[]): SearchCompany[] {
   return targets.map(t => ({
     id:          t.id,
@@ -20,7 +27,7 @@ function targetsToCompanies(targets: Target[]): SearchCompany[] {
     employees:   t.financials?.effectif ?? undefined,
     score:       t.globalScore,
     siren:       t.siren,
-    website:     t.siren ? `societe.com/cgi-bin/search?champs=${t.siren}` : undefined,
+    website:     t.siren ? `pappers.fr/entreprise/${slugify(t.name)}-${t.siren}` : undefined,
     signal:      t.topSignals?.[0]?.label ?? undefined,
     structure:   t.structure ?? undefined,
     founded:     t.creation_date ?? undefined,
@@ -51,19 +58,29 @@ async function fetchTargets(query: string): Promise<{ companies: SearchCompany[]
   };
 }
 
+// Simulated AI insight snippets — replaced by real API later
+const AI_SNIPPETS = [
+  "Entreprise familiale 3ème génération, rentabilité élevée, cédant identifié.",
+  "Modèle récurrent B2B, marges EBITDA ~18%, croissance organique stable.",
+  "Leader régional sur niche défensive, faible dépendance client unique.",
+  "Dirigeant fondateur 65 ans, pas de successeur identifié en interne.",
+  "Acquisition add-on idéale, actifs industriels récents (2021).",
+  "Clientèle grands comptes verrouillée par contrats pluriannuels.",
+];
+
 export default function SearchPage() {
-  const [messages, setMessages]             = useState<SearchMessage[]>([]);
-  const [companies, setCompanies]           = useState<SearchCompany[]>([]);
-  const [filters, setFilters]               = useState<SearchFilter[]>([]);
-  const [loading, setLoading]               = useState(false);
-  const [hiddenIds, setHiddenIds]           = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds]             = useState<Set<string>>(new Set());
+  const [messages, setMessages]               = useState<SearchMessage[]>([]);
+  const [companies, setCompanies]             = useState<SearchCompany[]>([]);
+  const [filters, setFilters]                 = useState<SearchFilter[]>([]);
+  const [loading, setLoading]                 = useState(false);
+  const [hiddenIds, setHiddenIds]             = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds]               = useState<Set<string>>(new Set());
   const [selectedCompany, setSelectedCompany] = useState<SearchCompany | null>(null);
+  const [aiInsights, setAiInsights]           = useState<Record<string, string | "loading">>({});
 
   const send = useCallback(async (query: string) => {
     const uid = Date.now().toString();
     const aid = (Date.now() + 1).toString();
-
     setMessages(p => [
       ...p,
       { id: uid, role: "user",      content: query, timestamp: Date.now() },
@@ -74,6 +91,7 @@ export default function SearchPage() {
     setFilters([]);
     setHiddenIds(new Set());
     setSelectedCompany(null);
+    setAiInsights({});
 
     let targetsLoaded = false;
     const loadTargets = async () => {
@@ -101,9 +119,9 @@ export default function SearchPage() {
           if (!line.startsWith("data: ")) continue;
           try {
             const ev = JSON.parse(line.slice(6));
-            if (ev.chunk) setMessages(p => p.map(m => m.id === aid ? { ...m, content: m.content + ev.chunk } : m));
+            if (ev.chunk)  setMessages(p => p.map(m => m.id === aid ? { ...m, content: m.content + ev.chunk } : m));
             if (ev.action) setMessages(p => p.map(m => m.id === aid ? { ...m, actions: [...(m.actions ?? []), ev.action] } : m));
-            if (ev.done) loadTargets();
+            if (ev.done)   loadTargets();
           } catch { /* skip */ }
         }
       }
@@ -122,6 +140,21 @@ export default function SearchPage() {
     }
   }, []);
 
+  const handleEnrich = useCallback((ids: string[]) => {
+    // Set all to loading
+    const loadingMap: Record<string, "loading"> = {};
+    ids.forEach(id => { loadingMap[id] = "loading"; });
+    setAiInsights(loadingMap);
+
+    // Stagger reveal: each row gets its insight with a small delay
+    ids.forEach((id, i) => {
+      setTimeout(() => {
+        const snippet = AI_SNIPPETS[i % AI_SNIPPETS.length];
+        setAiInsights(prev => ({ ...prev, [id]: snippet }));
+      }, 800 + i * 120);
+    });
+  }, []);
+
   const visibleCompanies = companies.filter(c => !hiddenIds.has(c.id));
 
   const handleSave = (id: string) => {
@@ -138,28 +171,25 @@ export default function SearchPage() {
         <Panel defaultSize={30} minSize={20} maxSize={45}>
           <ChatPanel messages={messages} loading={loading} onSend={send} />
         </Panel>
-
         <PanelResizeHandle style={{ width: 4, background: "var(--border)", cursor: "col-resize", flexShrink: 0 }} />
-
         <Panel defaultSize={70}>
           <ResultsPanel
             companies={visibleCompanies}
             filters={filters}
             loading={loading}
             savedIds={savedIds}
+            aiInsights={aiInsights}
             onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
             onSave={handleSave}
             onHide={id => setHiddenIds(h => new Set([...h, id]))}
             onRowClick={setSelectedCompany}
+            onEnrich={handleEnrich}
           />
         </Panel>
       </PanelGroup>
 
       {selectedCompany && (
-        <CompanyHUD
-          company={selectedCompany}
-          onClose={() => setSelectedCompany(null)}
-        />
+        <CompanyHUD company={selectedCompany} onClose={() => setSelectedCompany(null)} />
       )}
     </div>
   );
