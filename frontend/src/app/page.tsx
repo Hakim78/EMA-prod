@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ChatPanel from "@/components/search/ChatPanel";
 import ResultsPanel from "@/components/search/ResultsPanel";
+import CompanyHUD from "@/components/search/CompanyHUD";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
 import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
 
@@ -20,16 +21,21 @@ function targetsToCompanies(targets: Target[]): SearchCompany[] {
     score:       t.globalScore,
     siren:       t.siren,
     signal:      t.topSignals?.[0]?.label ?? undefined,
+    structure:   t.structure ?? undefined,
+    founded:     t.creation_date ?? undefined,
   }));
 }
 
 function filtersToSearchFilters(options: FilterOptions): SearchFilter[] {
   const pills: SearchFilter[] = [];
   (options.sectors ?? []).slice(0, 3).forEach((s, i) =>
-    pills.push({ id: `sector-${i}`, type: "sector", label: s, value: s })
+    pills.push({ id: `sector-${i}`, type: "Secteur", label: s, value: s, icon: "🏢" })
   );
   (options.regions ?? []).slice(0, 2).forEach((r, i) =>
-    pills.push({ id: `region-${i}`, type: "region", label: r, value: r })
+    pills.push({ id: `region-${i}`, type: "Région", label: r, value: r, icon: "📍" })
+  );
+  (options.structures ?? []).slice(0, 1).forEach((s, i) =>
+    pills.push({ id: `struct-${i}`, type: "Structure", label: s, value: s, icon: "👥" })
   );
   return pills;
 }
@@ -45,12 +51,13 @@ async function fetchTargets(query: string): Promise<{ companies: SearchCompany[]
 }
 
 export default function SearchPage() {
-  const [messages, setMessages] = useState<SearchMessage[]>([]);
-  const [companies, setCompanies] = useState<SearchCompany[]>([]);
-  const [filters, setFilters] = useState<SearchFilter[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [messages, setMessages]             = useState<SearchMessage[]>([]);
+  const [companies, setCompanies]           = useState<SearchCompany[]>([]);
+  const [filters, setFilters]               = useState<SearchFilter[]>([]);
+  const [loading, setLoading]               = useState(false);
+  const [hiddenIds, setHiddenIds]           = useState<Set<string>>(new Set());
+  const [savedIds, setSavedIds]             = useState<Set<string>>(new Set());
+  const [selectedCompany, setSelectedCompany] = useState<SearchCompany | null>(null);
 
   const send = useCallback(async (query: string) => {
     const uid = Date.now().toString();
@@ -65,9 +72,9 @@ export default function SearchPage() {
     setCompanies([]);
     setFilters([]);
     setHiddenIds(new Set());
+    setSelectedCompany(null);
 
     let targetsLoaded = false;
-
     const loadTargets = async () => {
       if (targetsLoaded) return;
       targetsLoaded = true;
@@ -80,34 +87,23 @@ export default function SearchPage() {
     try {
       const res = await fetch(`/api/copilot/stream?q=${encodeURIComponent(query)}`);
       if (!res.ok || !res.body) throw new Error("stream_failed");
-
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buf += dec.decode(value, { stream: true });
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
-
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           try {
             const ev = JSON.parse(line.slice(6));
-            if (ev.chunk) {
-              setMessages(p => p.map(m =>
-                m.id === aid ? { ...m, content: m.content + ev.chunk } : m
-              ));
-            }
-            if (ev.action) {
-              setMessages(p => p.map(m =>
-                m.id === aid ? { ...m, actions: [...(m.actions ?? []), ev.action] } : m
-              ));
-            }
+            if (ev.chunk) setMessages(p => p.map(m => m.id === aid ? { ...m, content: m.content + ev.chunk } : m));
+            if (ev.action) setMessages(p => p.map(m => m.id === aid ? { ...m, actions: [...(m.actions ?? []), ev.action] } : m));
             if (ev.done) loadTargets();
-          } catch { /* skip malformed SSE */ }
+          } catch { /* skip */ }
         }
       }
       await loadTargets();
@@ -115,17 +111,9 @@ export default function SearchPage() {
       try {
         const r = await fetch(`/api/copilot/query?q=${encodeURIComponent(query)}`);
         const d = await r.json();
-        setMessages(p => p.map(m =>
-          m.id === aid ? {
-            ...m,
-            content: d.response ?? "Aucun résultat.",
-            actions: ["Recherche complète"],
-          } : m
-        ));
+        setMessages(p => p.map(m => m.id === aid ? { ...m, content: d.response ?? "Aucun résultat.", actions: ["Recherche complète"] } : m));
       } catch {
-        setMessages(p => p.map(m =>
-          m.id === aid ? { ...m, content: "Erreur : serveur inaccessible." } : m
-        ));
+        setMessages(p => p.map(m => m.id === aid ? { ...m, content: "Erreur : serveur inaccessible." } : m));
       }
       await loadTargets();
     } finally {
@@ -138,47 +126,40 @@ export default function SearchPage() {
   const handleSave = (id: string) => {
     setSavedIds(s => new Set([...s, id]));
     fetch("/api/pipeline/add", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ companyId: id, stage: "Sourced" }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId: id, stage: "Sourced" }),
     }).catch(() => {});
   };
 
   return (
-    <PanelGroup
-      direction="horizontal"
-      style={{ height: "100%", overflow: "hidden", background: "var(--bg)" }}
-    >
-      <Panel defaultSize={30} minSize={20} maxSize={45}>
-        <ChatPanel messages={messages} loading={loading} onSend={send} />
-      </Panel>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg)" }}>
+      <PanelGroup direction="horizontal" style={{ flex: 1, overflow: "hidden" }}>
+        <Panel defaultSize={30} minSize={20} maxSize={45}>
+          <ChatPanel messages={messages} loading={loading} onSend={send} />
+        </Panel>
 
-      <PanelResizeHandle style={{
-        width: 4,
-        background: "var(--border)",
-        cursor: "col-resize",
-        flexShrink: 0,
-        position: "relative",
-        transition: "background 0.15s",
-      }}
-        onDragging={(d) => {
-          const el = document.activeElement as HTMLElement | null;
-          if (el) el.style.background = d ? "var(--fg-dim)" : "var(--border)";
-        }}
-      />
+        <PanelResizeHandle style={{ width: 4, background: "var(--border)", cursor: "col-resize", flexShrink: 0 }} />
 
-      <Panel defaultSize={70}>
-        <ResultsPanel
-          companies={visibleCompanies}
-          filters={filters}
-          loading={loading}
-          savedIds={savedIds}
-          onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
-          onSave={handleSave}
-          onHide={id => setHiddenIds(h => new Set([...h, id]))}
-          onRowClick={company => console.log("Open HUD →", company.id, company.name)}
+        <Panel defaultSize={70}>
+          <ResultsPanel
+            companies={visibleCompanies}
+            filters={filters}
+            loading={loading}
+            savedIds={savedIds}
+            onRemoveFilter={id => setFilters(f => f.filter(p => p.id !== id))}
+            onSave={handleSave}
+            onHide={id => setHiddenIds(h => new Set([...h, id]))}
+            onRowClick={setSelectedCompany}
+          />
+        </Panel>
+      </PanelGroup>
+
+      {selectedCompany && (
+        <CompanyHUD
+          company={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
         />
-      </Panel>
-    </PanelGroup>
+      )}
+    </div>
   );
 }

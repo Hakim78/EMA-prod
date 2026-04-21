@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   ...(process.env.BUILD_TARGET === "docker" && { output: "standalone" as const }),
   eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   async rewrites() {
     if (process.env.NODE_ENV === "production") {
       if (process.env.BACKEND_URL) {

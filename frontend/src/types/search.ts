@@ -21,6 +21,8 @@ export interface SearchCompany {
   city?: string;
   logo?: string;
   signal?: string;
+  structure?: string;
+  founded?: string;
 }
 
 export interface SearchFilter {
@@ -28,4 +30,5 @@ export interface SearchFilter {
   type: string;
   label: string;
   value: string;
+  icon?: string;
 }
