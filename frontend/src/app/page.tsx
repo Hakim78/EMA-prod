@@ -42,8 +42,8 @@ function filtersToSearchFilters(options: FilterOptions): SearchFilter[] {
   return pills;
 }
 
-async function fetchTargets(query: string): Promise<{ companies: SearchCompany[]; filters: SearchFilter[] }> {
-  const r = await fetch(`/api/targets?q=${encodeURIComponent(query)}&limit=50`);
+async function fetchTargets(_query: string): Promise<{ companies: SearchCompany[]; filters: SearchFilter[] }> {
+  const r = await fetch(`/api/targets?limit=50`);
   if (!r.ok) return { companies: [], filters: [] };
   const d: TargetsApiResponse = await r.json();
   return {
