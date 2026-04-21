@@ -8,12 +8,6 @@ import CompanyHUD from "@/components/search/CompanyHUD";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
 import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
 
-function slugify(name: string) {
-  return name.toLowerCase()
-    .replace(/[àáâãäå]/g, "a").replace(/[éèêë]/g, "e")
-    .replace(/[îï]/g, "i").replace(/[ôö]/g, "o").replace(/[ùûü]/g, "u")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
 
 function targetsToCompanies(targets: Target[]): SearchCompany[] {
   return targets.map(t => ({
@@ -27,7 +21,7 @@ function targetsToCompanies(targets: Target[]): SearchCompany[] {
     employees:   t.financials?.effectif ?? undefined,
     score:       t.globalScore,
     siren:       t.siren,
-    website:     t.siren ? `pappers.fr/entreprise/${slugify(t.name)}-${t.siren}` : undefined,
+    website:     undefined,
     signal:      t.topSignals?.[0]?.label ?? undefined,
     structure:   t.structure ?? undefined,
     founded:     t.creation_date ?? undefined,

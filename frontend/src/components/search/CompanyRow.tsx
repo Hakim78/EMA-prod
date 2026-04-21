@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, EyeOff, ExternalLink } from "lucide-react";
+import { Check, EyeOff } from "lucide-react";
 import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
@@ -125,24 +125,10 @@ export default function CompanyRow({ company, rank, saved, aiInsight, onSave, on
               </span>
             </div>
 
-            {/* Website → Pappers */}
-            <div style={{ paddingRight: 8 }}>
-              {company.website ? (
-                <a
-                  href={`https://www.${company.website}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  style={{ ...S, fontSize: 11, color: "#2563EB", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}
-                  onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
-                  onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
-                >
-                  <ExternalLink size={10} /> Pappers
-                </a>
-              ) : (
-                <span style={{ ...S, fontSize: 11, color: "var(--fg-dim)" }}>—</span>
-              )}
-            </div>
+            {/* SIREN */}
+            <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
+              {company.siren ?? "—"}
+            </span>
 
             {/* Country */}
             <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>

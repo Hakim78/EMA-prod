@@ -10,8 +10,8 @@ import type { SearchCompany, SearchFilter } from "@/types/search";
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
-const COLUMNS_BASE = ["#", "Actions", "Company", "Description", "Website", "Country"];
-const COLUMNS_AI   = ["#", "Actions", "Company", "Description", "Website", "Country", "AI Insight"];
+const COLUMNS_BASE = ["#", "Actions", "Company", "Description", "SIREN", "Country"];
+const COLUMNS_AI   = ["#", "Actions", "Company", "Description", "SIREN", "Country", "AI Insight"];
 
 interface Props {
   companies: SearchCompany[];
