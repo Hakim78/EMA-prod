@@ -1,0 +1,266 @@
+"use client";
+
+import { useRef, useEffect, useState } from "react";
+import { Send, ChevronDown } from "lucide-react";
+import type { SearchMessage } from "@/types/search";
+
+const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
+const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
+
+const EXAMPLES = [
+  "PME agroalimentaire en Normandie, CA > 5M€",
+  "Fabricants emballages Bretagne, fondateur > 60 ans",
+  "Logiciels industriels Île-de-France, signaux BODACC",
+  "ETI familiale Nouvelle-Aquitaine, secteur bois",
+];
+
+interface Props {
+  messages: SearchMessage[];
+  loading: boolean;
+  onSend: (query: string) => void;
+}
+
+export default function ChatPanel({ messages, loading, onSend }: Props) {
+  const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
+  const handleSend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || loading) return;
+    onSend(input.trim());
+    setInput("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
+
+  return (
+    <div style={{
+      width: "30%",
+      minWidth: 280,
+      maxWidth: 400,
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      borderRight: "1px solid var(--border)",
+      background: "var(--bg-raise)",
+      flexShrink: 0,
+    }}>
+      {/* Messages */}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "0" }}>
+        {messages.length === 0 ? (
+          <EmptyState onSend={onSend} />
+        ) : (
+          <>
+            {messages.map((msg) => (
+              <MessageBlock
+                key={msg.id}
+                msg={msg}
+                isStreaming={loading && msg === messages[messages.length - 1] && msg.role === "assistant"}
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{
+        borderTop: "1px solid var(--border)",
+        padding: "12px 14px",
+        background: "var(--bg-raise)",
+        flexShrink: 0,
+      }}>
+        <form onSubmit={handleSend} style={{ display: "flex", gap: 8 }}>
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={e => {
+              setInput(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+            }}
+            onKeyDown={e => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Décrivez votre cible idéale…"
+            rows={1}
+            style={{
+              flex: 1,
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              padding: "8px 10px",
+              color: "var(--fg)",
+              ...S,
+              fontSize: 13,
+              outline: "none",
+              resize: "none",
+              lineHeight: 1.5,
+              minHeight: 36,
+              maxHeight: 120,
+              transition: "border-color 0.1s",
+            }}
+            onFocus={e => (e.target.style.borderColor = "var(--fg)")}
+            onBlur={e => (e.target.style.borderColor = "var(--border)")}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || loading}
+            style={{
+              width: 36, height: 36,
+              background: input.trim() && !loading ? "var(--primary)" : "var(--bg-alt)",
+              border: "none",
+              cursor: input.trim() && !loading ? "pointer" : "default",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: input.trim() && !loading ? "var(--primary-fg)" : "var(--fg-dim)",
+              flexShrink: 0,
+              alignSelf: "flex-end",
+              transition: "background 0.15s",
+            }}
+          >
+            <Send size={13} />
+          </button>
+        </form>
+        <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", marginTop: 6, letterSpacing: "0.06em" }}>
+          ENTRÉE — ENVOYER · MAJ+ENTRÉE — NOUVELLE LIGNE
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ onSend }: { onSend: (q: string) => void }) {
+  return (
+    <div style={{ padding: "28px 16px" }}>
+      <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", marginBottom: 8 }}>
+        EdRCF_6.0
+      </div>
+      <div style={{ ...S, fontSize: 17, fontWeight: 600, color: "var(--fg)", marginBottom: 6, lineHeight: 1.3 }}>
+        Recherche M&A
+      </div>
+      <div style={{ ...S, fontSize: 13, color: "var(--fg-muted)", marginBottom: 28, lineHeight: 1.6 }}>
+        Décrivez votre cible idéale en langage naturel. L'IA analyse 16M+ entreprises.
+      </div>
+
+      <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", marginBottom: 10 }}>
+        EXEMPLES
+      </div>
+      {EXAMPLES.map(ex => (
+        <button
+          key={ex}
+          onClick={() => onSend(ex)}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            padding: "10px 12px",
+            background: "transparent",
+            border: "none",
+            borderLeft: "2px solid transparent",
+            borderBottom: "1px solid var(--border)",
+            cursor: "pointer",
+            ...S, fontSize: 12, color: "var(--fg-muted)",
+            lineHeight: 1.5,
+            display: "block",
+            transition: "background 0.1s, color 0.1s, border-color 0.1s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderLeftColor = "var(--signal)";
+            e.currentTarget.style.background = "var(--bg-hover)";
+            e.currentTarget.style.color = "var(--fg)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderLeftColor = "transparent";
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--fg-muted)";
+          }}
+        >
+          {ex}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: boolean }) {
+  const [actionsOpen, setActionsOpen] = useState(true);
+
+  if (msg.role === "user") {
+    return (
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-sub)" }}>
+        <div style={{
+          background: "var(--bg-alt)",
+          border: "1px solid var(--border)",
+          padding: "10px 14px",
+          ...S, fontSize: 13, color: "var(--fg)", lineHeight: 1.5,
+        }}>
+          {msg.content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-sub)" }}>
+      {/* Finished actions section */}
+      {(msg.actions && msg.actions.length > 0 || isStreaming) && (
+        <div style={{ marginBottom: 12 }}>
+          <button
+            onClick={() => setActionsOpen(p => !p)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "transparent", border: "none", cursor: "pointer",
+              padding: 0,
+              ...M, fontSize: 10, color: "var(--fg-muted)", letterSpacing: "0.04em",
+            }}
+          >
+            <span style={{ color: isStreaming ? "var(--up)" : "var(--fg-dim)", fontSize: 8 }}>●</span>
+            {isStreaming && !msg.actions?.length ? "Analyse en cours…" : "Finished actions"}
+            {!isStreaming && (
+              <ChevronDown
+                size={11}
+                style={{ transform: actionsOpen ? "none" : "rotate(-90deg)", transition: "transform 0.15s" }}
+              />
+            )}
+          </button>
+
+          {actionsOpen && msg.actions && msg.actions.length > 0 && (
+            <div style={{ marginTop: 6, paddingLeft: 12, borderLeft: "1px solid var(--border)" }}>
+              {msg.actions.map((a, i) => (
+                <div key={i} style={{ ...M, fontSize: 10, color: "var(--fg-muted)", marginBottom: 3, lineHeight: 1.6 }}>
+                  <span style={{ color: "var(--up)", marginRight: 6 }}>✓</span>{a}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Response content */}
+      {msg.content ? (
+        <div style={{ ...S, fontSize: 13, color: "var(--fg)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+          {msg.content}
+          {isStreaming && (
+            <span style={{
+              display: "inline-block",
+              width: 2, height: 14,
+              background: "var(--fg)",
+              marginLeft: 2,
+              animation: "pulse-soft 1s infinite",
+            }} />
+          )}
+        </div>
+      ) : isStreaming ? (
+        <div style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>…</div>
+      ) : null}
+    </div>
+  );
+}

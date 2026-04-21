@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4 : dark mode par classe */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ─── Light Theme (default) ─── */
+:root {
+  --bg:          #FAFAFA;
+  --bg-alt:      #F5F5F5;
+  --bg-raise:    #FFFFFF;
+  --bg-hover:    #F0F0F0;
+  --fg:          #121212;
+  --fg-muted:    #737373;
+  --fg-dim:      #BBBBBB;
+  --border:      #E5E7EB;
+  --border-sub:  #F0F0F0;
+  --primary:     #0F172A;
+  --primary-fg:  #FAFAFA;
+  --signal:      #0F172A;
+  --signal-bg:   rgba(15, 23, 42, 0.06);
+  --up:          #16A34A;
+  --down:        #DC2626;
+}
+
+/* ─── Dark Theme ─── */
+.dark {
+  --bg:          #0A0A0A;
+  --bg-alt:      #0D0D0D;
+  --bg-raise:    #111111;
+  --bg-hover:    #141414;
+  --fg:          #FAFAFA;
+  --fg-muted:    #666666;
+  --fg-dim:      #333333;
+  --border:      #1F1F1F;
+  --border-sub:  #1A1A1A;
+  --primary:     #FAFAFA;
+  --primary-fg:  #0A0A0A;
+  --signal:      #FF4500;
+  --signal-bg:   rgba(255, 69, 0, 0.08);
+  --up:          #4A9A5A;
+  --down:        #FF4500;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    background: var(--bg);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  ::selection { background: var(--fg); color: var(--bg); }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+}
+
+@layer utilities {
+  .font-mono-data { font-family: 'Space Mono', monospace; }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes skeleton-shimmer {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
