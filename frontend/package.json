@@ -23,6 +23,7 @@
     "react-force-graph-2d": "^1.29.1",
     "react-simple-maps": "^3.0.0",
     "react-resizable-panels": "^2.1.7",
+    "react-country-flag": "^3.1.0",
     "recharts": "^3.8.1"
   },
   "devDependencies": {

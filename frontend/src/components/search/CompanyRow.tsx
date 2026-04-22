@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, EyeOff, Search, Plus, FolderOpen, Cloud } from "lucide-react";
+import ReactCountryFlag from "react-country-flag";
 import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
@@ -34,8 +35,13 @@ const FAKE_LISTS = [
   { id: "2", name: "Mandat Achat Santé" },
 ];
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  France: "🇫🇷", Germany: "🇩🇪", UK: "🇬🇧", Spain: "🇪🇸", Italy: "🇮🇹",
+const COUNTRY_ISO: Record<string, string> = {
+  France: "FR", Germany: "DE", "United Kingdom": "GB", UK: "GB",
+  Spain: "ES", Italy: "IT", Belgium: "BE", Switzerland: "CH",
+  Netherlands: "NL", Luxembourg: "LU", Portugal: "PT", Austria: "AT",
+  Sweden: "SE", Denmark: "DK", Norway: "NO", Finland: "FI",
+  Poland: "PL", "Czech Republic": "CZ", Romania: "RO", Hungary: "HU",
+  "United States": "US", USA: "US", Canada: "CA",
 };
 
 interface Props {
@@ -66,7 +72,7 @@ export default function CompanyRow({
 
   const showAI = aiInsight !== undefined;
   const gridTemplateColumns = buildGridTemplate(cols, showAI);
-  const flag = COUNTRY_FLAGS[company.country ?? "France"] ?? "🇫🇷";
+  const countryCode = COUNTRY_ISO[company.country ?? "France"] ?? "FR";
 
   // Close popover on outside click
   useEffect(() => {
@@ -120,7 +126,12 @@ export default function CompanyRow({
       case "siren":
         return <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>{company.siren ?? "—"}</span>;
       case "country":
-        return <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>{flag} {company.country ?? "France"}</span>;
+        return (
+          <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)", display: "flex", alignItems: "center", gap: 5 }}>
+            <ReactCountryFlag countryCode={countryCode} svg style={{ width: 16, height: 12, flexShrink: 0 }} />
+            {company.country ?? "France"}
+          </span>
+        );
       case "score":
         return (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
