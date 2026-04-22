@@ -26,10 +26,11 @@ export default function FilterPill({ filter, onRemove, onToggleMode }: Props) {
     onToggleMode(filter.id, mode === "exclude" ? "include" : "exclude");
   };
 
-  const borderColor = mode === "must" ? "#2563EB" : mode === "exclude" ? "#DC2626" : "var(--border)";
-  const bg          = mode === "must" ? "rgba(37,99,235,0.10)" : mode === "exclude" ? "rgba(220,38,38,0.08)" : "var(--bg-alt)";
+  const borderColor = mode === "must" ? "rgba(37,99,235,0.45)" : mode === "exclude" ? "rgba(220,38,38,0.40)" : "var(--pill-border)";
+  const bg          = mode === "must" ? "rgba(37,99,235,0.09)" : mode === "exclude" ? "rgba(220,38,38,0.07)" : "var(--pill-glass)";
   const textColor   = mode === "must" ? "#2563EB" : mode === "exclude" ? "#DC2626" : "var(--fg)";
   const decoration  = mode === "exclude" ? "line-through" : "none";
+  const shadow      = mode === "include" ? "var(--pill-shadow)" : "none";
 
   return (
     <div
@@ -38,9 +39,13 @@ export default function FilterPill({ filter, onRemove, onToggleMode }: Props) {
       title={mode === "include" ? "Clic: must-have · Clic droit: exclure" : mode === "must" ? "Must-have — clic: normal · clic droit: exclure" : "Exclusion — clic: normal"}
       style={{
         display: "inline-flex", alignItems: "center", gap: 5,
-        padding: "2px 7px",
+        padding: "3px 9px",
         border: `1px solid ${borderColor}`,
         background: bg,
+        borderRadius: 20,
+        backdropFilter: "blur(14px) saturate(180%)",
+        WebkitBackdropFilter: "blur(14px) saturate(180%)",
+        boxShadow: shadow,
         ...S, fontSize: 10, color: textColor,
         whiteSpace: "nowrap", flexShrink: 0,
         cursor: onToggleMode ? "pointer" : "default",
