@@ -3,8 +3,6 @@
 import { X } from "lucide-react";
 import type { SearchFilter } from "@/types/search";
 
-const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
-
 interface Props {
   filter: SearchFilter;
   onRemove: () => void;
@@ -14,7 +12,9 @@ interface Props {
 export default function FilterPill({ filter, onRemove, onToggleMode }: Props) {
   const mode = filter.mode ?? "include";
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Évite de déclencher le clic si on clique sur la croix
+    if ((e.target as HTMLElement).closest('button')) return;
     if (!onToggleMode) return;
     if (mode === "exclude") { onToggleMode(filter.id, "include"); return; }
     onToggleMode(filter.id, mode === "include" ? "must" : "include");
@@ -26,51 +26,51 @@ export default function FilterPill({ filter, onRemove, onToggleMode }: Props) {
     onToggleMode(filter.id, mode === "exclude" ? "include" : "exclude");
   };
 
-  const borderColor = mode === "must" ? "rgba(37,99,235,0.45)" : mode === "exclude" ? "rgba(220,38,38,0.40)" : "var(--pill-border)";
-  const bg          = mode === "must" ? "rgba(37,99,235,0.09)" : mode === "exclude" ? "rgba(220,38,38,0.07)" : "var(--pill-glass)";
-  const textColor   = mode === "must" ? "#2563EB" : mode === "exclude" ? "#DC2626" : "var(--fg)";
-  const decoration  = mode === "exclude" ? "line-through" : "none";
-  const shadow      = mode === "include" ? "var(--pill-shadow)" : "none";
+  // Dictionnaire de styles Tailwind selon le mode (Quiet Luxury)
+  const modeStyles = {
+    include: "bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 shadow-sm",
+    must:    "bg-blue-50/80 border-blue-200 text-blue-700 shadow-sm",
+    exclude: "bg-red-50/80 border-red-200 text-red-700 shadow-sm",
+  };
 
   return (
     <div
       onClick={handleClick}
       onContextMenu={handleContextMenu}
-      title={mode === "include" ? "Clic: must-have · Clic droit: exclure" : mode === "must" ? "Must-have — clic: normal · clic droit: exclure" : "Exclusion — clic: normal"}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        padding: "3px 9px",
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        borderRadius: 20,
-        backdropFilter: "blur(14px) saturate(180%)",
-        WebkitBackdropFilter: "blur(14px) saturate(180%)",
-        boxShadow: shadow,
-        ...S, fontSize: 10, color: textColor,
-        whiteSpace: "nowrap", flexShrink: 0,
-        cursor: onToggleMode ? "pointer" : "default",
-        transition: "all 0.15s",
-        userSelect: "none",
-        letterSpacing: "0.04em",
-      }}
+      title={
+        mode === "include" ? "Clic: Must-have · Clic droit: Exclure" : 
+        mode === "must" ? "Must-have — Clic: Normal · Clic droit: Exclure" : 
+        "Exclure — Clic: Normal"
+      }
+      className={`group flex items-center gap-1.5 px-2.5 py-1 border rounded-md cursor-pointer transition-all duration-200 select-none ${modeStyles[mode]}`}
     >
-      {filter.icon && <span style={{ fontSize: 12 }}>{filter.icon}</span>}
-      {mode === "must" && <span style={{ fontSize: 10, fontWeight: 700 }}>★</span>}
-      {mode === "exclude" && <span style={{ fontSize: 10 }}>✕</span>}
-      <span style={{ color: "var(--fg-dim)", fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+      {/* Icône optionnelle */}
+      {filter.icon && <span className="text-[12px] opacity-70">{filter.icon}</span>}
+      
+      {/* Indicateur visuel du mode (plus propre que l'étoile texte) */}
+      {mode === "must" && <span className="text-[12px] font-black leading-none">+</span>}
+      {mode === "exclude" && <span className="text-[10px] font-black leading-none">−</span>}
+
+      {/* Type du filtre (ex: SECTEUR) */}
+      <span className="text-[9px] font-mono font-medium tracking-widest uppercase opacity-50">
         {filter.type}
       </span>
-      <span style={{ textDecoration: decoration, fontWeight: mode === "must" ? 600 : 400, textTransform: "uppercase" as const, fontSize: 10, color: mode === "include" ? "var(--fg-muted)" : textColor }}>
+
+      {/* Valeur du filtre (ex: Agroalimentaire) */}
+      <span className={`text-[11px] tracking-wide ${mode === "exclude" ? "line-through opacity-80" : ""} ${mode === "must" ? "font-semibold" : "font-medium"}`}>
         {filter.label}
       </span>
+
+      {/* Bouton de suppression */}
       <button
-        onClick={e => { e.stopPropagation(); onRemove(); }}
-        style={{
-          background: "transparent", border: "none", cursor: "pointer",
-          color: textColor, display: "flex", padding: 0, marginLeft: 2, opacity: 0.7,
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
         }}
+        className="ml-0.5 flex items-center justify-center p-0.5 rounded-sm opacity-40 hover:opacity-100 hover:bg-black/5 transition-all"
+        aria-label="Remove filter"
       >
-        <X size={10} />
+        <X size={12} strokeWidth={2} />
       </button>
     </div>
   );
