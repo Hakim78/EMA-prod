@@ -1,8 +1,22 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Send, ArrowRight, ChevronDown } from "lucide-react";
+import { Send, ArrowRight, ChevronDown, Clock, RotateCcw } from "lucide-react";
 import type { SearchMessage } from "@/types/search";
+
+const HISTORY_KEY = "ema_search_history";
+
+function getHistory(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function pushHistory(query: string) {
+  const hist = getHistory().filter(h => h !== query);
+  hist.unshift(query);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 8)));
+}
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -23,10 +37,15 @@ interface Props {
 }
 
 export default function ChatPanel({ messages, loading, onSend }: Props) {
-  const [input, setInput] = useState("");
-  const [mode, setMode]   = useState<InputMode>("natural");
+  const [input, setInput]     = useState("");
+  const [mode, setMode]       = useState<InputMode>("natural");
+  const [history, setHistory] = useState<string[]>([]);
   const scrollRef   = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setHistory(getHistory());
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -36,9 +55,16 @@ export default function ChatPanel({ messages, loading, onSend }: Props) {
     if (e) e.preventDefault();
     if (!input.trim() || loading) return;
     const q = mode === "lookalike" ? `lookalike:${input.trim()}` : input.trim();
+    pushHistory(input.trim());
+    setHistory(getHistory());
     onSend(q);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
+  const handleHistoryClick = (q: string) => {
+    setInput(q);
+    textareaRef.current?.focus();
   };
 
   return (
@@ -55,6 +81,31 @@ export default function ChatPanel({ messages, loading, onSend }: Props) {
             ))
         }
       </div>
+
+      {/* Recent Searches */}
+      {history.length > 0 && messages.length === 0 && (
+        <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-raise)" }}>
+          <div style={{ padding: "8px 12px 4px", display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock size={10} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>RECHERCHES RÉCENTES</span>
+          </div>
+          {history.slice(0, 3).map((q, i) => (
+            <button key={i} onClick={() => handleHistoryClick(q)} style={{
+              width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8,
+              padding: "7px 12px", background: "transparent", border: "none",
+              cursor: "pointer", transition: "background 0.1s",
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              <RotateCcw size={10} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
+              <span style={{ ...S, fontSize: 12, color: "var(--fg-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {q}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input area */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "10px 12px", background: "var(--bg-raise)", flexShrink: 0 }}>

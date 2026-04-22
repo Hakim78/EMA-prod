@@ -7,7 +7,7 @@ import type { ColKey } from "./CompanyRow";
 import FilterPill from "./FilterPill";
 import EnrichModal from "./EnrichModal";
 import type { SearchCompany, SearchFilter } from "@/types/search";
-import { addToPipeline } from "@/lib/pipeline";
+import { addToPipeline, getPipeline } from "@/lib/pipeline";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -32,8 +32,9 @@ export default function ResultsPanel({
   companies, filters, loading, savedIds, aiInsights,
   onRemoveFilter, onToggleFilterMode, onSave, onHide, onRowClick, onEnrich,
 }: Props) {
-  const [focusMode, setFocusMode]       = useState(false);
-  const [signalFilter, setSignalFilter] = useState(false);
+  const [focusMode, setFocusMode]           = useState(false);
+  const [signalFilter, setSignalFilter]     = useState(false);
+  const [excludePipeline, setExcludePipeline] = useState(false);
   const [enrichOpen, setEnrichOpen]     = useState(false);
   const [colEditorOpen, setColEditorOpen] = useState(false);
   const [visibleCols, setVisibleCols]   = useState<ColKey[]>(DEFAULT_COLS);
@@ -56,8 +57,13 @@ export default function ResultsPanel({
   useEffect(() => { setSelectedIds(new Set()); }, [companies]);
 
   // ── Filtering ────────────────────────────────────────────────────────────────
+  const pipelineIds = excludePipeline
+    ? new Set(getPipeline().map(i => i.company.id))
+    : new Set<string>();
+
   let displayed = focusMode ? companies.filter(c => (c.score ?? 0) >= 75) : [...companies];
   if (signalFilter) displayed = displayed.filter(c => c.signal);
+  if (excludePipeline) displayed = displayed.filter(c => !pipelineIds.has(c.id));
 
   const mustPills    = filters.filter(f => f.mode === "must");
   const excludePills = filters.filter(f => f.mode === "exclude");
@@ -131,8 +137,8 @@ export default function ResultsPanel({
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div style={{
         height: 48, borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0,
-        background: "var(--bg-raise)",
+        display: "flex", alignItems: "center", padding: "0 16px", gap: 6, flexShrink: 0,
+        background: "var(--bg-raise)", overflowX: "auto", overflowY: "hidden",
       }}>
         <span style={{ ...S, fontSize: 14, fontWeight: 600, color: "var(--fg)", flexShrink: 0 }}>Companies</span>
 
@@ -216,6 +222,22 @@ export default function ResultsPanel({
             </div>
           )}
         </div>
+
+        {/* Anti-duplicate toggle */}
+        <label
+          title="Masque les entreprises déjà sauvegardées dans ton pipeline"
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0 }}
+        >
+          <div style={{ position: "relative", width: 32, height: 18 }}>
+            <input type="checkbox" checked={excludePipeline} onChange={e => setExcludePipeline(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
+            <div style={{ position: "absolute", inset: 0, background: excludePipeline ? "#2563EB" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
+            <div style={{ position: "absolute", top: 2, left: excludePipeline ? 14 : 2, width: 12, height: 12, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
+          </div>
+          <span style={{ ...S, fontSize: 11, color: excludePipeline ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>
+            Hide in pipeline
+          </span>
+        </label>
 
         {/* Focus mode */}
         <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0 }}>
@@ -313,6 +335,11 @@ export default function ResultsPanel({
                   saved={savedIds.has(c.id)}
                   cols={visibleCols}
                   selected={selectedIds.has(c.id)}
+                  crmStatus={
+                    i === 1 ? { source: "Salesforce", lastContact: "Oct 2025" } :
+                    i === 3 ? { source: "DealCloud",  lastContact: "Jan 2025" } :
+                    undefined
+                  }
                   aiInsight={aiInsights[c.id]}
                   onSave={() => onSave(c.id)}
                   onHide={() => onHide(c.id)}

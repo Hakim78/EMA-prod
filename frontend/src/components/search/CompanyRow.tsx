@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, EyeOff, Search, Plus, FolderOpen } from "lucide-react";
+import { Check, EyeOff, Search, Plus, FolderOpen, Cloud } from "lucide-react";
 import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
@@ -44,6 +44,7 @@ interface Props {
   saved: boolean;
   cols: ColKey[];
   selected?: boolean;
+  crmStatus?: { source: string; lastContact: string };
   aiInsight?: string | "loading";
   onSave: () => void;
   onHide: () => void;
@@ -52,7 +53,7 @@ interface Props {
 }
 
 export default function CompanyRow({
-  company, rank, saved, cols, selected, aiInsight,
+  company, rank, saved, cols, selected, crmStatus, aiInsight,
   onSave, onHide, onClick, onToggleSelect,
 }: Props) {
   const [visible, setVisible]         = useState(true);
@@ -60,6 +61,7 @@ export default function CompanyRow({
   const [saveOpen, setSaveOpen]       = useState(false);
   const [savePos, setSavePos]         = useState({ top: 0, left: 0 });
   const [listSearch, setListSearch]   = useState("");
+  const [crmTooltip, setCrmTooltip]   = useState(false);
   const saveButtonRef                 = useRef<HTMLButtonElement>(null);
 
   const showAI = aiInsight !== undefined;
@@ -232,9 +234,48 @@ export default function CompanyRow({
               <span style={{
                 ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                flex: 1,
               }}>
                 {company.name}
               </span>
+              {/* CRM badge */}
+              {crmStatus && (
+                <div
+                  onMouseEnter={() => setCrmTooltip(true)}
+                  onMouseLeave={() => setCrmTooltip(false)}
+                  style={{ position: "relative", flexShrink: 0 }}
+                >
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 3,
+                    padding: "2px 5px",
+                    background: "rgba(220,38,38,0.08)",
+                    border: "1px solid #DC2626",
+                    cursor: "default",
+                  }}>
+                    <Cloud size={9} style={{ color: "#DC2626" }} />
+                    <span style={{ ...M, fontSize: 8, color: "#DC2626", letterSpacing: "0.05em" }}>
+                      {crmStatus.source.toUpperCase()}
+                    </span>
+                  </div>
+                  {crmTooltip && (
+                    <div style={{
+                      position: "fixed",
+                      transform: "translateY(-100%) translateY(-8px)",
+                      left: "auto",
+                      zIndex: 500,
+                      background: "#111827",
+                      border: "1px solid #374151",
+                      padding: "6px 10px",
+                      whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                    }}>
+                      <span style={{ ...S, fontSize: 11, color: "#F9FAFB" }}>
+                        Already in {crmStatus.source} · Last contact: {crmStatus.lastContact}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Dynamic columns */}
