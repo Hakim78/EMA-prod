@@ -134,150 +134,149 @@ export default function ResultsPanel({
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
 
-      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
+      {/* ── Top bar — 3 zones : boutons fixes | pills scrollable | export fixe ── */}
       <div style={{
         height: 48, borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center", padding: "0 16px", gap: 6, flexShrink: 0,
-        background: "var(--bg-raise)", overflowX: "auto", overflowY: "hidden",
+        display: "flex", alignItems: "center", flexShrink: 0,
+        background: "var(--bg-raise)", overflow: "hidden",
       }}>
-        <span style={{ ...S, fontSize: 14, fontWeight: 600, color: "var(--fg)", flexShrink: 0 }}>Companies</span>
+        {/* ▶ Zone gauche : contrôles fixes */}
+        <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 10px 0 16px", flexShrink: 0 }}>
+          <span style={{ ...S, fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Companies</span>
 
-        {/* Enrich with AI */}
-        <button
-          onClick={() => companies.length > 0 && setEnrichOpen(true)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
-            padding: "5px 12px",
-            background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
-            border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
-            color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg)") : "var(--fg-dim)",
-            cursor: companies.length > 0 ? "pointer" : "not-allowed",
-            ...S, fontSize: 12, transition: "all 0.15s",
-          }}
-        >
-          <Sparkles size={12} />
-          {showAI ? "AI actif" : "Enrich with AI"}
-        </button>
-
-        {/* Signaux */}
-        <button
-          onClick={() => setSignalFilter(p => !p)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
-            padding: "5px 12px",
-            background: signalFilter ? "rgba(234,88,12,0.08)" : "transparent",
-            border: `1px solid ${signalFilter ? "var(--signal)" : "var(--border)"}`,
-            color: signalFilter ? "var(--signal)" : "var(--fg-muted)",
-            cursor: "pointer", ...S, fontSize: 12, transition: "all 0.15s",
-          }}
-        >
-          <Radio size={12} /> Signaux
-        </button>
-
-        {/* Edit Columns */}
-        <div ref={colEditorRef} style={{ position: "relative", flexShrink: 0 }}>
+          {/* Enrich with AI */}
           <button
-            onClick={() => setColEditorOpen(p => !p)}
+            onClick={() => companies.length > 0 && setEnrichOpen(true)}
             style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "5px 12px",
-              background: colEditorOpen ? "var(--bg-alt)" : "transparent",
-              border: `1px solid ${colEditorOpen ? "var(--fg-muted)" : "var(--border)"}`,
-              color: "var(--fg-muted)", cursor: "pointer", ...S, fontSize: 12, transition: "all 0.15s",
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "4px 10px",
+              background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
+              border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
+              color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg)") : "var(--fg-dim)",
+              cursor: companies.length > 0 ? "pointer" : "not-allowed",
+              ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
             }}
           >
-            <Columns size={12} /> Colonnes
+            <Sparkles size={11} />
+            {showAI ? "AI actif" : "Enrich"}
           </button>
-          {colEditorOpen && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
-              background: "var(--bg-raise)", border: "1px solid var(--border)",
-              padding: "8px 0", minWidth: 180, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            }}>
-              <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES</div>
-              {ALL_OPTIONAL_COLS.map(key => {
-                const active = visibleCols.includes(key);
-                return (
-                  <button key={key} onClick={() => toggleCol(key)} style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "7px 14px", background: "transparent", border: "none",
-                    cursor: "pointer", ...S, fontSize: 12,
-                    color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
-                  }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div style={{
-                      width: 14, height: 14, flexShrink: 0,
-                      border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
-                      background: active ? "var(--fg)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {active && <Check size={9} style={{ color: "var(--bg)" }} />}
-                    </div>
-                    {COL_DEFS[key].label}
-                  </button>
-                );
-              })}
+
+          {/* Signaux */}
+          <button
+            onClick={() => setSignalFilter(p => !p)}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "4px 10px",
+              background: signalFilter ? "rgba(234,88,12,0.08)" : "transparent",
+              border: `1px solid ${signalFilter ? "var(--signal)" : "var(--border)"}`,
+              color: signalFilter ? "var(--signal)" : "var(--fg-muted)",
+              cursor: "pointer", ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
+            }}
+          >
+            <Radio size={11} /> Signaux
+          </button>
+
+          {/* Edit Columns */}
+          <div ref={colEditorRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setColEditorOpen(p => !p)}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "4px 10px",
+                background: colEditorOpen ? "var(--bg-alt)" : "transparent",
+                border: `1px solid ${colEditorOpen ? "var(--fg-muted)" : "var(--border)"}`,
+                color: "var(--fg-muted)", cursor: "pointer", ...S, fontSize: 11,
+                transition: "all 0.15s", whiteSpace: "nowrap",
+              }}
+            >
+              <Columns size={11} /> Cols
+            </button>
+            {colEditorOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
+                background: "var(--bg-raise)", border: "1px solid var(--border)",
+                padding: "8px 0", minWidth: 175, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+              }}>
+                <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES</div>
+                {ALL_OPTIONAL_COLS.map(key => {
+                  const active = visibleCols.includes(key);
+                  return (
+                    <button key={key} onClick={() => toggleCol(key)} style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 10,
+                      padding: "7px 14px", background: "transparent", border: "none",
+                      cursor: "pointer", ...S, fontSize: 12,
+                      color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <div style={{
+                        width: 14, height: 14, flexShrink: 0,
+                        border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
+                        background: active ? "var(--fg)" : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {active && <Check size={9} style={{ color: "var(--bg)" }} />}
+                      </div>
+                      {COL_DEFS[key].label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Hide in pipeline */}
+          <label title="Masque les entreprises déjà dans le pipeline" style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <div style={{ position: "relative", width: 28, height: 16 }}>
+              <input type="checkbox" checked={excludePipeline} onChange={e => setExcludePipeline(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
+              <div style={{ position: "absolute", inset: 0, background: excludePipeline ? "#2563EB" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
+              <div style={{ position: "absolute", top: 2, left: excludePipeline ? 12 : 2, width: 10, height: 10, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
             </div>
-          )}
+            <span style={{ ...S, fontSize: 11, color: excludePipeline ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>No doublons</span>
+          </label>
+
+          {/* Focus */}
+          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <div style={{ position: "relative", width: 28, height: 16 }}>
+              <input type="checkbox" checked={focusMode} onChange={e => setFocusMode(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
+              <div style={{ position: "absolute", inset: 0, background: focusMode ? "var(--primary)" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
+              <div style={{ position: "absolute", top: 2, left: focusMode ? 12 : 2, width: 10, height: 10, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
+            </div>
+            <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>Focus</span>
+          </label>
+        </div>{/* end left zone */}
+
+        {/* ▶ Zone milieu : pills — flex:1, minWidth:0 empêche l'overflow */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden", padding: "0 6px" }}>
+          {filters.map(f => (
+            <FilterPill key={f.id} filter={f} onRemove={() => onRemoveFilter(f.id)} onToggleMode={onToggleFilterMode} />
+          ))}
         </div>
 
-        {/* Anti-duplicate toggle */}
-        <label
-          title="Masque les entreprises déjà sauvegardées dans ton pipeline"
-          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0 }}
-        >
-          <div style={{ position: "relative", width: 32, height: 18 }}>
-            <input type="checkbox" checked={excludePipeline} onChange={e => setExcludePipeline(e.target.checked)}
-              style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
-            <div style={{ position: "absolute", inset: 0, background: excludePipeline ? "#2563EB" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
-            <div style={{ position: "absolute", top: 2, left: excludePipeline ? 14 : 2, width: 12, height: 12, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
-          </div>
-          <span style={{ ...S, fontSize: 11, color: excludePipeline ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>
-            Hide in pipeline
-          </span>
-        </label>
-
-        {/* Focus mode */}
-        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0 }}>
-          <div style={{ position: "relative", width: 32, height: 18 }}>
-            <input type="checkbox" checked={focusMode} onChange={e => setFocusMode(e.target.checked)}
-              style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
-            <div style={{ position: "absolute", inset: 0, background: focusMode ? "var(--primary)" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
-            <div style={{ position: "absolute", top: 2, left: focusMode ? 14 : 2, width: 12, height: 12, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
-          </div>
-          <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>Focus</span>
-        </label>
-
-        {/* Filter pills */}
-        {filters.length > 0 ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
-            {filters.map(f => (
-              <FilterPill key={f.id} filter={f} onRemove={() => onRemoveFilter(f.id)} onToggleMode={onToggleFilterMode} />
-            ))}
-          </div>
-        ) : <div style={{ flex: 1 }} />}
-
-        {/* Count + export */}
-        {companies.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            {loading && <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>Génération…</span>}
-            <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>
-              {displayed.length.toLocaleString("fr")} résultats
-            </span>
-            <button style={{
-              display: "flex", alignItems: "center", gap: 4,
-              ...S, fontSize: 11, color: "var(--fg-muted)", background: "transparent",
-              border: "1px solid var(--border)", padding: "4px 10px", cursor: "pointer",
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
-            >
-              <Download size={11} /> Export
-            </button>
-          </div>
-        )}
+        {/* ▶ Zone droite : résultats + export */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", flexShrink: 0 }}>
+          {loading && <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>…</span>}
+          {companies.length > 0 && (
+            <>
+              <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
+                {displayed.length.toLocaleString("fr")} rés.
+              </span>
+              <button style={{
+                display: "flex", alignItems: "center", gap: 4,
+                ...S, fontSize: 11, color: "var(--fg-muted)", background: "transparent",
+                border: "1px solid var(--border)", padding: "4px 8px", cursor: "pointer", whiteSpace: "nowrap",
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
+              >
+                <Download size={11} /> Export
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Table header ────────────────────────────────────────────────────── */}
@@ -319,8 +318,8 @@ export default function ResultsPanel({
         </div>
       )}
 
-      {/* ── Rows ────────────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      {/* ── Rows — minHeight:0 critique pour que le footer reste en bas ─────── */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         {loading && companies.length === 0
           ? Array.from({ length: 10 }).map((_, i) => (
               <SkeletonRow key={i} index={i} cols={visibleCols} showAI={showAI} />

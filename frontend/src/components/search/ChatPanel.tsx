@@ -1,7 +1,35 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, Fragment } from "react";
 import { Send, ArrowRight, ChevronDown, Clock, RotateCcw } from "lucide-react";
+
+/** Parse **bold**, *italic*, `code` inline. Returns React nodes. */
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**"))
+      return <strong key={i} style={{ fontWeight: 700, color: "var(--fg)" }}>{p.slice(2, -2)}</strong>;
+    if (p.startsWith("*") && p.endsWith("*"))
+      return <em key={i} style={{ fontStyle: "italic" }}>{p.slice(1, -1)}</em>;
+    if (p.startsWith("`") && p.endsWith("`"))
+      return <code key={i} style={{ fontFamily: "'Space Mono', monospace", fontSize: "0.9em", background: "var(--bg-alt)", padding: "0 4px" }}>{p.slice(1, -1)}</code>;
+    return p;
+  });
+}
+
+/** Render multiline text with inline markdown per line. */
+function renderText(text: string, isStreaming?: boolean): React.ReactNode {
+  const lines = text.split("\n");
+  return lines.map((line, i) => (
+    <Fragment key={i}>
+      {i > 0 && <br />}
+      {renderInline(line)}
+      {isStreaming && i === lines.length - 1 && (
+        <span style={{ display: "inline-block", width: 2, height: 13, background: "var(--fg)", marginLeft: 2, verticalAlign: "middle", animation: "pulse-soft 1s infinite" }} />
+      )}
+    </Fragment>
+  ));
+}
 import type { SearchMessage } from "@/types/search";
 
 const HISTORY_KEY = "ema_search_history";
@@ -69,7 +97,7 @@ export default function ChatPanel({ messages, loading, onSend }: Props) {
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)", background: "var(--bg-raise)" }}>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto" }}>
+      <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         {messages.length === 0
           ? <EmptyState onSend={onSend} />
           : messages.map(msg => (
@@ -245,11 +273,8 @@ function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: b
                   SEARCH OVERVIEW
                 </div>
               )}
-              <div style={{ ...S, fontSize: 13, color: "var(--fg)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                {overview}
-                {isStreaming && bullets.length === 0 && (
-                  <span style={{ display: "inline-block", width: 2, height: 14, background: "var(--fg)", marginLeft: 2, animation: "pulse-soft 1s infinite" }} />
-                )}
+              <div style={{ ...S, fontSize: 13, color: "var(--fg)", lineHeight: 1.7 }}>
+                {renderText(overview, isStreaming && bullets.length === 0)}
               </div>
             </div>
           )}
@@ -265,7 +290,7 @@ function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: b
                   <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <span style={{ color: "var(--up)", marginTop: 2, flexShrink: 0, ...M, fontSize: 10 }}>▸</span>
                     <span style={{ ...S, fontSize: 12, color: "var(--fg)", lineHeight: 1.6 }}>
-                      {b.replace(/^[-•]\s*/, "")}
+                      {renderInline(b.replace(/^[-•]\s*/, ""))}
                     </span>
                   </div>
                 ))}

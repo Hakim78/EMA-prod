@@ -107,11 +107,11 @@ export default function CompanyRow({
     switch (key) {
       case "description":
         return (
-          <div key={key} style={{ paddingRight: 8 }}>
+          <div key={key} style={{ paddingRight: 8, minWidth: 0 }}>
             <span style={{
-              ...S, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5,
-              display: "-webkit-box", WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical" as const, overflow: "hidden",
+              ...S, fontSize: 12, color: "var(--fg-muted)",
+              display: "block", overflow: "hidden",
+              textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
               {company.description}
             </span>
@@ -166,7 +166,8 @@ export default function CompanyRow({
               display: "grid",
               gridTemplateColumns,
               padding: "0 16px",
-              minHeight: 56,
+              height: 44,
+              minHeight: 44,
               alignItems: "center",
               borderBottom: "1px solid var(--border)",
               background: selected ? "rgba(37,99,235,0.04)" : hovered ? "var(--bg-hover)" : "transparent",
