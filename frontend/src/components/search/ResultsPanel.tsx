@@ -33,14 +33,15 @@ export default function ResultsPanel({
   companies, filters, loading, savedIds, aiInsights,
   onRemoveFilter, onToggleFilterMode, onSave, onHide, onRowClick, onEnrich, onClearInsights,
 }: Props) {
-  const [focusMode, setFocusMode]           = useState(false);
-  const [signalFilter, setSignalFilter]     = useState(false);
+  const [focusMode, setFocusMode]             = useState(false);
+  const [signalFilter, setSignalFilter]       = useState(false);
   const [excludePipeline, setExcludePipeline] = useState(false);
-  const [enrichOpen, setEnrichOpen]     = useState(false);
+  const [enrichOpen, setEnrichOpen]       = useState(false);
   const [colEditorOpen, setColEditorOpen] = useState(false);
-  const [visibleCols, setVisibleCols]   = useState<ColKey[]>(DEFAULT_COLS);
-  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
-  const colEditorRef                    = useRef<HTMLDivElement>(null);
+  const [visibleCols, setVisibleCols]     = useState<ColKey[]>(DEFAULT_COLS);
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+  const [hoveredId, setHoveredId]         = useState<string | null>(null);
+  const colEditorRef                      = useRef<HTMLDivElement>(null);
 
   const showAI = Object.keys(aiInsights).length > 0;
 
@@ -56,6 +57,33 @@ export default function ResultsPanel({
 
   // Reset selection when companies change
   useEffect(() => { setSelectedIds(new Set()); }, [companies]);
+
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────────
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      switch (e.key.toLowerCase()) {
+        case "s":
+          if (hoveredId && !savedIds.has(hoveredId)) { e.preventDefault(); onSave(hoveredId); }
+          break;
+        case "h":
+          if (hoveredId) { e.preventDefault(); onHide(hoveredId); }
+          break;
+        case "e":
+          if (e.ctrlKey || e.metaKey) break; // let browser handle Ctrl+E
+          e.preventDefault();
+          exportAll();
+          break;
+        case "a":
+          if (e.ctrlKey || e.metaKey) { e.preventDefault(); toggleSelectAll(); }
+          break;
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoveredId, savedIds]);
 
   // ── Filtering ────────────────────────────────────────────────────────────────
   const pipelineIds = excludePipeline
@@ -359,6 +387,8 @@ export default function ResultsPanel({
                   onHide={() => onHide(c.id)}
                   onClick={() => onRowClick(c)}
                   onToggleSelect={() => toggleSelect(c.id)}
+                  onMouseEnter={() => setHoveredId(c.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 />
               ))
         }
@@ -370,7 +400,7 @@ export default function ResultsPanel({
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 12px", flexShrink: 0, background: "var(--bg-alt)",
       }}>
-        {["[S] Sauvegarder", "[H] Masquer", "[↵] Fiche détaillée", "[L] Lookalike", "[E] Export CSV"].map((tip, i) => (
+        {["[S] Sauvegarder", "[H] Masquer", "[↵] Fiche", "[Ctrl+A] Tout sélect.", "[E] Export CSV"].map((tip, i) => (
           <span key={i} style={{ ...M, fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.05em" }}>{tip}</span>
         ))}
       </div>

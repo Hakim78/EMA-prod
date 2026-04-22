@@ -54,11 +54,13 @@ interface Props {
   onHide: () => void;
   onClick: () => void;
   onToggleSelect?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export default function CompanyRow({
   company, rank, saved, cols, selected, crmStatus, aiInsight,
-  onSave, onHide, onClick, onToggleSelect,
+  onSave, onHide, onClick, onToggleSelect, onMouseEnter: onRowMouseEnter, onMouseLeave: onRowMouseLeave,
 }: Props) {
   const [visible, setVisible]           = useState(true);
   const [hovered, setHovered]           = useState(false);
@@ -192,8 +194,8 @@ export default function CompanyRow({
         >
           <div
             onClick={onClick}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
+            onMouseEnter={() => { setHovered(true); onRowMouseEnter?.(); }}
+            onMouseLeave={() => { setHovered(false); onRowMouseLeave?.(); }}
             style={{
               display: "grid",
               gridTemplateColumns,
