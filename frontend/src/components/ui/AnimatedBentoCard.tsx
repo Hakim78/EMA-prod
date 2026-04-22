@@ -39,6 +39,7 @@ export default function AnimatedBentoCard({
   const { RiveComponent } = useRive({
     src: riveSrc,
     autoplay: true,
+    stateMachines: "State Machine 1",
     layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
   });
 
