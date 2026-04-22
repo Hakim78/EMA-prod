@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Search, Users, BookMarked, Database, Bell, Moon, Sun, User, Zap } from "lucide-react";
+import { Search, Users, BookMarked, Database, Bell, Moon, Sun, User, Zap, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import NumberTicker from "@/components/ui/NumberTicker";
 
@@ -15,7 +15,8 @@ const NAV = [
   { href: "/investors", icon: Users,      label: "Investisseurs", badge: "BETA" },
   { href: "/pipeline",  icon: BookMarked, label: "My Lists",      badge: null   },
   { href: "/targets",   icon: Database,   label: "Base données",  badge: null   },
-  { href: "/signals",   icon: Bell,       label: "Signaux",       badge: "3"    },
+  { href: "/signals",               icon: Bell,     label: "Signaux",       badge: "3"  },
+  { href: "/settings/integrations", icon: Settings, label: "Settings",      badge: null },
 ];
 
 const CREDITS = 47;

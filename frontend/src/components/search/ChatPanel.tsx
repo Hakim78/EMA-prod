@@ -251,15 +251,18 @@ function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: b
 
   if (msg.role === "user") {
     return (
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-sub)" }}>
-        {/* Blue user bubble */}
+      <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-sub)" }}>
         <div style={{
-          background: "#1D4ED8",
+          background: "rgba(239,246,255,0.85)",
+          border: "1px solid #BFDBFE",
           padding: "10px 14px",
-          borderRadius: 2,
-          ...S, fontSize: 13, color: "#fff", lineHeight: 1.5,
         }}>
-          {msg.content}
+          <div style={{ ...M, fontSize: 9, color: "#3B82F6", letterSpacing: "0.1em", marginBottom: 5 }}>
+            YOUR REQUEST
+          </div>
+          <p style={{ ...S, fontSize: 13, color: "#1E3A5F", lineHeight: 1.55, margin: 0, fontWeight: 500 }}>
+            {msg.content}
+          </p>
         </div>
       </div>
     );
