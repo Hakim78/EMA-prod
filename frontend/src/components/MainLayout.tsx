@@ -1,6 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import TopNav from "@/components/layout/TopNav";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  // Onboarding has its own full-screen layout — no sidebar
+  if (pathname === "/onboarding") {
+    return <>{children}</>;
+  }
+
   return (
     <div style={{
       display: "flex",
