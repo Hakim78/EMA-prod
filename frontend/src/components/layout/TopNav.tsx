@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Search, Users, BookMarked, Database, Bell, Moon, Sun, User, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
+import NumberTicker from "@/components/ui/NumberTicker";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -118,9 +119,10 @@ export default function TopNav() {
           }}
         >
           <Zap size={13} style={{ color: CREDITS > 10 ? "var(--up)" : "var(--signal)" }} />
-          <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.04em" }}>
-            {CREDITS}
-          </span>
+          <NumberTicker
+            value={CREDITS}
+            style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.04em" }}
+          />
         </div>
 
         {/* Theme toggle */}

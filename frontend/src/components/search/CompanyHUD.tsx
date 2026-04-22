@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import NumberTicker from "@/components/ui/NumberTicker";
 import { X, Globe, Linkedin, MapPin, Users, Calendar, Building2, Tag, Zap, Lock, Mail, Phone } from "lucide-react";
 import type { SearchCompany } from "@/types/search";
 import type { Target } from "@/types/index";
@@ -467,9 +468,11 @@ function MatchScoreBlock({ company }: { company: SearchCompany }) {
           }}>
             {label}
           </span>
-          <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)", marginLeft: 4 }}>
-            {score}/100
-          </span>
+          <NumberTicker
+            value={score}
+            style={{ ...M, fontSize: 10, color: "var(--fg-dim)", marginLeft: 4 }}
+          />
+          <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>/100</span>
         </div>
       </div>
     </div>

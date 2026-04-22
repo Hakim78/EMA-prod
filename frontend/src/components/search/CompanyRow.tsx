@@ -198,9 +198,15 @@ export default function CompanyRow({
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 1, height: "auto" }}
+          layout
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
+          transition={{
+            opacity: { duration: 0.15, ease: "easeOut" },
+            height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+            layout: { duration: 0.18, ease: [0.4, 0, 0.2, 1] },
+          }}
           style={{ overflow: "hidden" }}
         >
           <div

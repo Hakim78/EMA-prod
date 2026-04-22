@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Download, Sparkles, Radio, Columns, Check, BookmarkPlus, FileDown } from "lucide-react";
+import ShinyButton from "@/components/ui/ShinyButton";
 import CompanyRow, { COL_DEFS, DEFAULT_COLS, buildGridTemplate } from "./CompanyRow";
 import type { ColKey } from "./CompanyRow";
 import FilterPill from "./FilterPill";
@@ -188,22 +189,19 @@ export default function ResultsPanel({
         <div style={{ width: 1, height: 16, background: "var(--border)", flexShrink: 0 }} />
 
         {/* Enrich */}
-        <button
+        <ShinyButton
           onClick={() => companies.length > 0 && setEnrichOpen(true)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-            background: showAI ? "var(--bg-alt)" : "transparent",
-            border: `1px solid ${showAI ? "var(--fg)" : "var(--border)"}`,
-            color: companies.length > 0 ? (showAI ? "var(--fg)" : "var(--fg-muted)") : "var(--fg-dim)",
-            cursor: companies.length > 0 ? "pointer" : "not-allowed",
-            ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
-          }}
-          onMouseEnter={e => { if (companies.length > 0 && !showAI) { e.currentTarget.style.borderColor = "var(--fg-muted)"; e.currentTarget.style.color = "var(--fg)"; } }}
-          onMouseLeave={e => { if (!showAI) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
+          disabled={companies.length === 0}
+          title="Enrichir avec l'IA"
+          style={showAI ? {
+            background: "var(--bg-alt)",
+            border: "1px solid var(--fg)",
+            color: "var(--fg)",
+          } : undefined}
         >
           <Sparkles size={11} />
           {showAI ? "AI actif" : "Enrich with AI"}
-        </button>
+        </ShinyButton>
 
         {/* Signaux */}
         <button

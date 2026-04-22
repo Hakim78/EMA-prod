@@ -1,7 +1,30 @@
 "use client";
 
 import { useRef, useEffect, useState, Fragment } from "react";
+import { motion } from "framer-motion";
 import { Send, ArrowRight, ChevronDown, Clock, RotateCcw } from "lucide-react";
+
+function TextGenerateEffect({ text }: { text: string }) {
+  const parts = text.split(/(\s+)/);
+  return (
+    <>
+      {parts.map((part, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, filter: "blur(8px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{
+            duration: 0.22,
+            delay: Math.min(Math.floor(i / 2) * 0.014, 1.4),
+            ease: "easeOut",
+          }}
+        >
+          {part}
+        </motion.span>
+      ))}
+    </>
+  );
+}
 
 /** Parse **bold**, *italic*, `code` inline. Returns React nodes. */
 function renderInline(text: string): React.ReactNode {
@@ -216,6 +239,15 @@ function EmptyState({ onSend }: { onSend: (q: string) => void }) {
 
 function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: boolean }) {
   const [actionsOpen, setActionsOpen] = useState(true);
+  const prevStreamingRef = useRef(isStreaming);
+  const [blurReveal, setBlurReveal] = useState(false);
+
+  useEffect(() => {
+    if (prevStreamingRef.current && !isStreaming && msg.content) {
+      setBlurReveal(true);
+    }
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming, msg.content]);
 
   if (msg.role === "user") {
     return (
@@ -274,7 +306,10 @@ function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: b
                 </div>
               )}
               <div style={{ ...S, fontSize: 13, color: "var(--fg)", lineHeight: 1.7 }}>
-                {renderText(overview, isStreaming && bullets.length === 0)}
+                {blurReveal && !isStreaming
+                  ? <TextGenerateEffect key={`${msg.id}-overview`} text={overview} />
+                  : renderText(overview, isStreaming && bullets.length === 0)
+                }
               </div>
             </div>
           )}
@@ -287,12 +322,18 @@ function MessageBlock({ msg, isStreaming }: { msg: SearchMessage; isStreaming: b
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {bullets.map((b, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <motion.div
+                    key={i}
+                    initial={blurReveal && !isStreaming ? { opacity: 0, x: -4 } : false}
+                    animate={blurReveal && !isStreaming ? { opacity: 1, x: 0 } : {}}
+                    transition={{ duration: 0.2, delay: i * 0.06, ease: "easeOut" }}
+                    style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
+                  >
                     <span style={{ color: "var(--up)", marginTop: 2, flexShrink: 0, ...M, fontSize: 10 }}>▸</span>
                     <span style={{ ...S, fontSize: 12, color: "var(--fg)", lineHeight: 1.6 }}>
                       {renderInline(b.replace(/^[-•]\s*/, ""))}
                     </span>
-                  </div>
+                  </motion.div>
                 ))}
                 {isStreaming && (
                   <span style={{ display: "inline-block", width: 2, height: 14, background: "var(--fg)", marginLeft: 2, animation: "pulse-soft 1s infinite" }} />
