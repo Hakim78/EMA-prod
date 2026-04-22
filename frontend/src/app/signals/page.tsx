@@ -29,13 +29,13 @@ export default function SignalsPage() {
   }, [data]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg)" }}>
 
       {/* Header */}
       <div style={{
         height: 40, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-        background: "#050505",
+        background: "var(--bg-raise)",
       }}>
         <Activity size={11} style={{ color: "#FF4500" }} />
         <span style={{ ...M, fontSize: 10, color: "#444444", letterSpacing: "0.15em" }}>SIGNAL_NETWORK_A24</span>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ArrowRight, Download, ChevronDown } from "lucide-react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { getPipeline, setPipeline, moveStage, removeFromPipeline, exportCSV, STAGES } from "@/lib/pipeline";
 import type { PipelineItem, Stage } from "@/lib/pipeline";
 import type { SearchCompany } from "@/types/search";
@@ -317,7 +318,13 @@ function EmptyPipeline() {
       flex: 1, display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", gap: 14,
     }}>
-      <span style={{ fontSize: 32 }}>📋</span>
+      <div style={{ width: 120, height: 120 }}>
+        <DotLottieReact
+          src="https://lottie.host/5d2b20c9-2741-4270-af29-7c669d5878c5/VHODzIsBRa.lottie"
+          loop
+          autoplay
+        />
+      </div>
       <span style={{ ...S, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Pipeline vide</span>
       <span style={{ ...S, fontSize: 13, color: "var(--fg-muted)", textAlign: "center", maxWidth: 320, lineHeight: 1.6 }}>
         Sauvegardez des entreprises depuis la recherche pour les retrouver ici, classées par étape de deal flow.

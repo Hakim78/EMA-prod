@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, Target, Check, ChevronRight, ArrowRight,
+  Search, Target, List, Check, ChevronRight, ArrowRight,
   Database, Zap, TrendingUp, Chrome,
 } from "lucide-react";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 const M: React.CSSProperties = { fontFamily: "'JetBrains Mono', 'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -504,12 +503,15 @@ export default function GettingStartedHub() {
 
               {/* Content */}
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 20px 22px" }}>
-                <div style={{ width: 64, height: 64, marginBottom: 4, flexShrink: 0 }}>
-                  <DotLottieReact
-                    src="https://lottie.host/5d2b20c9-2741-4270-af29-7c669d5878c5/VHODzIsBRa.lottie"
-                    loop
-                    autoplay
-                  />
+                <div style={{
+                  width: 34, height: 34, marginBottom: 10, borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,.12)",
+                  background: "rgba(255,255,255,.06)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <List size={14} style={{ color: "#CBD5E1" }} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6 }}>Mon Pipeline</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,.48)", lineHeight: 1.65 }}>

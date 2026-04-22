@@ -80,13 +80,13 @@ export default function VaultPage() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg)" }}>
 
       {/* Filter bar */}
       <div style={{
         height: 48, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
         display: "flex", alignItems: "center", gap: 8, padding: "0 16px",
-        background: "#050505",
+        background: "var(--bg-raise)",
       }}>
         <Search size={13} style={{ color: "#333333", flexShrink: 0 }} />
         <input
