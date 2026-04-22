@@ -18,7 +18,7 @@ function Sparkline({ score }: { score: number }) {
   const hot = score >= 75;
   return (
     <svg width={40} height={12} style={{ display: "block" }}>
-      <polyline points={pts} fill="none" stroke={hot ? "#FF4500" : "#333333"} strokeWidth="1.5" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke={hot ? "#FF4500" : "var(--fg-dim)"} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -62,7 +62,7 @@ export default function VaultPage() {
   }
 
   function SortIcon({ k }: { k: SortKey }) {
-    if (sortKey !== k) return <span style={{ color: "#222222" }}>↕</span>;
+    if (sortKey !== k) return <span style={{ color: "var(--fg-dim)" }}>↕</span>;
     return sortDir === "desc"
       ? <ChevronDown size={10} style={{ color: "#FF4500" }} />
       : <ChevronUp size={10} style={{ color: "#FF4500" }} />;
@@ -84,25 +84,25 @@ export default function VaultPage() {
 
       {/* Filter bar */}
       <div style={{
-        height: 48, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
+        height: 48, borderBottom: "1px solid var(--border)", flexShrink: 0,
         display: "flex", alignItems: "center", gap: 8, padding: "0 16px",
         background: "var(--bg-raise)",
       }}>
-        <Search size={13} style={{ color: "#333333", flexShrink: 0 }} />
+        <Search size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="FILTER_IDENTITY OR SIGNAL..."
           style={{
             flex: 1, background: "transparent", border: "none", outline: "none",
-            color: "#FAFAFA", fontFamily: "'JetBrains Mono',monospace", fontSize: 11,
+            color: "var(--fg)", fontFamily: "'JetBrains Mono',monospace", fontSize: 11,
             letterSpacing: "0.04em",
           }}
         />
         <select
           value={sectorFilter}
           onChange={e => setSectorFilter(e.target.value)}
-          style={{ ...M, fontSize: 9, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "4px 8px", outline: "none", cursor: "pointer" }}
+          style={{ ...M, fontSize: 9, color: "var(--fg-dim)", background: "var(--bg)", border: "1px solid var(--border)", padding: "4px 8px", outline: "none", cursor: "pointer" }}
         >
           <option value="">TOUS SECTEURS</option>
           {sectors.map(s => <option key={s} value={s}>{s}</option>)}
@@ -110,12 +110,12 @@ export default function VaultPage() {
         <select
           value={regionFilter}
           onChange={e => setRegionFilter(e.target.value)}
-          style={{ ...M, fontSize: 9, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "4px 8px", outline: "none", cursor: "pointer" }}
+          style={{ ...M, fontSize: 9, color: "var(--fg-dim)", background: "var(--bg)", border: "1px solid var(--border)", padding: "4px 8px", outline: "none", cursor: "pointer" }}
         >
           <option value="">TOUTES RÉGIONS</option>
           {regions.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
-        <span style={{ ...M, fontSize: 9, color: "#333333", whiteSpace: "nowrap" }}>
+        <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", whiteSpace: "nowrap" }}>
           {targets.length.toLocaleString("fr")} RÉSULTATS
         </span>
       </div>
@@ -123,7 +123,7 @@ export default function VaultPage() {
       {/* Column headers */}
       <div style={{
         display: "flex", alignItems: "center", height: 28,
-        padding: "0 16px", borderBottom: "1px solid #1A1A1A", flexShrink: 0,
+        padding: "0 16px", borderBottom: "1px solid var(--border)", flexShrink: 0,
         gap: 0,
       }}>
         {cols.map(c => (
@@ -134,7 +134,7 @@ export default function VaultPage() {
           }}
             onClick={() => c.key && toggleSort(c.key)}
           >
-            <span style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.12em" }}>{c.label}</span>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>{c.label}</span>
             {c.key && <SortIcon k={c.key} />}
           </div>
         ))}
@@ -144,9 +144,9 @@ export default function VaultPage() {
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="thin-scrollbar">
         {isLoading
           ? Array.from({ length: 15 }).map((_, i) => (
-            <div key={i} style={{ height: 44, borderBottom: "1px solid #111111", display: "flex", alignItems: "center", padding: "0 16px", gap: 12 }}>
-              <div style={{ flex: 1, height: 8, background: "#111111", borderRadius: 2 }} />
-              <div style={{ width: 32, height: 8, background: "#111111", borderRadius: 2 }} />
+            <div key={i} style={{ height: 44, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", padding: "0 16px", gap: 12 }}>
+              <div style={{ flex: 1, height: 8, background: "var(--bg-alt)", borderRadius: 2 }} />
+              <div style={{ width: 32, height: 8, background: "var(--bg-alt)", borderRadius: 2 }} />
             </div>
           ))
           : targets.map(t => {
@@ -155,28 +155,28 @@ export default function VaultPage() {
             return (
               <Link key={t.id} href={`/targets/${t.id}`} style={{
                 display: "flex", alignItems: "center", height: 44,
-                padding: "0 16px", borderBottom: "1px solid #111111",
+                padding: "0 16px", borderBottom: "1px solid var(--border)",
                 textDecoration: "none", color: "inherit",
                 borderLeft: "2px solid transparent",
                 transition: "background 0.1s, border-color 0.1s",
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#0E0E0E"; e.currentTarget.style.borderLeftColor = "#FAFAFA"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.borderLeftColor = "var(--fg)"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderLeftColor = "transparent"; }}
               >
                 {/* Identité */}
                 <div style={{ flex: 1, overflow: "hidden" }}>
-                  <span style={{ ...S, fontSize: 12, color: "#FAFAFA" }}>{t.name}</span>
-                  <span style={{ ...M, fontSize: 9, color: "#2A2A2A", marginLeft: 8 }}>{t.city}</span>
+                  <span style={{ ...S, fontSize: 12, color: "var(--fg)" }}>{t.name}</span>
+                  <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", marginLeft: 8 }}>{t.city}</span>
                 </div>
                 {/* Score */}
                 <div style={{ width: 56, textAlign: "center" }}>
-                  <span style={{ ...M, fontSize: 12, color: t.globalScore >= 75 ? "#FAFAFA" : "#666666", fontWeight: 500 }}>
+                  <span style={{ ...M, fontSize: 12, color: t.globalScore >= 75 ? "var(--fg)" : "var(--fg-muted)", fontWeight: 500 }}>
                     {t.globalScore}
                   </span>
                 </div>
                 {/* CA */}
                 <div style={{ width: 80, textAlign: "right" }}>
-                  <span style={{ ...M, fontSize: 11, color: "#666666" }}>{t.financials?.revenue ?? "—"}</span>
+                  <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)" }}>{t.financials?.revenue ?? "—"}</span>
                 </div>
                 {/* Sparkline */}
                 <div style={{ width: 52, paddingLeft: 6 }}>
@@ -184,23 +184,23 @@ export default function VaultPage() {
                 </div>
                 {/* Secteur */}
                 <div style={{ width: 140, overflow: "hidden" }}>
-                  <span style={{ ...M, fontSize: 9, color: "#444444", letterSpacing: "0.06em" }}>
+                  <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.06em" }}>
                     {t.sector?.toUpperCase().slice(0, 18) ?? "—"}
                   </span>
                 </div>
                 {/* Région */}
                 <div style={{ width: 120, overflow: "hidden" }}>
-                  <span style={{ ...M, fontSize: 9, color: "#333333" }}>{t.region?.slice(0, 16) ?? "—"}</span>
+                  <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>{t.region?.slice(0, 16) ?? "—"}</span>
                 </div>
                 {/* Signal */}
                 <div style={{ width: 160, overflow: "hidden" }}>
-                  <span style={{ ...M, fontSize: 9, color: hot ? "#FF4500" : "#444444", letterSpacing: "0.04em" }}>
+                  <span style={{ ...M, fontSize: 9, color: hot ? "#FF4500" : "var(--fg-muted)", letterSpacing: "0.04em" }}>
                     {signal.toUpperCase().slice(0, 22)}
                   </span>
                 </div>
                 {/* Arrow */}
                 <div style={{ width: 24, display: "flex", justifyContent: "flex-end" }}>
-                  <ArrowUpRight size={12} style={{ color: "#222222" }} />
+                  <ArrowUpRight size={12} style={{ color: "var(--fg-dim)" }} />
                 </div>
               </Link>
             );
@@ -210,10 +210,11 @@ export default function VaultPage() {
 
       {/* Status */}
       <div style={{
-        height: 28, borderTop: "1px solid #1F1F1F", flexShrink: 0,
+        height: 28, borderTop: "1px solid var(--border)", flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 16px", gap: 16,
+        background: "var(--bg-raise)",
       }}>
-        <span style={{ ...M, fontSize: 9, color: "#2A2A2A" }}>
+        <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>
           GOLD_LAYER — {(data?.total ?? 0).toLocaleString("fr")} CIBLES M&A SCORÉES
         </span>
         <div style={{ flex: 1 }} />

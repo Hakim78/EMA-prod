@@ -11,6 +11,31 @@ import type { SearchCompany } from "@/types/search";
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
+function CompanyLogo({ name, website, logo }: { name: string; website?: string; logo?: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = logo || (website ? `https://logo.clearbit.com/${website}` : null);
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        onError={() => setFailed(true)}
+        style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0, background: "#fff", borderRadius: 3, border: "1px solid var(--border)" }}
+      />
+    );
+  }
+  return (
+    <div style={{
+      width: 22, height: 22, flexShrink: 0,
+      background: "var(--bg-alt)", border: "1px solid var(--border)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      ...M, fontSize: 9, color: "var(--fg-muted)",
+    }}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 export type ColKey = "description" | "siren" | "country" | "score" | "revenue" | "signal" | "city";
 
 export const COL_DEFS: Record<ColKey, { label: string; width: string }> = {
@@ -275,14 +300,7 @@ export default function CompanyRow({
 
             {/* Company */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, paddingRight: 8 }}>
-              <div style={{
-                width: 22, height: 22, flexShrink: 0,
-                background: "var(--bg-alt)", border: "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                ...M, fontSize: 9, color: "var(--fg-muted)",
-              }}>
-                {company.name.charAt(0).toUpperCase()}
-              </div>
+              <CompanyLogo name={company.name} website={company.website} logo={company.logo} />
               <span style={{
                 ...S, fontSize: 12, fontWeight: 600, color: "var(--fg)",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
