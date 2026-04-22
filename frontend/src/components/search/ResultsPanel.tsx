@@ -25,12 +25,13 @@ interface Props {
   onSave: (id: string) => void;
   onHide: (id: string) => void;
   onRowClick: (company: SearchCompany) => void;
-  onEnrich: (ids: string[]) => void;
+  onEnrich: (ids: string[], question: string) => void;
+  onClearInsights: () => void;
 }
 
 export default function ResultsPanel({
   companies, filters, loading, savedIds, aiInsights,
-  onRemoveFilter, onToggleFilterMode, onSave, onHide, onRowClick, onEnrich,
+  onRemoveFilter, onToggleFilterMode, onSave, onHide, onRowClick, onEnrich, onClearInsights,
 }: Props) {
   const [focusMode, setFocusMode]           = useState(false);
   const [signalFilter, setSignalFilter]     = useState(false);
@@ -109,15 +110,27 @@ export default function ResultsPanel({
     setSelectedIds(new Set());
   }
 
-  function bulkExport() {
-    const selected = displayed.filter(c => selectedIds.has(c.id));
-    const header = "Nom,Secteur,SIREN,Ville,Score";
-    const rows = selected.map(c => [c.name, c.sector ?? "", c.siren ?? "", c.city ?? "", c.score ?? ""].map(v => `"${v}"`).join(","));
-    const csv = [header, ...rows].join("\n");
+  function exportToCSV(rows: SearchCompany[], filename: string) {
+    const header = "Nom,Secteur,SIREN,Ville,Score,Pays,Signal";
+    const lines = rows.map(c =>
+      [c.name, c.sector ?? "", c.siren ?? "", c.city ?? "", c.score ?? "", c.country ?? "France", c.signal ?? ""]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",")
+    );
+    const csv = "\uFEFF" + [header, ...lines].join("\n"); // BOM for Excel
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "selection_edrcf.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function bulkExport() {
+    const selected = displayed.filter(c => selectedIds.has(c.id));
+    exportToCSV(selected, "selection_edrcf.csv");
+  }
+
+  function exportAll() {
+    exportToCSV(displayed, `export_edrcf_${new Date().toISOString().slice(0, 10)}.csv`);
   }
 
   // ── Layout ───────────────────────────────────────────────────────────────────
@@ -264,11 +277,13 @@ export default function ResultsPanel({
               <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
                 {displayed.length.toLocaleString("fr")} rés.
               </span>
-              <button style={{
-                display: "flex", alignItems: "center", gap: 4,
-                ...S, fontSize: 11, color: "var(--fg-muted)", background: "transparent",
-                border: "1px solid var(--border)", padding: "4px 8px", cursor: "pointer", whiteSpace: "nowrap",
-              }}
+              <button
+                onClick={exportAll}
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  ...S, fontSize: 11, color: "var(--fg-muted)", background: "transparent",
+                  border: "1px solid var(--border)", padding: "4px 8px", cursor: "pointer", whiteSpace: "nowrap",
+                }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
               >
@@ -438,7 +453,12 @@ export default function ResultsPanel({
       {enrichOpen && (
         <EnrichModal
           companyCount={someSelected ? selectedIds.size : displayed.length}
-          onEnrich={() => onEnrich(someSelected ? [...selectedIds] : displayed.map(c => c.id))}
+          onEnrich={(question) => {
+            const ids = someSelected ? [...selectedIds] : displayed.map(c => c.id);
+            onEnrich(ids, question);
+            setEnrichOpen(false);
+          }}
+          onDeleteInsights={showAI ? () => { onClearInsights(); setEnrichOpen(false); } : undefined}
           onClose={() => setEnrichOpen(false)}
         />
       )}

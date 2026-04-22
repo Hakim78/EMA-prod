@@ -135,20 +135,32 @@ export default function SearchPage() {
     }
   }, []);
 
-  const handleEnrich = useCallback((ids: string[]) => {
-    // Set all to loading
+  const handleEnrich = useCallback(async (ids: string[], question: string) => {
     const loadingMap: Record<string, "loading"> = {};
     ids.forEach(id => { loadingMap[id] = "loading"; });
     setAiInsights(loadingMap);
 
-    // Stagger reveal: each row gets its insight with a small delay
-    ids.forEach((id, i) => {
-      setTimeout(() => {
-        const snippet = AI_SNIPPETS[i % AI_SNIPPETS.length];
-        setAiInsights(prev => ({ ...prev, [id]: snippet }));
-      }, 800 + i * 120);
-    });
-  }, []);
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const company = companies.find((c: SearchCompany) => c.id === id);
+      if (!company) continue;
+
+      const prompt = `Pour l'entreprise "${company.name}" (SIREN: ${company.siren ?? "N/A"}, secteur: ${company.sector ?? "N/A"}, ville: ${company.city ?? "N/A"}): ${question}. Réponds en 1 phrase courte et précise, sans introduction ni reformulation.`;
+
+      try {
+        const r = await fetch(`/api/copilot/query?q=${encodeURIComponent(prompt)}`);
+        if (!r.ok) throw new Error("api_error");
+        const d = await r.json();
+        const answer = (d.response as string | undefined)?.trim() ?? AI_SNIPPETS[i % AI_SNIPPETS.length];
+        setAiInsights(prev => ({ ...prev, [id]: answer }));
+      } catch {
+        setAiInsights(prev => ({ ...prev, [id]: AI_SNIPPETS[i % AI_SNIPPETS.length] }));
+      }
+
+      // Small stagger to avoid hammering the backend
+      if (i < ids.length - 1) await new Promise(res => setTimeout(res, 250));
+    }
+  }, [companies]);
 
   const visibleCompanies = companies.filter((c: SearchCompany) => !hiddenIds.has(c.id));
 
@@ -184,6 +196,7 @@ export default function SearchPage() {
             onHide={(id: string) => setHiddenIds((h: Set<string>) => new Set([...h, id]))}
             onRowClick={setSelectedCompany}
             onEnrich={handleEnrich}
+            onClearInsights={() => setAiInsights({})}
           />
         </Panel>
       </PanelGroup>

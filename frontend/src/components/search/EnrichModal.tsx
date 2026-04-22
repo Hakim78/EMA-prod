@@ -29,10 +29,11 @@ type ResponseType = "open-ended" | "structured";
 interface Props {
   companyCount: number;
   onEnrich: (question: string) => void;
+  onDeleteInsights?: () => void;
   onClose: () => void;
 }
 
-export default function EnrichModal({ companyCount, onEnrich, onClose }: Props) {
+export default function EnrichModal({ companyCount, onEnrich, onDeleteInsights, onClose }: Props) {
   const [tab, setTab]               = useState<Tab>("Advanced");
   const [question, setQuestion]     = useState("");
   const [responseType, setResponseType] = useState<ResponseType>("open-ended");
@@ -223,20 +224,24 @@ export default function EnrichModal({ companyCount, onEnrich, onClose }: Props) 
             display: "flex", alignItems: "center", justifyContent: "space-between",
             background: "var(--bg-alt)", gap: 12,
           }}>
-            {/* Left: Delete column */}
-            <button style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 14px", background: "transparent",
-              border: "1px solid #DC2626", cursor: "pointer",
-              ...S, fontSize: 12, color: "#DC2626",
-              transition: "background 0.1s",
-              flexShrink: 0,
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(220,38,38,0.06)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
-              <Trash2 size={12} /> Delete column
-            </button>
+            {/* Left: Delete column — only shown when there are insights to delete */}
+            {onDeleteInsights && (
+              <button
+                onClick={() => { onDeleteInsights(); onClose(); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "7px 14px", background: "transparent",
+                  border: "1px solid #DC2626", cursor: "pointer",
+                  ...S, fontSize: 12, color: "#DC2626",
+                  transition: "background 0.1s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(220,38,38,0.06)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <Trash2 size={12} /> Supprimer colonne IA
+              </button>
+            )}
 
             {/* Right: credits + enrich */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

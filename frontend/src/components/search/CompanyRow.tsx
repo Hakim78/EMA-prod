@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, EyeOff, Search, Plus, FolderOpen, Cloud } from "lucide-react";
+import { Check, EyeOff, Search, Plus, FolderOpen, Cloud, Trash2 } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
+import { getLists, createList, deleteList } from "@/lib/lists";
+import type { WorkList } from "@/lib/lists";
 import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
@@ -30,10 +32,6 @@ export function buildGridTemplate(cols: ColKey[], showAI: boolean): string {
   return showAI ? `${base} minmax(160px,1.5fr)` : base;
 }
 
-const FAKE_LISTS = [
-  { id: "1", name: "Projet Industrie 2026" },
-  { id: "2", name: "Mandat Achat Santé" },
-];
 
 const COUNTRY_ISO: Record<string, string> = {
   France: "FR", Germany: "DE", "United Kingdom": "GB", UK: "GB",
@@ -62,13 +60,16 @@ export default function CompanyRow({
   company, rank, saved, cols, selected, crmStatus, aiInsight,
   onSave, onHide, onClick, onToggleSelect,
 }: Props) {
-  const [visible, setVisible]         = useState(true);
-  const [hovered, setHovered]         = useState(false);
-  const [saveOpen, setSaveOpen]       = useState(false);
-  const [savePos, setSavePos]         = useState({ top: 0, left: 0 });
-  const [listSearch, setListSearch]   = useState("");
-  const [crmTooltip, setCrmTooltip]   = useState(false);
-  const saveButtonRef                 = useRef<HTMLButtonElement>(null);
+  const [visible, setVisible]           = useState(true);
+  const [hovered, setHovered]           = useState(false);
+  const [saveOpen, setSaveOpen]         = useState(false);
+  const [savePos, setSavePos]           = useState({ top: 0, left: 0 });
+  const [listSearch, setListSearch]     = useState("");
+  const [lists, setLists]               = useState<WorkList[]>(() => getLists());
+  const [creatingList, setCreatingList] = useState(false);
+  const [newListName, setNewListName]   = useState("");
+  const [crmTooltip, setCrmTooltip]     = useState(false);
+  const saveButtonRef                   = useRef<HTMLButtonElement>(null);
 
   const showAI = aiInsight !== undefined;
   const gridTemplateColumns = buildGridTemplate(cols, showAI);
@@ -105,9 +106,29 @@ export default function CompanyRow({
     setTimeout(onHide, 260);
   };
 
-  const filteredLists = FAKE_LISTS.filter(l =>
+  const filteredLists = lists.filter(l =>
     l.name.toLowerCase().includes(listSearch.toLowerCase())
   );
+
+  const handleCreateList = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newListName.trim()) return;
+    const created = createList(newListName);
+    setLists(getLists());
+    setNewListName("");
+    setCreatingList(false);
+    // Auto-save to this new list
+    setSaveOpen(false);
+    setVisible(false);
+    setTimeout(onSave, 200);
+    void created;
+  };
+
+  const handleDeleteList = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteList(id);
+    setLists(getLists());
+  };
 
   function renderCol(key: ColKey) {
     switch (key) {
@@ -346,24 +367,37 @@ export default function CompanyRow({
               </div>
 
               {/* List items */}
-              <div style={{ padding: "4px 0" }}>
+              <div style={{ padding: "4px 0", maxHeight: 180, overflowY: "auto" }}>
                 {filteredLists.map(list => (
-                  <button
+                  <div
                     key={list.id}
-                    onClick={handleSaveToList}
-                    style={{
-                      width: "100%", textAlign: "left",
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 12px", background: "transparent", border: "none",
-                      cursor: "pointer", ...S, fontSize: 12, color: "var(--fg)",
-                      transition: "background 0.1s",
-                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 0 }}
                     onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
-                    <FolderOpen size={12} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
-                    {list.name}
-                  </button>
+                    <button
+                      onClick={handleSaveToList}
+                      style={{
+                        flex: 1, textAlign: "left",
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "8px 12px", background: "transparent", border: "none",
+                        cursor: "pointer", ...S, fontSize: 12, color: "var(--fg)",
+                      }}
+                    >
+                      <FolderOpen size={12} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
+                      {list.name}
+                    </button>
+                    {list.createdAt > 0 && (
+                      <button
+                        onClick={e => handleDeleteList(e, list.id)}
+                        style={{ padding: "8px 10px", background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-dim)", display: "flex", alignItems: "center" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "#DC2626")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "var(--fg-dim)")}
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
+                  </div>
                 ))}
                 {filteredLists.length === 0 && (
                   <div style={{ padding: "8px 12px", ...S, fontSize: 12, color: "var(--fg-dim)" }}>
@@ -374,21 +408,37 @@ export default function CompanyRow({
 
               {/* Create new list */}
               <div style={{ borderTop: "1px solid var(--border)", padding: "4px 0" }}>
-                <button
-                  onClick={e => { e.stopPropagation(); setSaveOpen(false); }}
-                  style={{
-                    width: "100%", textAlign: "left",
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "8px 12px", background: "transparent", border: "none",
-                    cursor: "pointer", ...S, fontSize: 12, color: "#2563EB",
-                    transition: "background 0.1s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                >
-                  <Plus size={12} style={{ flexShrink: 0 }} />
-                  Create new list
-                </button>
+                {creatingList ? (
+                  <form onSubmit={handleCreateList} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px" }}>
+                    <input
+                      autoFocus
+                      value={newListName}
+                      onChange={e => setNewListName(e.target.value)}
+                      placeholder="Nom de la liste…"
+                      style={{ flex: 1, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", ...S, fontSize: 12, padding: "4px 8px", outline: "none" }}
+                      onKeyDown={e => { if (e.key === "Escape") { setCreatingList(false); setNewListName(""); } }}
+                    />
+                    <button type="submit" disabled={!newListName.trim()} style={{ padding: "4px 10px", background: newListName.trim() ? "#2563EB" : "var(--bg-alt)", border: "none", color: newListName.trim() ? "#fff" : "var(--fg-dim)", cursor: newListName.trim() ? "pointer" : "default", ...S, fontSize: 11 }}>
+                      OK
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={e => { e.stopPropagation(); setCreatingList(true); }}
+                    style={{
+                      width: "100%", textAlign: "left",
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 12px", background: "transparent", border: "none",
+                      cursor: "pointer", ...S, fontSize: 12, color: "#2563EB",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <Plus size={12} style={{ flexShrink: 0 }} />
+                    Créer une nouvelle liste
+                  </button>
+                )}
               </div>
             </div>
           )}
