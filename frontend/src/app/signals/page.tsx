@@ -29,7 +29,7 @@ export default function SignalsPage() {
   }, [data]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "var(--bg)" }}>
 
       {/* Header */}
       <div style={{

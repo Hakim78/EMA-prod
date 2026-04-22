@@ -20,7 +20,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       background: "var(--bg)",
     }}>
       <TopNav />
-      <main style={{ flex: 1, overflow: "hidden", position: "relative", minWidth: 0, minHeight: 0 }}>
+      <main style={{ flex: 1, height: "100%", overflow: "hidden", position: "relative", minWidth: 0, minHeight: 0 }}>
         {children}
       </main>
     </div>
