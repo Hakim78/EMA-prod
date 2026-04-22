@@ -6,6 +6,7 @@ import {
   Search, Target, List, Check, ChevronRight, ArrowRight,
   Database, Zap, TrendingUp, Chrome,
 } from "lucide-react";
+import AnimatedBentoCard from "@/components/ui/AnimatedBentoCard";
 
 const M: React.CSSProperties = { fontFamily: "'JetBrains Mono', 'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -284,66 +285,27 @@ export default function GettingStartedHub() {
           {/* ── ZONES 2+3 : BENTO GRID ── */}
           <div className="hub-bento">
 
-            {/* ── CARD 1 : LOOKALIKE (2 cols) ── */}
-            <div className="bento-card bc-lookalike" onClick={() => goTo("/?mode=lookalike")}>
-              {/* Animated dark gradient */}
-              <div className="bc-bg" style={{
-                background: "linear-gradient(135deg, #06061a 0%, #0d1b2e 45%, #08081c 100%)",
-                backgroundSize: "200% 200%",
-                animation: "gradShift 10s ease infinite",
-              }} />
-
-              {/* Dot grid */}
-              <div style={{
-                position: "absolute", inset: 0,
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px)",
-                backgroundSize: "28px 28px",
-              }} />
-
-              {/* Orbs */}
-              <div style={{
-                position: "absolute", top: "10%", right: "12%",
-                width: 220, height: 220,
-                background: "radial-gradient(circle, rgba(99,102,241,.24) 0%, transparent 70%)",
-                borderRadius: "50%", animation: "orbFloat 8s ease-in-out infinite",
-              }} />
-              <div style={{
-                position: "absolute", bottom: "5%", left: "5%",
-                width: 140, height: 140,
-                background: "radial-gradient(circle, rgba(59,130,246,.18) 0%, transparent 70%)",
-                borderRadius: "50%", animation: "orbFloat 12s ease-in-out infinite reverse",
-              }} />
-
-              {/* Glass top bar */}
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: 1,
-                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
-              }} />
-
-              {/* Bottom scrim */}
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(to top, rgba(0,0,0,.94) 0%, rgba(0,0,0,.35) 55%, transparent 100%)",
-              }} />
-
-              {/* Content */}
+            {/* ── CARD 1 : LOOKALIKE (2 cols) — Rive background ── */}
+            <AnimatedBentoCard
+              className="bc-lookalike"
+              riveSrc="/bento-cards.riv"
+              scrim="linear-gradient(to top, rgba(0,0,0,.94) 0%, rgba(0,0,0,.40) 55%, transparent 100%)"
+              onClick={() => goTo("/?mode=lookalike")}
+            >
               <div style={{
                 position: "absolute", bottom: 0, left: 0, right: 0,
                 padding: "0 26px 26px",
                 display: "flex", flexDirection: "column", gap: 10,
               }}>
-                {/* Icon chip — glassmorphism */}
                 <div style={{
                   width: 40, height: 40, borderRadius: 12,
                   border: "1px solid rgba(255,255,255,.16)",
                   background: "rgba(255,255,255,.08)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
+                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <Target size={17} style={{ color: "#E0E7FF" }} />
                 </div>
-
                 <div>
                   <div style={{ ...M, fontSize: 9, color: "rgba(255,255,255,.38)", letterSpacing: "0.14em", marginBottom: 7 }}>
                     INTELLIGENCE ARTIFICIELLE · 16M+ SOCIÉTÉS
@@ -356,74 +318,47 @@ export default function GettingStartedHub() {
                     L'IA trouve des clones structurels parmi 16 millions de sociétés en temps réel.
                   </div>
                 </div>
-
-                {/* CTA chip */}
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  background: "rgba(255,255,255,.08)",
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255,255,255,.14)",
-                  borderRadius: 8, padding: "5px 12px",
-                  ...M, fontSize: 10, color: "rgba(255,255,255,.72)", letterSpacing: "0.05em",
-                  marginTop: 4, width: "fit-content",
-                  transition: "background .15s",
-                  cursor: "pointer",
-                }}
+                <div
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    background: "rgba(255,255,255,.08)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255,255,255,.14)", borderRadius: 8, padding: "5px 12px",
+                    ...M, fontSize: 10, color: "rgba(255,255,255,.72)", letterSpacing: "0.05em",
+                    marginTop: 4, width: "fit-content", transition: "background .15s", cursor: "pointer",
+                  }}
                   onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,.14)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,.08)")}
                 >
                   LANCER UN LOOKALIKE <ChevronRight size={11} />
                 </div>
               </div>
-            </div>
+            </AnimatedBentoCard>
 
-            {/* ── CARD 2 : LINKEDIN (1 col) ── */}
-            <div
-              className="bento-card bc-linkedin"
+            {/* ── CARD 2 : LINKEDIN (1 col) — Rive + blue tint ── */}
+            <AnimatedBentoCard
+              className="bc-linkedin"
+              riveSrc="/bento-cards.riv"
+              scrim="linear-gradient(to top, rgba(0,15,50,.92) 0%, rgba(0,60,120,.55) 50%, rgba(0,100,180,.25) 100%)"
+              riveOpacity={0.45}
               onClick={() => typeof window !== "undefined" && window.open("https://chrome.google.com/webstore", "_blank")}
             >
-              {/* LinkedIn gradient */}
-              <div className="bc-bg" style={{
-                background: "linear-gradient(155deg, #006097 0%, #004780 38%, #001830 100%)",
-              }} />
-
-              {/* Mesh dots */}
-              <div style={{
-                position: "absolute", inset: 0,
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,.08) 1px, transparent 1px)",
-                backgroundSize: "18px 18px",
-              }} />
-
               {/* Shimmer top edge */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, overflow: "hidden", borderRadius: `${R}px ${R}px 0 0` }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, overflow: "hidden" }}>
                 <div style={{
                   position: "absolute", top: 0, width: "55%", height: "100%",
                   background: "linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent)",
                   animation: "shimmerSweep 3.4s ease-in-out infinite",
                 }} />
               </div>
-
-              {/* Recommended badge — glass pill */}
+              {/* Recommended badge */}
               <div style={{
                 position: "absolute", top: 16, right: 16,
-                background: "rgba(245,158,11,.9)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                color: "#1a0800",
-                ...M, fontSize: 8, letterSpacing: "0.10em", fontWeight: 700,
+                background: "rgba(245,158,11,.9)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                color: "#1a0800", ...M, fontSize: 8, letterSpacing: "0.10em", fontWeight: 700,
                 padding: "4px 10px", borderRadius: 6,
               }}>
                 RECOMMANDÉ
               </div>
-
-              {/* Bottom scrim */}
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(to top, rgba(0,8,24,.90) 0%, transparent 60%)",
-              }} />
-
-              {/* Content */}
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 20px 22px" }}>
                 <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 7, lineHeight: 1.3 }}>
                   LinkedIn<br />Warm Sourcing
@@ -431,22 +366,14 @@ export default function GettingStartedHub() {
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", lineHeight: 1.65, marginBottom: 16 }}>
                   Révélez vos connexions communes avec les dirigeants des cibles.
                 </div>
-
                 <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    if (typeof window !== "undefined") window.open("https://chrome.google.com/webstore", "_blank");
-                  }}
+                  onClick={e => { e.stopPropagation(); if (typeof window !== "undefined") window.open("https://chrome.google.com/webstore", "_blank"); }}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
-                    background: "rgba(255,255,255,.11)",
-                    backdropFilter: "blur(14px)",
-                    WebkitBackdropFilter: "blur(14px)",
-                    border: "1px solid rgba(255,255,255,.26)",
-                    borderRadius: 10,
+                    background: "rgba(255,255,255,.11)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                    border: "1px solid rgba(255,255,255,.26)", borderRadius: 10,
                     color: "#fff", fontSize: 11, fontWeight: 600,
-                    padding: "8px 14px", cursor: "pointer",
-                    transition: "background .15s, border-color .15s",
+                    padding: "8px 14px", cursor: "pointer", transition: "background .15s, border-color .15s",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.20)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.40)"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.11)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.26)"; }}
@@ -454,61 +381,30 @@ export default function GettingStartedHub() {
                   <Chrome size={13} /> Installer l'extension Chrome
                 </button>
               </div>
-            </div>
+            </AnimatedBentoCard>
 
-            {/* ── CARD 3 : PIPELINE (1 col, row 2) ── */}
-            <div className="bento-card bc-pipeline" onClick={() => goTo("/pipeline")}>
-              {/* Charcoal bg */}
-              <div className="bc-bg" style={{
-                background: "linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f172a 100%)",
-              }} />
-
-              {/* Grid lines */}
-              <div style={{
-                position: "absolute", inset: 0,
-                backgroundImage: [
-                  "linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px)",
-                  "linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)",
-                ].join(", "),
-                backgroundSize: "30px 30px",
-              }} />
-
-              {/* Emerald orb */}
-              <div style={{
-                position: "absolute", top: -50, right: -50,
-                width: 180, height: 180,
-                background: "radial-gradient(circle, rgba(16,185,129,.18) 0%, transparent 70%)",
-                borderRadius: "50%", animation: "orbFloat 11s ease-in-out infinite",
-              }} />
-
+            {/* ── CARD 3 : PIPELINE (1 col, row 2) — Rive + emerald tint ── */}
+            <AnimatedBentoCard
+              className="bc-pipeline"
+              riveSrc="/bento-cards.riv"
+              scrim="linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,30,20,.45) 55%, transparent 100%)"
+              riveOpacity={0.55}
+              onClick={() => goTo("/pipeline")}
+            >
               {/* Saved badge */}
               <div style={{
                 position: "absolute", top: 16, left: 16,
-                background: "rgba(16,185,129,.12)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                border: "1px solid rgba(16,185,129,.28)",
-                borderRadius: 7,
-                ...M, fontSize: 8, color: "#34D399", letterSpacing: "0.08em",
-                padding: "4px 10px",
+                background: "rgba(16,185,129,.12)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                border: "1px solid rgba(16,185,129,.28)", borderRadius: 7,
+                ...M, fontSize: 8, color: "#34D399", letterSpacing: "0.08em", padding: "4px 10px",
               }}>
                 14 CIBLES SAUVEGARDÉES
               </div>
-
-              {/* Scrim */}
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(to top, rgba(0,0,0,.78) 0%, transparent 55%)",
-              }} />
-
-              {/* Content */}
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 20px 22px" }}>
                 <div style={{
                   width: 34, height: 34, marginBottom: 10, borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,.12)",
-                  background: "rgba(255,255,255,.06)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
+                  border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)",
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <List size={14} style={{ color: "#CBD5E1" }} />
@@ -519,13 +415,12 @@ export default function GettingStartedHub() {
                 </div>
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  ...M, fontSize: 10, color: "rgba(255,255,255,.45)", letterSpacing: "0.05em",
-                  marginTop: 10,
+                  ...M, fontSize: 10, color: "rgba(255,255,255,.45)", letterSpacing: "0.05em", marginTop: 10,
                 }}>
                   VOIR LE PIPELINE <ChevronRight size={10} />
                 </div>
               </div>
-            </div>
+            </AnimatedBentoCard>
 
             {/* ── CARD 4 : CHECKLIST — Glassmorphism (2 cols, row 2) ── */}
             <div className="bc-checklist">
