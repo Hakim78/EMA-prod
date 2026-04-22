@@ -175,152 +175,181 @@ export default function ResultsPanel({
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
 
-      {/* ── Top bar — 3 zones : boutons fixes | pills scrollable | export fixe ── */}
+      {/* ── Row 1 : contrôles ───────────────────────────────────────────────── */}
       <div style={{
-        height: 48, borderBottom: "1px solid var(--border)",
+        height: 44, borderBottom: filters.length > 0 ? "none" : "1px solid var(--border)",
         display: "flex", alignItems: "center", flexShrink: 0,
-        background: "var(--bg-raise)", overflow: "hidden",
+        background: "var(--bg-raise)", gap: 6, padding: "0 12px",
       }}>
-        {/* ▶ Zone gauche : contrôles fixes */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 10px 0 16px", flexShrink: 0 }}>
-          <span style={{ ...S, fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Companies</span>
+        {/* Titre */}
+        <span style={{ ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)", marginRight: 4 }}>Companies</span>
 
-          {/* Enrich with AI */}
-          <button
-            onClick={() => companies.length > 0 && setEnrichOpen(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "4px 10px",
-              background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
-              border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
-              color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg)") : "var(--fg-dim)",
-              cursor: companies.length > 0 ? "pointer" : "not-allowed",
-              ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
-            }}
-          >
-            <Sparkles size={11} />
-            {showAI ? "AI actif" : "Enrich"}
-          </button>
+        {/* Séparateur */}
+        <div style={{ width: 1, height: 16, background: "var(--border)", flexShrink: 0 }} />
 
-          {/* Signaux */}
+        {/* Enrich */}
+        <button
+          onClick={() => companies.length > 0 && setEnrichOpen(true)}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
+            background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
+            border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
+            color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg-muted)") : "var(--fg-dim)",
+            cursor: companies.length > 0 ? "pointer" : "not-allowed",
+            ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
+          }}
+          onMouseEnter={e => { if (companies.length > 0 && !showAI) { e.currentTarget.style.borderColor = "var(--fg-muted)"; e.currentTarget.style.color = "var(--fg)"; } }}
+          onMouseLeave={e => { if (!showAI) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
+        >
+          <Sparkles size={11} />
+          {showAI ? "AI actif" : "Enrich with AI"}
+        </button>
+
+        {/* Signaux */}
+        <button
+          onClick={() => setSignalFilter(p => !p)}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
+            background: signalFilter ? "rgba(234,88,12,0.08)" : "transparent",
+            border: `1px solid ${signalFilter ? "var(--signal)" : "var(--border)"}`,
+            color: signalFilter ? "var(--signal)" : "var(--fg-muted)",
+            cursor: "pointer", ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
+          }}
+          onMouseEnter={e => { if (!signalFilter) { e.currentTarget.style.borderColor = "var(--signal)"; e.currentTarget.style.color = "var(--signal)"; } }}
+          onMouseLeave={e => { if (!signalFilter) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
+        >
+          <Radio size={11} /> Signaux
+        </button>
+
+        {/* Edit Columns */}
+        <div ref={colEditorRef} style={{ position: "relative" }}>
           <button
-            onClick={() => setSignalFilter(p => !p)}
+            onClick={() => setColEditorOpen(p => !p)}
             style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "4px 10px",
-              background: signalFilter ? "rgba(234,88,12,0.08)" : "transparent",
-              border: `1px solid ${signalFilter ? "var(--signal)" : "var(--border)"}`,
-              color: signalFilter ? "var(--signal)" : "var(--fg-muted)",
+              display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
+              background: colEditorOpen ? "var(--bg-alt)" : "transparent",
+              border: `1px solid ${colEditorOpen ? "var(--fg)" : "var(--border)"}`,
+              color: colEditorOpen ? "var(--fg)" : "var(--fg-muted)",
               cursor: "pointer", ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
             }}
+            onMouseEnter={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--fg-muted)"; e.currentTarget.style.color = "var(--fg)"; } }}
+            onMouseLeave={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
           >
-            <Radio size={11} /> Signaux
+            <Columns size={11} /> Colonnes
           </button>
+          {colEditorOpen && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
+              background: "var(--bg-raise)", border: "1px solid var(--border)",
+              padding: "8px 0", minWidth: 175, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            }}>
+              <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES VISIBLES</div>
+              {ALL_OPTIONAL_COLS.map(key => {
+                const active = visibleCols.includes(key);
+                return (
+                  <button key={key} onClick={() => toggleCol(key)} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "7px 14px", background: "transparent",
+                    cursor: "pointer", ...S, fontSize: 12,
+                    color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <div style={{
+                      width: 14, height: 14, flexShrink: 0,
+                      border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
+                      background: active ? "var(--fg)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {active && <Check size={9} style={{ color: "var(--bg)" }} />}
+                    </div>
+                    {COL_DEFS[key].label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-          {/* Edit Columns */}
-          <div ref={colEditorRef} style={{ position: "relative" }}>
-            <button
-              onClick={() => setColEditorOpen(p => !p)}
-              style={{
-                display: "flex", alignItems: "center", gap: 4,
-                padding: "4px 10px",
-                background: colEditorOpen ? "var(--bg-alt)" : "transparent",
-                border: `1px solid ${colEditorOpen ? "var(--fg-muted)" : "var(--border)"}`,
-                color: "var(--fg-muted)", cursor: "pointer", ...S, fontSize: 11,
-                transition: "all 0.15s", whiteSpace: "nowrap",
-              }}
-            >
-              <Columns size={11} /> Cols
-            </button>
-            {colEditorOpen && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
-                background: "var(--bg-raise)", border: "1px solid var(--border)",
-                padding: "8px 0", minWidth: 175, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-              }}>
-                <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES</div>
-                {ALL_OPTIONAL_COLS.map(key => {
-                  const active = visibleCols.includes(key);
-                  return (
-                    <button key={key} onClick={() => toggleCol(key)} style={{
-                      width: "100%", display: "flex", alignItems: "center", gap: 10,
-                      padding: "7px 14px", background: "transparent", border: "none",
-                      cursor: "pointer", ...S, fontSize: 12,
-                      color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
-                    }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <div style={{
-                        width: 14, height: 14, flexShrink: 0,
-                        border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
-                        background: active ? "var(--fg)" : "transparent",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {active && <Check size={9} style={{ color: "var(--bg)" }} />}
-                      </div>
-                      {COL_DEFS[key].label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+        {/* Séparateur */}
+        <div style={{ width: 1, height: 16, background: "var(--border)", flexShrink: 0 }} />
+
+        {/* No doublons toggle */}
+        <label title="Masque les entreprises déjà dans le pipeline" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <div style={{ position: "relative", width: 28, height: 15, flexShrink: 0 }}>
+            <input type="checkbox" checked={excludePipeline} onChange={e => setExcludePipeline(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
+            <div style={{ position: "absolute", inset: 0, background: excludePipeline ? "#2563EB" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
+            <div style={{ position: "absolute", top: 2, left: excludePipeline ? 13 : 2, width: 9, height: 9, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
           </div>
+          <span style={{ ...S, fontSize: 11, color: excludePipeline ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>No doublons</span>
+        </label>
 
-          {/* Hide in pipeline */}
-          <label title="Masque les entreprises déjà dans le pipeline" style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-            <div style={{ position: "relative", width: 28, height: 16 }}>
-              <input type="checkbox" checked={excludePipeline} onChange={e => setExcludePipeline(e.target.checked)}
-                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
-              <div style={{ position: "absolute", inset: 0, background: excludePipeline ? "#2563EB" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
-              <div style={{ position: "absolute", top: 2, left: excludePipeline ? 12 : 2, width: 10, height: 10, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
-            </div>
-            <span style={{ ...S, fontSize: 11, color: excludePipeline ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>No doublons</span>
-          </label>
+        {/* Focus toggle */}
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <div style={{ position: "relative", width: 28, height: 15, flexShrink: 0 }}>
+            <input type="checkbox" checked={focusMode} onChange={e => setFocusMode(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
+            <div style={{ position: "absolute", inset: 0, background: focusMode ? "var(--fg)" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
+            <div style={{ position: "absolute", top: 2, left: focusMode ? 13 : 2, width: 9, height: 9, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
+          </div>
+          <span style={{ ...S, fontSize: 11, color: focusMode ? "var(--fg)" : "var(--fg-muted)", whiteSpace: "nowrap" }}>Focus</span>
+        </label>
 
-          {/* Focus */}
-          <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-            <div style={{ position: "relative", width: 28, height: 16 }}>
-              <input type="checkbox" checked={focusMode} onChange={e => setFocusMode(e.target.checked)}
-                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }} />
-              <div style={{ position: "absolute", inset: 0, background: focusMode ? "var(--primary)" : "var(--bg-alt)", border: "1px solid var(--border)", transition: "background 0.2s" }} />
-              <div style={{ position: "absolute", top: 2, left: focusMode ? 12 : 2, width: 10, height: 10, background: "var(--bg-raise)", border: "1px solid var(--border)", transition: "left 0.2s" }} />
-            </div>
-            <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>Focus</span>
-          </label>
-        </div>{/* end left zone */}
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
 
-        {/* ▶ Zone milieu : pills — flex:1, minWidth:0 empêche l'overflow */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden", padding: "0 6px" }}>
+        {/* Résultats + Export */}
+        {companies.length > 0 && (
+          <>
+            {loading && <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>…</span>}
+            <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
+              {displayed.length.toLocaleString("fr")} résultats
+            </span>
+            <button
+              onClick={exportAll}
+              title="Exporter CSV"
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "4px 8px",
+                ...S, fontSize: 11, color: "var(--fg-muted)",
+                border: "1px solid var(--border)", transition: "all 0.1s", whiteSpace: "nowrap",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
+            >
+              <Download size={11} /> Export
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Row 2 : pills (wrapping) ─────────────────────────────────────────── */}
+      {filters.length > 0 && (
+        <div style={{
+          display: "flex", flexWrap: "wrap", gap: 5,
+          padding: "7px 12px",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg-raise)",
+          flexShrink: 0,
+        }}>
           {filters.map(f => (
             <FilterPill key={f.id} filter={f} onRemove={() => onRemoveFilter(f.id)} onToggleMode={onToggleFilterMode} />
           ))}
+          {/* Clear all */}
+          <button
+            onClick={() => filters.forEach(f => onRemoveFilter(f.id))}
+            style={{
+              ...S, fontSize: 11, color: "var(--fg-dim)", padding: "3px 8px",
+              border: "1px solid transparent", transition: "all 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--down)"; e.currentTarget.style.borderColor = "var(--down)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--fg-dim)"; e.currentTarget.style.borderColor = "transparent"; }}
+          >
+            Tout effacer
+          </button>
         </div>
-
-        {/* ▶ Zone droite : résultats + export */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", flexShrink: 0 }}>
-          {loading && <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>…</span>}
-          {companies.length > 0 && (
-            <>
-              <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
-                {displayed.length.toLocaleString("fr")} rés.
-              </span>
-              <button
-                onClick={exportAll}
-                style={{
-                  display: "flex", alignItems: "center", gap: 4,
-                  ...S, fontSize: 11, color: "var(--fg-muted)", background: "transparent",
-                  border: "1px solid var(--border)", padding: "4px 8px", cursor: "pointer", whiteSpace: "nowrap",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
-              >
-                <Download size={11} /> Export
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* ── Table header ────────────────────────────────────────────────────── */}
       {hasData && (
