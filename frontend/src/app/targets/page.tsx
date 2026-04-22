@@ -141,7 +141,7 @@ export default function VaultPage() {
       </div>
 
       {/* Table rows */}
-      <div style={{ flex: 1, overflowY: "auto" }} className="thin-scrollbar">
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="thin-scrollbar">
         {isLoading
           ? Array.from({ length: 15 }).map((_, i) => (
             <div key={i} style={{ height: 44, borderBottom: "1px solid #111111", display: "flex", alignItems: "center", padding: "0 16px", gap: 12 }}>

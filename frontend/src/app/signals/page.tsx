@@ -72,7 +72,7 @@ export default function SignalsPage() {
       </div>
 
       {/* Feed */}
-      <div style={{ flex: 1, overflowY: "auto" }} className="thin-scrollbar">
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="thin-scrollbar">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => (
             <div key={i} style={{ padding: "14px 16px", borderBottom: "1px solid #111111", display: "flex", gap: 12 }}>
