@@ -162,7 +162,7 @@ function SummaryTab({ company, employees, revenue, signals }: {
               {icon}
               <span style={{ ...M, fontSize: 9, letterSpacing: "0.08em" }}>{label.toUpperCase()}</span>
             </div>
-            <span style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
+            <span style={{ ...M, fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
           </div>
         ))}
       </div>
@@ -171,7 +171,7 @@ function SummaryTab({ company, employees, revenue, signals }: {
       {revenue && (
         <div style={{ padding: "12px 14px", border: "1px solid var(--border)", background: "var(--bg-alt)" }}>
           <div style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em", marginBottom: 4 }}>CHIFFRE D'AFFAIRES</div>
-          <span style={{ ...S, fontSize: 16, fontWeight: 700, color: "var(--fg)" }}>{revenue}</span>
+          <span style={{ ...M, fontSize: 13, fontWeight: 700, color: "var(--fg)" }}>{revenue}</span>
         </div>
       )}
 
@@ -394,7 +394,7 @@ function FinancialsTab({ financials, revenue }: {
           <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", letterSpacing: "0.06em" }}>
             {label.toUpperCase()}
           </span>
-          <span style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
+          <span style={{ ...M, fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
         </div>
       ))}
     </div>
@@ -418,7 +418,7 @@ function MatchScoreBlock({ company }: { company: SearchCompany }) {
   const score    = company.score ?? 0;
   const level    = score >= 75 ? 3 : score >= 50 ? 2 : 1;
   const label    = level === 3 ? "HIGH" : level === 2 ? "MEDIUM" : "LOW";
-  const barColor = level === 3 ? "#2563EB" : level === 2 ? "#7C3AED" : "var(--signal)";
+  const barColor = level === 3 ? "#2563EB" : level === 2 ? "var(--fg-muted)" : "var(--signal)";
   const keywords = extractKeywords(company);
 
   return (

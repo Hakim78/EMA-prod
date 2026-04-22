@@ -177,7 +177,7 @@ export default function ResultsPanel({
 
       {/* ── Row 1 : contrôles ───────────────────────────────────────────────── */}
       <div style={{
-        height: 44, borderBottom: filters.length > 0 ? "none" : "1px solid var(--border)",
+        height: 36, borderBottom: filters.length > 0 ? "none" : "1px solid var(--border)",
         display: "flex", alignItems: "center", flexShrink: 0,
         background: "var(--bg-raise)", gap: 6, padding: "0 12px",
       }}>
@@ -192,9 +192,9 @@ export default function ResultsPanel({
           onClick={() => companies.length > 0 && setEnrichOpen(true)}
           style={{
             display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-            background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
-            border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
-            color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg-muted)") : "var(--fg-dim)",
+            background: showAI ? "var(--bg-alt)" : "transparent",
+            border: `1px solid ${showAI ? "var(--fg)" : "var(--border)"}`,
+            color: companies.length > 0 ? (showAI ? "var(--fg)" : "var(--fg-muted)") : "var(--fg-dim)",
             cursor: companies.length > 0 ? "pointer" : "not-allowed",
             ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
           }}
@@ -327,8 +327,8 @@ export default function ResultsPanel({
       {/* ── Row 2 : pills (wrapping) ─────────────────────────────────────────── */}
       {filters.length > 0 && (
         <div style={{
-          display: "flex", flexWrap: "wrap", gap: 5,
-          padding: "7px 12px",
+          display: "flex", flexWrap: "wrap", gap: 4,
+          padding: "4px 12px",
           borderBottom: "1px solid var(--border)",
           background: "var(--bg-raise)",
           flexShrink: 0,
@@ -355,7 +355,7 @@ export default function ResultsPanel({
       {hasData && (
         <div style={{
           display: "grid", gridTemplateColumns: COL_WIDTHS,
-          padding: "0 16px", height: 32, alignItems: "center",
+          padding: "0 16px", height: 26, alignItems: "center",
           borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-alt)",
         }}>
           {COL_LABELS.map((h, idx) =>
@@ -380,7 +380,7 @@ export default function ResultsPanel({
             ) : (
               <span key={h + idx} style={{
                 ...M, fontSize: 9,
-                color: h === "AI Insight" ? "#2563EB" : "var(--fg-dim)",
+                color: "var(--fg-dim)",
                 letterSpacing: "0.1em",
               }}>
                 {h.toUpperCase()}
@@ -425,7 +425,7 @@ export default function ResultsPanel({
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <div style={{
-        height: 28, borderTop: "1px solid var(--border)",
+        height: 22, borderTop: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 12px", flexShrink: 0, background: "var(--bg-alt)",
       }}>
@@ -532,7 +532,7 @@ function SkeletonRow({ index, cols, showAI }: { index: number; cols: ColKey[]; s
   const cellCount = 4 + cols.length + (showAI ? 1 : 0);
   const widths = [14, 20, 70, 130, ...cols.map(() => 150), ...(showAI ? [160] : [])].slice(0, cellCount);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: colWidths, padding: "0 16px", height: 56, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
+    <div style={{ display: "grid", gridTemplateColumns: colWidths, padding: "0 16px", height: 36, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
       {widths.map((w, i) => (
         <div key={i} style={{ height: 9, width: w, background: "var(--bg-alt)", animation: "skeleton-shimmer 1.5s ease-in-out infinite", animationDelay: `${index * 0.05 + i * 0.03}s` }} />
       ))}

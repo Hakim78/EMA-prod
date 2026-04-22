@@ -38,23 +38,24 @@ export default function FilterPill({ filter, onRemove, onToggleMode }: Props) {
       title={mode === "include" ? "Clic: must-have · Clic droit: exclure" : mode === "must" ? "Must-have — clic: normal · clic droit: exclure" : "Exclusion — clic: normal"}
       style={{
         display: "inline-flex", alignItems: "center", gap: 5,
-        padding: "4px 10px",
+        padding: "2px 7px",
         border: `1px solid ${borderColor}`,
         background: bg,
-        ...S, fontSize: 11, color: textColor,
+        ...S, fontSize: 10, color: textColor,
         whiteSpace: "nowrap", flexShrink: 0,
         cursor: onToggleMode ? "pointer" : "default",
         transition: "all 0.15s",
         userSelect: "none",
+        letterSpacing: "0.04em",
       }}
     >
       {filter.icon && <span style={{ fontSize: 12 }}>{filter.icon}</span>}
       {mode === "must" && <span style={{ fontSize: 10, fontWeight: 700 }}>★</span>}
       {mode === "exclude" && <span style={{ fontSize: 10 }}>✕</span>}
-      <span style={{ color: mode === "include" ? "var(--fg-muted)" : textColor, fontSize: 10 }}>
-        {filter.type}:
+      <span style={{ color: "var(--fg-dim)", fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+        {filter.type}
       </span>
-      <span style={{ textDecoration: decoration, fontWeight: mode === "must" ? 600 : 400 }}>
+      <span style={{ textDecoration: decoration, fontWeight: mode === "must" ? 600 : 400, textTransform: "uppercase" as const, fontSize: 10, color: mode === "include" ? "var(--fg-muted)" : textColor }}>
         {filter.label}
       </span>
       <button

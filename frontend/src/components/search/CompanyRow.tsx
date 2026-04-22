@@ -14,13 +14,13 @@ const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 export type ColKey = "description" | "siren" | "country" | "score" | "revenue" | "signal" | "city";
 
 export const COL_DEFS: Record<ColKey, { label: string; width: string }> = {
-  description: { label: "Description",  width: "minmax(170px,1.8fr)" },
-  siren:       { label: "SIREN",        width: "110px" },
-  country:     { label: "Country",      width: "90px" },
-  score:       { label: "Score",        width: "80px" },
-  revenue:     { label: "CA",           width: "110px" },
-  signal:      { label: "Signal",       width: "minmax(120px,1fr)" },
-  city:        { label: "Ville",        width: "90px" },
+  description: { label: "AI Match",     width: "minmax(150px,1.6fr)" },
+  siren:       { label: "SIREN",        width: "100px" },
+  country:     { label: "Country",      width: "80px" },
+  score:       { label: "Score",        width: "76px" },
+  revenue:     { label: "CA",           width: "100px" },
+  signal:      { label: "Signal",       width: "minmax(110px,1fr)" },
+  city:        { label: "Ville",        width: "80px" },
 };
 
 export const DEFAULT_COLS: ColKey[] = ["description", "siren", "country"];
@@ -134,18 +134,29 @@ export default function CompanyRow({
 
   function renderCol(key: ColKey) {
     switch (key) {
-      case "description":
+      case "description": {
+        const words = [company.sector, company.city, company.signal, company.description]
+          .filter(Boolean)
+          .join(" ")
+          .split(/[\s·,.\-/()]+/)
+          .map(w => w.toLowerCase().replace(/[^a-zàâéèêëîïôùûüç]/g, ""))
+          .filter(w => w.length >= 4);
+        const kws = [...new Set(words)].slice(0, 5);
         return (
-          <div key={key} style={{ paddingRight: 8, minWidth: 0 }}>
-            <span style={{
-              ...S, fontSize: 12, color: "var(--fg-muted)",
-              display: "block", overflow: "hidden",
-              textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {company.description}
-            </span>
+          <div key={key} style={{ display: "flex", flexWrap: "wrap", gap: 3, paddingRight: 8, alignContent: "center" }}>
+            {kws.length > 0 ? kws.map(kw => (
+              <span key={kw} style={{
+                ...M, fontSize: 8, padding: "1px 4px",
+                background: "var(--bg-alt)", border: "1px solid var(--border)",
+                color: "var(--fg-muted)", letterSpacing: "0.04em",
+                textTransform: "uppercase" as const, lineHeight: 1.5,
+              }}>
+                {kw}
+              </span>
+            )) : <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>—</span>}
           </div>
         );
+      }
       case "siren":
         return <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>{company.siren ?? "—"}</span>;
       case "country":
@@ -200,8 +211,8 @@ export default function CompanyRow({
               display: "grid",
               gridTemplateColumns,
               padding: "0 16px",
-              height: 44,
-              minHeight: 44,
+              height: 36,
+              minHeight: 36,
               alignItems: "center",
               borderBottom: "1px solid var(--border)",
               background: selected ? "rgba(37,99,235,0.04)" : hovered ? "var(--bg-hover)" : "transparent",
@@ -237,9 +248,9 @@ export default function CompanyRow({
                 onClick={handleSaveClick}
                 style={{
                   ...M, fontSize: 9, padding: "3px 6px",
-                  background: saved ? "var(--up)" : "transparent",
-                  border: `1px solid ${saved ? "var(--up)" : "var(--border)"}`,
-                  color: saved ? "#fff" : "var(--fg-muted)",
+                  background: saved ? "var(--fg)" : "transparent",
+                  border: `1px solid ${saved ? "var(--fg)" : "var(--border)"}`,
+                  color: saved ? "var(--bg)" : "var(--fg-muted)",
                   cursor: saved ? "default" : "pointer",
                   display: "flex", alignItems: "center", gap: 3,
                 }}
@@ -259,15 +270,15 @@ export default function CompanyRow({
             {/* Company */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, paddingRight: 8 }}>
               <div style={{
-                width: 26, height: 26, flexShrink: 0,
+                width: 22, height: 22, flexShrink: 0,
                 background: "var(--bg-alt)", border: "1px solid var(--border)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                ...M, fontSize: 10, color: "var(--fg-muted)",
+                ...M, fontSize: 9, color: "var(--fg-muted)",
               }}>
                 {company.name.charAt(0).toUpperCase()}
               </div>
               <span style={{
-                ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)",
+                ...S, fontSize: 12, fontWeight: 600, color: "var(--fg)",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 flex: 1,
               }}>
