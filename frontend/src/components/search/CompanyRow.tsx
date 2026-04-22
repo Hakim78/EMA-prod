@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, EyeOff } from "lucide-react";
+import { Check, EyeOff, Search, Plus, FolderOpen } from "lucide-react";
 import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
@@ -22,11 +22,17 @@ export const COL_DEFS: Record<ColKey, { label: string; width: string }> = {
 
 export const DEFAULT_COLS: ColKey[] = ["description", "siren", "country"];
 
+/** 24px checkbox · 36px rank · 76px actions · 1.2fr company · dynamic cols · AI? */
 export function buildGridTemplate(cols: ColKey[], showAI: boolean): string {
   const colWidths = cols.map(k => COL_DEFS[k].width).join(" ");
-  const base = `36px 76px minmax(150px,1.2fr) ${colWidths}`;
+  const base = `24px 36px 76px minmax(150px,1.2fr) ${colWidths}`;
   return showAI ? `${base} minmax(160px,1.5fr)` : base;
 }
+
+const FAKE_LISTS = [
+  { id: "1", name: "Projet Industrie 2026" },
+  { id: "2", name: "Mandat Achat Santé" },
+];
 
 const COUNTRY_FLAGS: Record<string, string> = {
   France: "🇫🇷", Germany: "🇩🇪", UK: "🇬🇧", Spain: "🇪🇸", Italy: "🇮🇹",
@@ -37,19 +43,53 @@ interface Props {
   rank: number;
   saved: boolean;
   cols: ColKey[];
+  selected?: boolean;
   aiInsight?: string | "loading";
   onSave: () => void;
   onHide: () => void;
   onClick: () => void;
+  onToggleSelect?: () => void;
 }
 
-export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSave, onHide, onClick }: Props) {
-  const [visible, setVisible] = useState(true);
-  const [hovered, setHovered] = useState(false);
+export default function CompanyRow({
+  company, rank, saved, cols, selected, aiInsight,
+  onSave, onHide, onClick, onToggleSelect,
+}: Props) {
+  const [visible, setVisible]         = useState(true);
+  const [hovered, setHovered]         = useState(false);
+  const [saveOpen, setSaveOpen]       = useState(false);
+  const [savePos, setSavePos]         = useState({ top: 0, left: 0 });
+  const [listSearch, setListSearch]   = useState("");
+  const saveButtonRef                 = useRef<HTMLButtonElement>(null);
 
   const showAI = aiInsight !== undefined;
   const gridTemplateColumns = buildGridTemplate(cols, showAI);
   const flag = COUNTRY_FLAGS[company.country ?? "France"] ?? "🇫🇷";
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!saveOpen) return;
+    const close = () => setSaveOpen(false);
+    setTimeout(() => document.addEventListener("mousedown", close), 0);
+    return () => document.removeEventListener("mousedown", close);
+  }, [saveOpen]);
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saved) return;
+    const rect = saveButtonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setSavePos({ top: rect.bottom + 4, left: rect.left });
+      setSaveOpen(true);
+    }
+  };
+
+  const handleSaveToList = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSaveOpen(false);
+    setVisible(false);
+    setTimeout(onSave, 200);
+  };
 
   const handleHide = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,13 +97,9 @@ export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSa
     setTimeout(onHide, 260);
   };
 
-  const handleSave = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!saved) {
-      setVisible(false);
-      setTimeout(onSave, 200);
-    }
-  };
+  const filteredLists = FAKE_LISTS.filter(l =>
+    l.name.toLowerCase().includes(listSearch.toLowerCase())
+  );
 
   function renderCol(key: ColKey) {
     switch (key) {
@@ -80,54 +116,34 @@ export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSa
           </div>
         );
       case "siren":
-        return (
-          <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
-            {company.siren ?? "—"}
-          </span>
-        );
+        return <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>{company.siren ?? "—"}</span>;
       case "country":
-        return (
-          <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>
-            {flag} {company.country ?? "France"}
-          </span>
-        );
+        return <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>{flag} {company.country ?? "France"}</span>;
       case "score":
         return (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 32, height: 4, background: "var(--bg-alt)", overflow: "hidden", flexShrink: 0 }}>
-              <div style={{
-                height: "100%", width: `${company.score ?? 0}%`,
-                background: (company.score ?? 0) >= 75 ? "var(--up)" : "var(--fg-muted)",
-              }} />
+              <div style={{ height: "100%", width: `${company.score ?? 0}%`, background: (company.score ?? 0) >= 75 ? "var(--up)" : "var(--fg-muted)" }} />
             </div>
             <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>{company.score ?? "—"}</span>
           </div>
         );
       case "revenue":
-        return (
-          <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>
-            {company.revenue ?? "—"}
-          </span>
-        );
+        return <span key={key} style={{ ...M, fontSize: 11, color: "var(--fg-muted)", letterSpacing: "0.04em" }}>{company.revenue ?? "—"}</span>;
       case "signal":
         return (
           <span key={key} style={{
             ...M, fontSize: 9, padding: "2px 6px",
             border: company.signal ? "1px solid var(--signal)" : "1px solid var(--border)",
             color: company.signal ? "var(--signal)" : "var(--fg-dim)",
-            letterSpacing: "0.06em", maxWidth: "100%",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            display: "inline-block",
+            letterSpacing: "0.06em", display: "inline-block",
+            maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {company.signal ?? "—"}
           </span>
         );
       case "city":
-        return (
-          <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>
-            {company.city ?? "—"}
-          </span>
-        );
+        return <span key={key} style={{ ...S, fontSize: 11, color: "var(--fg-muted)" }}>{company.city ?? "—"}</span>;
     }
   }
 
@@ -151,26 +167,46 @@ export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSa
               minHeight: 56,
               alignItems: "center",
               borderBottom: "1px solid var(--border)",
-              background: hovered ? "var(--bg-hover)" : "transparent",
+              background: selected ? "rgba(37,99,235,0.04)" : hovered ? "var(--bg-hover)" : "transparent",
               transition: "background 0.1s",
               cursor: "pointer",
             }}
           >
+            {/* Checkbox */}
+            <div
+              onClick={e => { e.stopPropagation(); onToggleSelect?.(); }}
+              style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+            >
+              <div style={{
+                width: 14, height: 14,
+                border: `1px solid ${selected ? "#2563EB" : "var(--border)"}`,
+                background: selected ? "#2563EB" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.1s", flexShrink: 0,
+              }}>
+                {selected && <Check size={9} style={{ color: "#fff" }} />}
+              </div>
+            </div>
+
             {/* Rank */}
             <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>
               {String(rank).padStart(2, "0")}
             </span>
 
-            {/* Save + Hide */}
+            {/* Actions: Save (popover) + Hide */}
             <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-              <button onClick={handleSave} style={{
-                ...M, fontSize: 9, padding: "3px 6px",
-                background: saved ? "var(--up)" : "transparent",
-                border: `1px solid ${saved ? "var(--up)" : "var(--border)"}`,
-                color: saved ? "#fff" : "var(--fg-muted)",
-                cursor: saved ? "default" : "pointer",
-                display: "flex", alignItems: "center", gap: 3,
-              }}>
+              <button
+                ref={saveButtonRef}
+                onClick={handleSaveClick}
+                style={{
+                  ...M, fontSize: 9, padding: "3px 6px",
+                  background: saved ? "var(--up)" : "transparent",
+                  border: `1px solid ${saved ? "var(--up)" : "var(--border)"}`,
+                  color: saved ? "#fff" : "var(--fg-muted)",
+                  cursor: saved ? "default" : "pointer",
+                  display: "flex", alignItems: "center", gap: 3,
+                }}
+              >
                 {saved ? <><Check size={9} />saved</> : "save"}
               </button>
               <button onClick={handleHide} style={{
@@ -221,6 +257,88 @@ export default function CompanyRow({ company, rank, saved, cols, aiInsight, onSa
               </div>
             )}
           </div>
+
+          {/* Save workspace popover — fixed to escape overflow clipping */}
+          {saveOpen && (
+            <div
+              onMouseDown={e => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: savePos.top,
+                left: savePos.left,
+                zIndex: 1000,
+                width: 220,
+                background: "var(--bg-raise)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
+              }}
+            >
+              {/* Search input */}
+              <div style={{
+                padding: "8px 10px",
+                borderBottom: "1px solid var(--border)",
+                display: "flex", alignItems: "center", gap: 6,
+              }}>
+                <Search size={11} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
+                <input
+                  autoFocus
+                  value={listSearch}
+                  onChange={e => setListSearch(e.target.value)}
+                  placeholder="Search lists…"
+                  style={{
+                    flex: 1, border: "none", background: "transparent",
+                    ...S, fontSize: 12, color: "var(--fg)", outline: "none",
+                  }}
+                />
+              </div>
+
+              {/* List items */}
+              <div style={{ padding: "4px 0" }}>
+                {filteredLists.map(list => (
+                  <button
+                    key={list.id}
+                    onClick={handleSaveToList}
+                    style={{
+                      width: "100%", textAlign: "left",
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 12px", background: "transparent", border: "none",
+                      cursor: "pointer", ...S, fontSize: 12, color: "var(--fg)",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <FolderOpen size={12} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
+                    {list.name}
+                  </button>
+                ))}
+                {filteredLists.length === 0 && (
+                  <div style={{ padding: "8px 12px", ...S, fontSize: 12, color: "var(--fg-dim)" }}>
+                    Aucune liste trouvée
+                  </div>
+                )}
+              </div>
+
+              {/* Create new list */}
+              <div style={{ borderTop: "1px solid var(--border)", padding: "4px 0" }}>
+                <button
+                  onClick={e => { e.stopPropagation(); setSaveOpen(false); }}
+                  style={{
+                    width: "100%", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "8px 12px", background: "transparent", border: "none",
+                    cursor: "pointer", ...S, fontSize: 12, color: "#2563EB",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <Plus size={12} style={{ flexShrink: 0 }} />
+                  Create new list
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

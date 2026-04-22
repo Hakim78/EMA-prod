@@ -175,15 +175,9 @@ function SummaryTab({ company, employees, revenue, signals }: {
         </div>
       )}
 
-      {/* Score bar */}
+      {/* Match Score + Keywords block */}
       {company.score != null && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em" }}>SCORE M&A</span>
-          <div style={{ height: 6, flex: 1, background: "var(--bg-alt)", border: "1px solid var(--border)", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${company.score}%`, background: company.score >= 80 ? "var(--up)" : "var(--fg)", transition: "width 0.6s ease" }} />
-          </div>
-          <span style={{ ...M, fontSize: 12, fontWeight: 700, color: "var(--fg)" }}>{company.score}</span>
-        </div>
+        <MatchScoreBlock company={company} />
       )}
 
       {/* Signal keywords */}
@@ -403,6 +397,81 @@ function FinancialsTab({ financials, revenue }: {
           <span style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Match Score Block ──────────────────────────────────────────────────────────
+
+function extractKeywords(company: SearchCompany): string[] {
+  const raw = [company.sector, company.description, company.signal, company.city]
+    .filter(Boolean).join(" ");
+  const stopWords = new Set(["pour", "dans", "avec", "les", "des", "par", "sur", "une", "and", "the", "that", "this", "from"]);
+  return [...new Set(
+    raw.split(/[\s·,.\-/()]+/)
+      .map(w => w.toLowerCase().replace(/[^a-zàâéèêëîïôùûüç]/g, ""))
+      .filter(w => w.length >= 4 && !stopWords.has(w))
+  )].slice(0, 6);
+}
+
+function MatchScoreBlock({ company }: { company: SearchCompany }) {
+  const score    = company.score ?? 0;
+  const level    = score >= 75 ? 3 : score >= 50 ? 2 : 1;
+  const label    = level === 3 ? "HIGH" : level === 2 ? "MEDIUM" : "LOW";
+  const barColor = level === 3 ? "#2563EB" : level === 2 ? "#7C3AED" : "var(--signal)";
+  const keywords = extractKeywords(company);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Matching keywords */}
+      {keywords.length > 0 && (
+        <div>
+          <div style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em", marginBottom: 8 }}>
+            MATCHING KEYWORDS
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {keywords.map(kw => (
+              <span key={kw} style={{
+                ...S, fontSize: 11, padding: "3px 9px",
+                background: "var(--bg-alt)",
+                border: "1px solid var(--border)",
+                color: "var(--fg)", letterSpacing: "0.02em",
+              }}>
+                {kw}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Match score bars */}
+      <div>
+        <div style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em", marginBottom: 10 }}>
+          MATCH SCORE
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          {/* 3 vertical bars — height grows with score */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3 }}>
+            {[{ h: 10, idx: 1 }, { h: 14, idx: 2 }, { h: 18, idx: 3 }].map(({ h, idx }) => (
+              <div key={idx} style={{
+                width: 5, height: h,
+                background: idx <= level ? barColor : "var(--bg-alt)",
+                border: `1px solid ${idx <= level ? barColor : "var(--border)"}`,
+                transition: "background 0.3s",
+              }} />
+            ))}
+          </div>
+          <span style={{
+            ...M, fontSize: 11, fontWeight: 700,
+            color: barColor, letterSpacing: "0.08em",
+          }}>
+            {label}
+          </span>
+          <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)", marginLeft: 4 }}>
+            {score}/100
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

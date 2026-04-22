@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Download, Sparkles, Radio, Columns, Check } from "lucide-react";
+import { Download, Sparkles, Radio, Columns, Check, BookmarkPlus, FileDown } from "lucide-react";
 import CompanyRow, { COL_DEFS, DEFAULT_COLS, buildGridTemplate } from "./CompanyRow";
 import type { ColKey } from "./CompanyRow";
 import FilterPill from "./FilterPill";
 import EnrichModal from "./EnrichModal";
 import type { SearchCompany, SearchFilter } from "@/types/search";
+import { addToPipeline } from "@/lib/pipeline";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -31,51 +32,91 @@ export default function ResultsPanel({
   companies, filters, loading, savedIds, aiInsights,
   onRemoveFilter, onToggleFilterMode, onSave, onHide, onRowClick, onEnrich,
 }: Props) {
-  const [focusMode, setFocusMode]   = useState(false);
+  const [focusMode, setFocusMode]       = useState(false);
   const [signalFilter, setSignalFilter] = useState(false);
-  const [enrichOpen, setEnrichOpen] = useState(false);
+  const [enrichOpen, setEnrichOpen]     = useState(false);
   const [colEditorOpen, setColEditorOpen] = useState(false);
-  const [visibleCols, setVisibleCols] = useState<ColKey[]>(DEFAULT_COLS);
-  const colEditorRef = useRef<HTMLDivElement>(null);
+  const [visibleCols, setVisibleCols]   = useState<ColKey[]>(DEFAULT_COLS);
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
+  const colEditorRef                    = useRef<HTMLDivElement>(null);
 
   const showAI = Object.keys(aiInsights).length > 0;
 
   // Close col editor on outside click
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (colEditorRef.current && !colEditorRef.current.contains(e.target as Node)) {
+    function handler(e: MouseEvent) {
+      if (colEditorRef.current && !colEditorRef.current.contains(e.target as Node))
         setColEditorOpen(false);
-      }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Filter by focus mode
-  let displayed = focusMode ? companies.filter(c => (c.score ?? 0) >= 75) : companies;
+  // Reset selection when companies change
+  useEffect(() => { setSelectedIds(new Set()); }, [companies]);
 
-  // Filter by signal
+  // ── Filtering ────────────────────────────────────────────────────────────────
+  let displayed = focusMode ? companies.filter(c => (c.score ?? 0) >= 75) : [...companies];
   if (signalFilter) displayed = displayed.filter(c => c.signal);
 
-  // Filter by must/exclude pills
   const mustPills    = filters.filter(f => f.mode === "must");
   const excludePills = filters.filter(f => f.mode === "exclude");
-
   if (mustPills.length > 0) {
     displayed = displayed.filter(c => {
-      const haystack = `${c.sector ?? ""} ${c.description ?? ""} ${c.city ?? ""}`.toLowerCase();
-      return mustPills.some(p => haystack.includes(p.value.toLowerCase()));
+      const hay = `${c.sector ?? ""} ${c.description ?? ""} ${c.city ?? ""}`.toLowerCase();
+      return mustPills.some(p => hay.includes(p.value.toLowerCase()));
     });
   }
   if (excludePills.length > 0) {
     displayed = displayed.filter(c => {
-      const haystack = `${c.sector ?? ""} ${c.description ?? ""} ${c.city ?? ""}`.toLowerCase();
-      return !excludePills.some(p => haystack.includes(p.value.toLowerCase()));
+      const hay = `${c.sector ?? ""} ${c.description ?? ""} ${c.city ?? ""}`.toLowerCase();
+      return !excludePills.some(p => hay.includes(p.value.toLowerCase()));
     });
   }
 
-  const hasData = companies.length > 0 || loading;
-  const COLUMNS = ["#", "Actions", "Company", ...visibleCols.map(k => COL_DEFS[k].label), ...(showAI ? ["AI Insight"] : [])];
+  // ── Selection ────────────────────────────────────────────────────────────────
+  const allSelected = displayed.length > 0 && displayed.every(c => selectedIds.has(c.id));
+  const someSelected = selectedIds.size > 0;
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayed.map(c => c.id)));
+    }
+  }
+
+  // ── Bulk actions ─────────────────────────────────────────────────────────────
+  function bulkSave() {
+    displayed.filter(c => selectedIds.has(c.id)).forEach(c => {
+      addToPipeline(c);
+      onSave(c.id);
+    });
+    setSelectedIds(new Set());
+  }
+
+  function bulkExport() {
+    const selected = displayed.filter(c => selectedIds.has(c.id));
+    const header = "Nom,Secteur,SIREN,Ville,Score";
+    const rows = selected.map(c => [c.name, c.sector ?? "", c.siren ?? "", c.city ?? "", c.score ?? ""].map(v => `"${v}"`).join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "selection_edrcf.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Layout ───────────────────────────────────────────────────────────────────
+  const hasData   = companies.length > 0 || loading;
+  const COL_LABELS = ["", "#", "Actions", "Company", ...visibleCols.map(k => COL_DEFS[k].label), ...(showAI ? ["AI Insight"] : [])];
   const COL_WIDTHS = buildGridTemplate(visibleCols, showAI);
 
   function toggleCol(key: ColKey) {
@@ -86,7 +127,8 @@ export default function ResultsPanel({
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
-      {/* Top bar */}
+
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div style={{
         height: 48, borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0,
@@ -100,20 +142,18 @@ export default function ResultsPanel({
           style={{
             display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
             padding: "5px 12px",
-            background: companies.length > 0 ? (showAI ? "var(--bg-alt)" : "transparent") : "transparent",
-            border: `1px solid ${showAI ? "var(--fg-muted)" : "var(--border)"}`,
-            color: companies.length > 0 ? "var(--fg)" : "var(--fg-dim)",
+            background: showAI ? "rgba(37,99,235,0.06)" : "transparent",
+            border: `1px solid ${showAI ? "#2563EB" : "var(--border)"}`,
+            color: companies.length > 0 ? (showAI ? "#2563EB" : "var(--fg)") : "var(--fg-dim)",
             cursor: companies.length > 0 ? "pointer" : "not-allowed",
-            ...S, fontSize: 12, transition: "border-color 0.15s, background 0.15s",
+            ...S, fontSize: 12, transition: "all 0.15s",
           }}
-          onMouseEnter={e => { if (companies.length > 0) e.currentTarget.style.borderColor = "var(--fg)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = showAI ? "var(--fg-muted)" : "var(--border)"; }}
         >
-          <Sparkles size={12} style={{ color: showAI ? "#2563EB" : "inherit" }} />
+          <Sparkles size={12} />
           {showAI ? "AI actif" : "Enrich with AI"}
         </button>
 
-        {/* Signaux BODACC / Retraite */}
+        {/* Signaux */}
         <button
           onClick={() => setSignalFilter(p => !p)}
           style={{
@@ -122,13 +162,10 @@ export default function ResultsPanel({
             background: signalFilter ? "rgba(234,88,12,0.08)" : "transparent",
             border: `1px solid ${signalFilter ? "var(--signal)" : "var(--border)"}`,
             color: signalFilter ? "var(--signal)" : "var(--fg-muted)",
-            cursor: "pointer", ...S, fontSize: 12,
-            transition: "all 0.15s",
+            cursor: "pointer", ...S, fontSize: 12, transition: "all 0.15s",
           }}
-          title="Filtrer: dirigeants vieillissants, mouvements BODACC"
         >
-          <Radio size={12} />
-          Signaux
+          <Radio size={12} /> Signaux
         </button>
 
         {/* Edit Columns */}
@@ -140,36 +177,27 @@ export default function ResultsPanel({
               padding: "5px 12px",
               background: colEditorOpen ? "var(--bg-alt)" : "transparent",
               border: `1px solid ${colEditorOpen ? "var(--fg-muted)" : "var(--border)"}`,
-              color: "var(--fg-muted)", cursor: "pointer", ...S, fontSize: 12,
-              transition: "all 0.15s",
+              color: "var(--fg-muted)", cursor: "pointer", ...S, fontSize: 12, transition: "all 0.15s",
             }}
           >
-            <Columns size={12} />
-            Colonnes
+            <Columns size={12} /> Colonnes
           </button>
-
           {colEditorOpen && (
             <div style={{
               position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
               background: "var(--bg-raise)", border: "1px solid var(--border)",
               padding: "8px 0", minWidth: 180, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             }}>
-              <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>
-                COLONNES VISIBLES
-              </div>
+              <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES</div>
               {ALL_OPTIONAL_COLS.map(key => {
                 const active = visibleCols.includes(key);
                 return (
-                  <button
-                    key={key}
-                    onClick={() => toggleCol(key)}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", gap: 10,
-                      padding: "7px 14px", background: "transparent", border: "none",
-                      cursor: "pointer", ...S, fontSize: 12,
-                      color: active ? "var(--fg)" : "var(--fg-muted)",
-                      transition: "background 0.1s",
-                    }}
+                  <button key={key} onClick={() => toggleCol(key)} style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "7px 14px", background: "transparent", border: "none",
+                    cursor: "pointer", ...S, fontSize: 12,
+                    color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
+                  }}
                     onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
@@ -204,12 +232,7 @@ export default function ResultsPanel({
         {filters.length > 0 ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
             {filters.map(f => (
-              <FilterPill
-                key={f.id}
-                filter={f}
-                onRemove={() => onRemoveFilter(f.id)}
-                onToggleMode={onToggleFilterMode}
-              />
+              <FilterPill key={f.id} filter={f} onRemove={() => onRemoveFilter(f.id)} onToggleMode={onToggleFilterMode} />
             ))}
           </div>
         ) : <div style={{ flex: 1 }} />}
@@ -218,11 +241,6 @@ export default function ResultsPanel({
         {companies.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             {loading && <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>Génération…</span>}
-            {signalFilter && (
-              <span style={{ ...M, fontSize: 10, color: "var(--signal)", padding: "2px 6px", border: "1px solid var(--signal)" }}>
-                ⚡ {displayed.length} signaux
-              </span>
-            )}
             <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>
               {displayed.length.toLocaleString("fr")} résultats
             </span>
@@ -240,26 +258,46 @@ export default function ResultsPanel({
         )}
       </div>
 
-      {/* Table header */}
+      {/* ── Table header ────────────────────────────────────────────────────── */}
       {hasData && (
         <div style={{
           display: "grid", gridTemplateColumns: COL_WIDTHS,
           padding: "0 16px", height: 32, alignItems: "center",
           borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-alt)",
         }}>
-          {COLUMNS.map(h => (
-            <span key={h} style={{
-              ...M, fontSize: 9,
-              color: h === "AI Insight" ? "#2563EB" : "var(--fg-dim)",
-              letterSpacing: "0.1em",
-            }}>
-              {h.toUpperCase()}
-            </span>
-          ))}
+          {COL_LABELS.map((h, idx) =>
+            idx === 0 ? (
+              <div key="select-all" style={{ display: "flex", alignItems: "center" }}>
+                <div
+                  onClick={toggleSelectAll}
+                  style={{
+                    width: 14, height: 14, cursor: "pointer",
+                    border: `1px solid ${allSelected ? "#2563EB" : "var(--border)"}`,
+                    background: allSelected ? "#2563EB" : someSelected ? "rgba(37,99,235,0.15)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.1s",
+                  }}
+                >
+                  {allSelected && <Check size={9} style={{ color: "#fff" }} />}
+                  {!allSelected && someSelected && (
+                    <div style={{ width: 6, height: 2, background: "#2563EB" }} />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <span key={h + idx} style={{
+                ...M, fontSize: 9,
+                color: h === "AI Insight" ? "#2563EB" : "var(--fg-dim)",
+                letterSpacing: "0.1em",
+              }}>
+                {h.toUpperCase()}
+              </span>
+            )
+          )}
         </div>
       )}
 
-      {/* Rows */}
+      {/* ── Rows ────────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {loading && companies.length === 0
           ? Array.from({ length: 10 }).map((_, i) => (
@@ -274,16 +312,18 @@ export default function ResultsPanel({
                   rank={i + 1}
                   saved={savedIds.has(c.id)}
                   cols={visibleCols}
+                  selected={selectedIds.has(c.id)}
                   aiInsight={aiInsights[c.id]}
                   onSave={() => onSave(c.id)}
                   onHide={() => onHide(c.id)}
                   onClick={() => onRowClick(c)}
+                  onToggleSelect={() => toggleSelect(c.id)}
                 />
               ))
         }
       </div>
 
-      {/* Footer */}
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <div style={{
         height: 28, borderTop: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -294,11 +334,85 @@ export default function ResultsPanel({
         ))}
       </div>
 
+      {/* ── Floating Action Bar ─────────────────────────────────────────────── */}
+      {someSelected && (
+        <div style={{
+          position: "fixed",
+          bottom: 44, left: "50%", transform: "translateX(-50%)",
+          zIndex: 50,
+          background: "#111827",
+          border: "1px solid #374151",
+          display: "flex", alignItems: "center", gap: 0,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+          overflow: "hidden",
+        }}>
+          {/* Count */}
+          <div style={{
+            padding: "10px 16px",
+            borderRight: "1px solid #374151",
+            ...M, fontSize: 10, color: "#9CA3AF", letterSpacing: "0.08em",
+            whiteSpace: "nowrap",
+          }}>
+            {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
+          </div>
+
+          {/* Save to List */}
+          <button
+            onClick={bulkSave}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "10px 18px", background: "transparent", border: "none",
+              borderRight: "1px solid #374151",
+              cursor: "pointer", ...S, fontSize: 12, color: "#F9FAFB",
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+          >
+            <BookmarkPlus size={13} />
+            Save to List
+          </button>
+
+          {/* Enrich with AI */}
+          <button
+            onClick={() => setEnrichOpen(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "10px 18px", background: "transparent", border: "none",
+              borderRight: "1px solid #374151",
+              cursor: "pointer", ...S, fontSize: 12, color: "#93C5FD",
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+          >
+            <Sparkles size={13} />
+            Enrich with AI
+          </button>
+
+          {/* Export */}
+          <button
+            onClick={bulkExport}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "10px 18px", background: "transparent", border: "none",
+              cursor: "pointer", ...S, fontSize: 12, color: "#F9FAFB",
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+          >
+            <FileDown size={13} />
+            Export
+          </button>
+        </div>
+      )}
+
       {/* Enrich Modal */}
       {enrichOpen && (
         <EnrichModal
-          companyCount={displayed.length}
-          onEnrich={question => { onEnrich(displayed.map(c => c.id)); }}
+          companyCount={someSelected ? selectedIds.size : displayed.length}
+          onEnrich={() => onEnrich(someSelected ? [...selectedIds] : displayed.map(c => c.id))}
           onClose={() => setEnrichOpen(false)}
         />
       )}
@@ -306,22 +420,16 @@ export default function ResultsPanel({
   );
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
 function SkeletonRow({ index, cols, showAI }: { index: number; cols: ColKey[]; showAI: boolean }) {
-  const colCount = 3 + cols.length + (showAI ? 1 : 0);
-  const widths = [20, 70, 130, ...cols.map(() => 160), ...(showAI ? [160] : [])].slice(0, colCount);
   const colWidths = buildGridTemplate(cols, showAI);
+  const cellCount = 4 + cols.length + (showAI ? 1 : 0);
+  const widths = [14, 20, 70, 130, ...cols.map(() => 150), ...(showAI ? [160] : [])].slice(0, cellCount);
   return (
-    <div style={{
-      display: "grid", gridTemplateColumns: colWidths,
-      padding: "0 16px", height: 56, alignItems: "center",
-      borderBottom: "1px solid var(--border)",
-    }}>
+    <div style={{ display: "grid", gridTemplateColumns: colWidths, padding: "0 16px", height: 56, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
       {widths.map((w, i) => (
-        <div key={i} style={{
-          height: 9, width: w, background: "var(--bg-alt)",
-          animation: "skeleton-shimmer 1.5s ease-in-out infinite",
-          animationDelay: `${index * 0.05 + i * 0.03}s`,
-        }} />
+        <div key={i} style={{ height: 9, width: w, background: "var(--bg-alt)", animation: "skeleton-shimmer 1.5s ease-in-out infinite", animationDelay: `${index * 0.05 + i * 0.03}s` }} />
       ))}
     </div>
   );
@@ -329,26 +437,20 @@ function SkeletonRow({ index, cols, showAI }: { index: number; cols: ColKey[]; s
 
 function EmptyState({ signalFilter }: { signalFilter: boolean }) {
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", height: "100%", gap: 12, padding: 40,
-    }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, padding: 40 }}>
       {signalFilter ? (
         <>
           <span style={{ fontSize: 24 }}>⚡</span>
-          <span style={{ ...S, fontSize: 14, color: "var(--fg-muted)", textAlign: "center" }}>
-            Aucun signal BODACC ou cession détecté dans les résultats
-          </span>
-          <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
-            DÉSACTIVEZ LE FILTRE SIGNAL POUR VOIR TOUT
+          <span style={{ ...({ fontFamily: "Inter, sans-serif" } as React.CSSProperties), fontSize: 14, color: "var(--fg-muted)", textAlign: "center" }}>
+            Aucun signal BODACC détecté dans les résultats actuels
           </span>
         </>
       ) : (
         <>
-          <span style={{ ...S, fontSize: 14, color: "var(--fg-muted)", textAlign: "center" }}>
+          <span style={{ ...({ fontFamily: "Inter, sans-serif" } as React.CSSProperties), fontSize: 14, color: "var(--fg-muted)", textAlign: "center" }}>
             Lancez une recherche pour découvrir vos cibles
           </span>
-          <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
+          <span style={{ ...({ fontFamily: "'Space Mono', monospace" } as React.CSSProperties), fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
             16M+ ENTREPRISES INDEXÉES
           </span>
         </>
