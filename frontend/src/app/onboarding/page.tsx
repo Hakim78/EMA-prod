@@ -132,12 +132,6 @@ export default function GettingStartedHub() {
             0 8px 20px rgba(0,0,0,0.15),
             inset 0 1px 0 rgba(255,255,255,0.10);
         }
-        .bc-bg {
-          position: absolute; inset: 0;
-          transition: transform 1100ms ease;
-        }
-        .bento-card:hover .bc-bg { transform: scale(1.07); }
-
         /* ─── Glass checklist card ─── */
         .bc-checklist {
           border-radius: ${R}px;
@@ -154,21 +148,7 @@ export default function GettingStartedHub() {
           flex-direction: column;
         }
 
-        /* ─── Floating orbs ─── */
-        @keyframes orbFloat {
-          0%,100% { transform: translate(0,0) scale(1); opacity:.45; }
-          33%      { transform: translate(26px,-34px) scale(1.08); opacity:.62; }
-          66%      { transform: translate(-16px,18px) scale(.94); opacity:.36; }
-        }
-
-        /* ─── Animated gradient ─── */
-        @keyframes gradShift {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        /* ─── Shimmer sweep ─── */
+        /* ─── Shimmer sweep (LinkedIn card) ─── */
         @keyframes shimmerSweep {
           0%   { left: -80%; }
           100% { left: 200%; }

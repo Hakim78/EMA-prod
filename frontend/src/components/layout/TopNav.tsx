@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Search, Users, BookMarked, Database, Bell, Moon, Sun, User, Zap, Settings } from "lucide-react";
+import { Search, Users, BookMarked, Database, Bell, Moon, Sun, User, Zap, Settings, Compass } from "lucide-react";
 import { useEffect, useState } from "react";
 import NumberTicker from "@/components/ui/NumberTicker";
 
@@ -125,6 +125,33 @@ export default function TopNav() {
             style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.04em" }}
           />
         </div>
+
+        {/* Getting Started */}
+        <Link
+          href="/onboarding"
+          title="Getting Started"
+          style={{
+            width: 32, height: 32,
+            background: "transparent",
+            border: "1px solid var(--border)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "var(--fg-muted)",
+            transition: "border-color 0.1s, color 0.1s, background 0.1s",
+            textDecoration: "none",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = "var(--fg)";
+            e.currentTarget.style.color = "var(--fg)";
+            e.currentTarget.style.background = "var(--bg-alt)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.color = "var(--fg-muted)";
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Compass size={13} />
+        </Link>
 
         {/* Theme toggle */}
         {mounted && (
