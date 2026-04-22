@@ -4,13 +4,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <div style={{
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       height: "100dvh",
       overflow: "hidden",
       background: "var(--bg)",
     }}>
       <TopNav />
-      <main style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+      <main style={{ flex: 1, overflow: "hidden", position: "relative", minWidth: 0 }}>
         {children}
       </main>
     </div>
