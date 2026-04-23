@@ -6,6 +6,7 @@ import type { Target } from "@/types";
 import { Network, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
+import ErrorState from "@/components/ui/ErrorState";
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -41,7 +42,7 @@ function scoreToColor(score: number): string {
 }
 
 export default function MapPage() {
-  const { data, isLoading } = useTargets();
+  const { data, isLoading, isError, refetch } = useTargets();
   const [selected, setSelected] = useState<Target | null>(null);
   const [sectorFilter, setSectorFilter] = useState("");
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function MapPage() {
   const sectors = data?.filters?.sectors ?? [];
 
   if (isLoading) return <CanvasSkeleton label="CHARGEMENT_CARTE…" />;
+  if (isError)   return <div style={{ height: "100dvh", display: "flex" }}><ErrorState onRetry={() => refetch()} /></div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import NumberTicker from "@/components/ui/NumberTicker";
 import { X, Globe, Linkedin, MapPin, Users, Calendar, Building2, Tag, Zap, Lock, Mail, Phone } from "lucide-react";
 import { HintIcon } from "@/components/ui/Tooltip";
+import ErrorState from "@/components/ui/ErrorState";
 import type { SearchCompany } from "@/types/search";
 import type { Target } from "@/types/index";
 
@@ -28,19 +29,23 @@ interface Props {
 }
 
 export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
-  const [tab, setTab]         = useState<Tab>("Summary");
-  const [target, setTarget]   = useState<Target | null>(null);
+  const [tab, setTab]           = useState<Tab>("Summary");
+  const [target, setTarget]     = useState<Target | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [fetchErr, setFetchErr] = useState(false);
 
-  useEffect(() => {
+  const doFetch = (id: string) => {
     setFetching(true);
     setTarget(null);
-    fetch(`/api/targets/${company.id}`)
-      .then(r => r.ok ? r.json() : null)
+    setFetchErr(false);
+    fetch(`/api/targets/${id}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => setTarget(d))
-      .catch(() => {})
+      .catch(() => setFetchErr(true))
       .finally(() => setFetching(false));
-  }, [company.id]);
+  };
+
+  useEffect(() => { doFetch(company.id); }, [company.id]);
 
   const employees  = target?.financials?.effectif ?? company.employees;
   const revenue    = target?.financials?.revenue   ?? company.revenue;
@@ -167,6 +172,12 @@ export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
             >
               {fetching ? (
                 <SkeletonTab />
+              ) : fetchErr ? (
+                <ErrorState
+                  compact
+                  message="Impossible de charger la fiche"
+                  onRetry={() => doFetch(company.id)}
+                />
               ) : (
                 <>
                   {tab === "Summary"    && <SummaryTab    company={company} employees={employees} revenue={revenue} signals={signals} />}

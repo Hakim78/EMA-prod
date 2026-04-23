@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useSignals } from "@/lib/queries/useSignals";
 import type { Signal } from "@/types";
 import { Activity, ArrowUpRight } from "lucide-react";
+import ErrorState from "@/components/ui/ErrorState";
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -12,7 +13,7 @@ const SEVERITIES = ["high", "medium", "low"] as const;
 const SEV_COLORS: Record<string, string> = { high: "#FF4500", medium: "var(--fg-muted)", low: "var(--fg-dim)" };
 
 export default function SignalsPage() {
-  const { data, isLoading } = useSignals();
+  const { data, isLoading, isError, refetch } = useSignals();
   const [sevFilter, setSevFilter] = useState("");
   const [srcFilter, setSrcFilter] = useState("");
 
@@ -27,6 +28,8 @@ export default function SignalsPage() {
     const all = (Array.isArray(data) ? data : []) as Signal[];
     return [...new Set(all.map(s => s.source))].filter(Boolean);
   }, [data]);
+
+  if (isError) return <div style={{ height: "100%", display: "flex" }}><ErrorState onRetry={() => refetch()} /></div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "var(--bg)" }}>

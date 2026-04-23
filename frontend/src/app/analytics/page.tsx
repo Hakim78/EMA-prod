@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { ArrowUpRight } from "lucide-react";
 import { AnalyticsSkeleton } from "@/components/ui/PageSkeleton";
+import ErrorState from "@/components/ui/ErrorState";
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -21,10 +22,11 @@ const CHART_STYLE = {
 };
 
 export default function AnalyticsPage() {
-  const { data, isLoading } = useTargets();
+  const { data, isLoading, isError, refetch } = useTargets();
   const targets: Target[] = data?.data ?? [];
 
   if (isLoading) return <AnalyticsSkeleton />;
+  if (isError)   return <div style={{ height: "100dvh", display: "flex" }}><ErrorState onRetry={() => refetch()} /></div>;
 
   const total = data?.total ?? 0;
   const avgScore = useMemo(() => {

@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
+import ErrorState from "@/components/ui/ErrorState";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
@@ -80,6 +81,8 @@ function GraphPageInner() {
   const [focusMode, setFocusMode] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTab>("profil");
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const fgRef = useRef<any>(null);
   const tickRef = useRef<number>(0);
   const animRef = useRef<number>(0);
@@ -92,6 +95,7 @@ function GraphPageInner() {
 
   useEffect(() => {
     const url = siren ? `/api/graph?siren=${siren}` : "/api/graph";
+    setFetchError(false);
     fetch(url).then(r => r.json()).then(d => {
       setGraphData(d.data);
       setStats(d.stats);
@@ -99,8 +103,8 @@ function GraphPageInner() {
         setSelectedNode(d.data.nodes.find((n: GraphNode) => n.type === "company") ?? d.data.nodes[0]);
       }
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [siren]);
+    }).catch(() => { setLoading(false); setFetchError(true); });
+  }, [siren, retryKey]);
 
   const neighborIds = useMemo(() => {
     if (!selectedNode || !focusMode) return null;
@@ -232,7 +236,8 @@ function GraphPageInner() {
     }).slice(0, 8);
   }, [selectedNode, graphData.links]);
 
-  if (loading) return <CanvasSkeleton label="CHARGEMENT_GRAPHE…" />;
+  if (loading)     return <CanvasSkeleton label="CHARGEMENT_GRAPHE…" />;
+  if (fetchError)  return <div style={{ height: "100dvh", display: "flex" }}><ErrorState onRetry={() => { setFetchError(false); setLoading(true); setRetryKey(k => k + 1); }} /></div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
