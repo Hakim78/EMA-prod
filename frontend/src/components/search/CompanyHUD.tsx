@@ -38,6 +38,7 @@ export default function CompanyHUD({ company, onClose }: Props) {
   const signals    = target?.topSignals  ?? [];
   const dirigeants = target?.dirigeants  ?? [];
   const financials = target?.financials  ?? null;
+  const group      = target?.group       ?? null;
 
   return (
     <AnimatePresence>
@@ -120,15 +121,16 @@ export default function CompanyHUD({ company, onClose }: Props) {
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-          {fetching && <div style={{ ...M, fontSize: 10, color: "var(--fg-dim)", marginBottom: 16 }}>Chargement…</div>}
-
-          {tab === "Summary"    && <SummaryTab    company={company} employees={employees} revenue={revenue} signals={signals} />}
-          {tab === "People"     && <PeopleTab     dirigeants={dirigeants} />}
-          {tab === "Financials" && <FinancialsTab financials={financials} revenue={revenue} />}
-          {(tab === "Funding" || tab === "Portfolio") && (
-            <div style={{ ...S, fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.7 }}>
-              Données non disponibles pour cette entreprise.
-            </div>
+          {fetching ? (
+            <SkeletonTab />
+          ) : (
+            <>
+              {tab === "Summary"    && <SummaryTab    company={company} employees={employees} revenue={revenue} signals={signals} />}
+              {tab === "People"     && <PeopleTab     dirigeants={dirigeants} />}
+              {tab === "Financials" && <FinancialsTab financials={financials} revenue={revenue} />}
+              {tab === "Funding"    && <FundingTab    group={group} company={company} />}
+              {tab === "Portfolio"  && <PortfolioTab  group={group} signals={signals} target={target} />}
+            </>
           )}
         </div>
       </motion.div>
@@ -475,6 +477,177 @@ function MatchScoreBlock({ company }: { company: SearchCompany }) {
           <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>/100</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Skeleton Tab ───────────────────────────────────────────────────────────────
+
+function SkeletonTab() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} style={{
+          height: i === 0 ? 56 : 36,
+          background: "var(--bg-alt)",
+          borderRadius: 2,
+          opacity: 1 - i * 0.15,
+          animation: "skeleton-shimmer 1.2s ease-in-out infinite",
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Funding Tab ────────────────────────────────────────────────────────────────
+
+function FundingTab({ group, company }: {
+  group: { is_group?: boolean; is_holding?: boolean; parent?: string | null; subsidiaries?: string[]; consolidated_revenue?: string | null; procedure_collective_en_cours?: boolean } | null;
+  company: SearchCompany;
+}) {
+  const rows = [
+    { label: "Structure juridique", value: company.structure ?? "—" },
+    { label: "Type",                value: group?.is_holding ? "Holding" : group?.is_group ? "Groupe" : "Société indépendante" },
+    { label: "Société mère",        value: group?.parent ?? "Indépendante" },
+    { label: "CA consolidé",        value: group?.consolidated_revenue ?? "—" },
+    { label: "Procédure collective",value: group?.procedure_collective_en_cours ? "⚠ En cours" : "Aucune" },
+    { label: "SIREN",               value: company.siren ?? "—" },
+    { label: "Création",            value: company.founded ?? "—" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>STRUCTURE CAPITALISTIQUE</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 1, border: "1px solid var(--border)" }}>
+        {rows.map(({ label, value }) => (
+          <div key={label} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "10px 14px", background: "var(--bg-alt)", borderBottom: "1px solid var(--border)",
+          }}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.06em" }}>
+              {label.toUpperCase()}
+            </span>
+            <span style={{
+              ...S, fontSize: 12, color: value === "⚠ En cours" ? "var(--signal)" : "var(--fg)",
+              fontWeight: value !== "—" ? 500 : 400,
+            }}>
+              {value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {group?.subsidiaries && group.subsidiaries.length > 0 && (
+        <div>
+          <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", marginBottom: 8 }}>
+            FILIALES ({group.subsidiaries.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {group.subsidiaries.slice(0, 6).map((sub, i) => (
+              <div key={i} style={{
+                padding: "8px 12px", background: "var(--bg-alt)", border: "1px solid var(--border)",
+                ...S, fontSize: 12, color: "var(--fg)",
+                display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>{String(i + 1).padStart(2, "0")}</span>
+                {sub}
+              </div>
+            ))}
+            {group.subsidiaries.length > 6 && (
+              <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", padding: "4px 0" }}>
+                +{group.subsidiaries.length - 6} autres filiales
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!group && (
+        <div style={{ ...S, fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.7 }}>
+          Aucune donnée de groupe disponible pour cette entreprise.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Portfolio Tab ──────────────────────────────────────────────────────────────
+
+function PortfolioTab({ group, signals, target }: {
+  group: { subsidiaries?: string[] } | null;
+  signals: Array<{ label: string; severity?: string; source?: string; dimension?: string; points?: number }>;
+  target: import("@/types/index").Target | null;
+}) {
+  const allSignals = target?.topSignals ?? signals;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* Signals */}
+      {allSignals.length > 0 ? (
+        <div>
+          <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", marginBottom: 10 }}>
+            SIGNAUX DÉTECTÉS ({allSignals.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {allSignals.map((s, i) => {
+              const hot = s.severity === "high";
+              return (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  padding: "10px 12px", background: "var(--bg-alt)", border: "1px solid var(--border)",
+                  borderLeft: `3px solid ${hot ? "var(--signal)" : "var(--border)"}`,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...M, fontSize: 10, color: "var(--fg)", letterSpacing: "0.03em", marginBottom: 3 }}>
+                      {s.label}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {s.source && (
+                        <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.06em" }}>
+                          {s.source.toUpperCase()}
+                        </span>
+                      )}
+                      {s.dimension && (
+                        <span style={{ ...S, fontSize: 10, color: "var(--fg-muted)" }}>{s.dimension}</span>
+                      )}
+                    </div>
+                  </div>
+                  {s.points != null && (
+                    <span style={{ ...M, fontSize: 9, color: hot ? "var(--signal)" : "var(--fg-dim)", flexShrink: 0 }}>
+                      +{s.points}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div style={{ ...S, fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.7 }}>
+          Aucun signal détecté pour cette entreprise.
+        </div>
+      )}
+
+      {/* Subsidiaries if any */}
+      {group?.subsidiaries && group.subsidiaries.length > 0 && (
+        <div>
+          <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", marginBottom: 8 }}>
+            PÉRIMÈTRE GROUPE ({group.subsidiaries.length} entités)
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {group.subsidiaries.map((sub, i) => (
+              <span key={i} style={{
+                ...S, fontSize: 11, padding: "3px 10px",
+                background: "var(--bg-alt)", border: "1px solid var(--border)",
+                color: "var(--fg-muted)",
+              }}>
+                {sub}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
