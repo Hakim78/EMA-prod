@@ -10,64 +10,77 @@ const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
 function DealCloudLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="6" width="20" height="13" rx="2" fill="#1E3A5F" />
-      <path d="M7 12h10M7 15.5h6" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="17" cy="5" r="3" fill="#1E3A5F" />
-      <path d="M15.5 5h3M17 3.5v3" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect x="1" y="5" width="15" height="10" rx="2" fill="#1E3A5F" />
+      <line x1="4" y1="9" x2="13" y2="9" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="4" y1="12" x2="10" y2="12" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="16" cy="4" r="3" fill="#2563EB" />
+      <line x1="14.5" y1="4" x2="17.5" y2="4" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="16" y1="2.5" x2="16" y2="5.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function SalesforceLogo() {
   return (
-    <svg width="22" height="16" viewBox="0 0 50 34" fill="none">
-      <path d="M20.8 3.2a9.5 9.5 0 0 1 7.2 3.3A7.6 7.6 0 0 1 32 5.5a7.6 7.6 0 0 1 7.6 7.6c0 .3 0 .6-.05.9A6.1 6.1 0 0 1 44 20a6.1 6.1 0 0 1-6.1 6.1H12.5a9.3 9.3 0 0 1 0-18.6c.3 0 .6 0 .9.03A9.5 9.5 0 0 1 20.8 3.2z" fill="#00A1E0" />
+    <svg width="22" height="16" viewBox="0 0 44 28" fill="none">
+      <circle cx="13" cy="19" r="8" fill="#00A1E0" />
+      <circle cx="22" cy="13" r="10" fill="#00A1E0" />
+      <circle cx="32" cy="18" r="7" fill="#00A1E0" />
+      <rect x="5" y="18" width="30" height="9" fill="#00A1E0" />
     </svg>
   );
 }
 
 function AffinityLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L4 20h16L12 2z" fill="#6366F1" />
-      <path d="M12 8l-4 10h8L12 8z" fill="#fff" opacity="0.35" />
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <polygon points="9,1 17,17 1,17" fill="#6366F1" />
+      <polygon points="9,6 14,15 4,15" fill="#fff" opacity="0.25" />
     </svg>
   );
 }
 
 function HubSpotLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#F97316">
-      <path d="M15.5 8.5V6.3a1.8 1.8 0 1 0-1.5 0v2.2a5 5 0 0 0-2.3 1.1L5.8 6.4a2 2 0 1 0-.9 1.5l5.8 3.1A5 5 0 0 0 10 13a5 5 0 0 0 .7 2.6l-1.8 1.8a1.7 1.7 0 1 0 1.1 1.1l1.8-1.8A5 5 0 1 0 15.5 8.5zM14 18a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="11" cy="11" r="4" fill="#F97316" />
+      <circle cx="11" cy="3.5" r="1.8" fill="#F97316" />
+      <line x1="11" y1="5.3" x2="11" y2="7" stroke="#F97316" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="3.5" cy="13.5" r="1.4" fill="#F97316" />
+      <line x1="4.5" y1="12.5" x2="7.2" y2="9.8" stroke="#F97316" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
 function PipedriveLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="10" r="4.5" fill="#22C55E" />
-      <path d="M12 14.5v7.5" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" />
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="7.5" r="5" fill="#22C55E" />
+      <rect x="7.5" y="12" width="3" height="6" rx="1.5" fill="#22C55E" />
     </svg>
   );
 }
 
 function LinkedInLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2">
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect width="18" height="18" rx="3" fill="#0A66C2" />
+      <rect x="2.5" y="6.5" width="2.5" height="8" fill="#fff" />
+      <circle cx="3.75" cy="4" r="1.5" fill="#fff" />
+      <path d="M7.5 6.5h2.5v1.2c.4-.7 1.3-1.4 2.7-1.4C15 6.3 15.5 8 15.5 10.2v4.3h-2.5v-3.8c0-1 0-2.3-1.4-2.3s-1.6 1.1-1.6 2.2v3.9H7.5V6.5z" fill="#fff" />
     </svg>
   );
 }
 
 function OutlookLogo() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect x="1" y="5" width="14" height="14" rx="1.5" fill="#0078D4" />
-      <path d="M4 9.5h8M4 12h8M4 14.5h5" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
-      <path d="M15 8l8 4-8 4V8z" fill="#0078D4" />
-      <path d="M15 8l8 4-8 4" stroke="#50a0e8" strokeWidth="0.5" fill="none" />
+    <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
+      <rect x="0.5" y="2" width="12" height="14" rx="1.5" fill="#0078D4" />
+      <path d="M3 6.5h7M3 9h7M3 11.5h5" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+      <polygon points="13,5 19,9 13,13" fill="#0078D4" />
+      <line x1="13" y1="5" x2="19" y2="9" stroke="#50a0e8" strokeWidth="0.6" />
+      <line x1="13" y1="13" x2="19" y2="9" stroke="#50a0e8" strokeWidth="0.6" />
     </svg>
   );
 }

@@ -11,9 +11,17 @@ import type { SearchCompany } from "@/types/search";
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
+const AVATAR_COLORS = ["#4F46E5","#0EA5E9","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6"];
+function avatarColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 function CompanyLogo({ name, website, logo }: { name: string; website?: string; logo?: string }) {
   const [failed, setFailed] = useState(false);
-  const src = logo || (website ? `https://logo.clearbit.com/${website}` : null);
+  const domain = website?.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const src = logo || (domain ? `https://logo.clearbit.com/${domain}` : null);
   if (src && !failed) {
     return (
       <img
@@ -26,10 +34,10 @@ function CompanyLogo({ name, website, logo }: { name: string; website?: string; 
   }
   return (
     <div style={{
-      width: 22, height: 22, flexShrink: 0,
-      background: "var(--bg-alt)", border: "1px solid var(--border)",
+      width: 22, height: 22, flexShrink: 0, borderRadius: 3,
+      background: avatarColor(name),
       display: "flex", alignItems: "center", justifyContent: "center",
-      ...M, fontSize: 9, color: "var(--fg-muted)",
+      fontFamily: "'Space Mono', monospace", fontSize: 9, color: "#fff", fontWeight: 700,
     }}>
       {name.charAt(0).toUpperCase()}
     </div>
