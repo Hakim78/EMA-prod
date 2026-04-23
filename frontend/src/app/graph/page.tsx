@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { forceCollide, forceX, forceY, forceManyBody } from "d3-force";
 import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import CompanyNetworkGraph, { type NetworkNode, type NetworkLink } from "@/components/ui/CompanyNetworkGraph";
@@ -58,6 +59,93 @@ const NODE_COLORS = {
   holding: "#884422", default: "#444444",
 };
 
+// ── Stratified layout: holdings top · companies middle ring · directors outer ──
+function computeStratifiedLayout(nodes: GraphNode[], links: GraphLink[]): void {
+  const companies = nodes.filter(n => n.type === "company" && !n.is_holding);
+  const directors  = nodes.filter(n => n.type === "director");
+  const holdings   = nodes.filter(n => n.is_holding || n.type === "holding");
+
+  // ── Holdings: horizontal row at top ──────────────────────────────────────
+  holdings.forEach((n, i) => {
+    const span = Math.max(0, (holdings.length - 1) * 130);
+    n.fx = (i / Math.max(holdings.length - 1, 1) - 0.5) * span;
+    n.fy = -240;
+  });
+
+  // ── Companies: radial ring sorted by score desc ───────────────────────────
+  const sorted = [...companies].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const cR = Math.max(130, sorted.length * 28);
+  sorted.forEach((n, i) => {
+    const angle = (i / Math.max(sorted.length, 1)) * 2 * Math.PI - Math.PI / 2;
+    n.fx = cR * Math.cos(angle);
+    n.fy = cR * Math.sin(angle);
+  });
+
+  // ── Directors: grouped near their primary company ─────────────────────────
+  // Build director → connected-company map
+  const dirToCompany = new Map<string, string[]>();
+  directors.forEach(d => dirToCompany.set(d.id, []));
+  links.forEach(l => {
+    const s = typeof l.source === "object" ? (l.source as GraphNode).id : l.source;
+    const t = typeof l.target === "object" ? (l.target as GraphNode).id : l.target;
+    const isCompS = companies.some(c => c.id === s);
+    const isCompT = companies.some(c => c.id === t);
+    if (isCompS && dirToCompany.has(t)) dirToCompany.get(t)!.push(s);
+    if (isCompT && dirToCompany.has(s)) dirToCompany.get(s)!.push(t);
+  });
+
+  // Group directors by their primary company (most connections → first company)
+  const companyDirGroups = new Map<string, GraphNode[]>();
+  directors.forEach(d => {
+    const cids = dirToCompany.get(d.id) ?? [];
+    const primary = cids[0] ?? "__unlinked__";
+    if (!companyDirGroups.has(primary)) companyDirGroups.set(primary, []);
+    companyDirGroups.get(primary)!.push(d);
+  });
+
+  companyDirGroups.forEach((group, cid) => {
+    const company = companies.find(c => c.id === cid);
+    const baseX = company?.fx ?? 0;
+    const baseY = company?.fy ?? 0;
+
+    // Direction from origin to company → directors radiate outward from there
+    const dirAngle = Math.atan2(baseY, baseX);
+    const outR = cR + 90;
+
+    group.forEach((d, i) => {
+      const spread = Math.min((group.length - 1) * 40, 200);
+      const offset = group.length === 1 ? 0 : (i / (group.length - 1) - 0.5) * spread;
+      const perp = dirAngle + Math.PI / 2;
+      d.fx = outR * Math.cos(dirAngle) + offset * Math.cos(perp);
+      d.fy = outR * Math.sin(dirAngle) + offset * Math.sin(perp);
+    });
+  });
+
+  // ── Overlap resolution pass (simple iterative push) ───────────────────────
+  const MIN_DIST = 36;
+  for (let pass = 0; pass < 60; pass++) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        if (a.fx === undefined || b.fx === undefined) continue;
+        const dx = (b.fx ?? 0) - (a.fx ?? 0);
+        const dy = (b.fy ?? 0) - (a.fy ?? 0);
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        if (dist < MIN_DIST) {
+          const push = (MIN_DIST - dist) / 2 + 1;
+          const nx = dx / dist, ny = dy / dist;
+          // Don't push holdings (they're fixed to their layer)
+          if (a.type !== "holding" && !a.is_holding) { a.fx! -= nx * push; a.fy! -= ny * push; }
+          if (b.type !== "holding" && !b.is_holding) { b.fx! += nx * push; b.fy! += ny * push; }
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace("#", "");
   return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${alpha})`;
@@ -98,6 +186,8 @@ function GraphPageInner() {
     const url = siren ? `/api/graph?siren=${siren}` : "/api/graph";
     setFetchError(false);
     fetch(url).then(r => r.json()).then(d => {
+      // Pre-compute stratified layout before setting state
+      computeStratifiedLayout(d.data.nodes, d.data.links);
       setGraphData(d.data);
       setStats(d.stats);
       if (d.data.nodes.length > 0) {
@@ -106,6 +196,22 @@ function GraphPageInner() {
       setLoading(false);
     }).catch(() => { setLoading(false); setFetchError(true); });
   }, [siren, retryKey]);
+
+  // Apply custom d3 forces after graph mounts / data changes
+  useEffect(() => {
+    if (!fgRef.current || !graphData.nodes.length) return;
+    const fg = fgRef.current;
+    // Strong repulsion — nodes push each other away
+    fg.d3Force("charge", forceManyBody().strength(-300).distanceMax(400));
+    // Collision — prevent node overlap
+    fg.d3Force("collision", forceCollide((n: any) => (n.node_size || 6) + 12).strength(0.9));
+    // Soft positional pull toward pre-computed fx/fy
+    fg.d3Force("anchorX", forceX((n: any) => n.fx ?? 0).strength(0.8));
+    fg.d3Force("anchorY", forceY((n: any) => n.fy ?? 0).strength(0.8));
+    // Kill default link force — positions are already set
+    fg.d3Force("link", null);
+    fg.d3ReheatSimulation();
+  }, [graphData.nodes.length]);
 
   const neighborIds = useMemo(() => {
     if (!selectedNode || !focusMode) return null;
@@ -340,10 +446,12 @@ function GraphPageInner() {
                 linkDirectionalParticleWidth={1.5}
                 linkDirectionalParticleColor={() => "#FF4500"}
                 linkDirectionalParticleSpeed={0.004}
-                d3AlphaDecay={0.02}
-                d3VelocityDecay={0.3}
-                warmupTicks={80}
-                cooldownTicks={300}
+                // Nodes have fx/fy set — simulation only handles collision/residual
+                d3AlphaDecay={0.04}
+                d3VelocityDecay={0.6}
+                warmupTicks={0}
+                cooldownTicks={50}
+                onEngineStop={() => fgRef.current?.zoomToFit?.(600, 60)}
               />
             </GraphErrorBoundary>
           )}
