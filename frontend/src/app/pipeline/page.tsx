@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, ArrowRight, Download, ChevronDown } from "lucide-react";
+import { X, ArrowRight, Download, ChevronDown, GripVertical } from "lucide-react";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import type { DropResult } from "@hello-pangea/dnd";
 import { getPipeline, setPipeline, moveStage, removeFromPipeline, exportCSV, STAGES } from "@/lib/pipeline";
 import type { PipelineItem, Stage } from "@/lib/pipeline";
-import type { SearchCompany } from "@/types/search";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -19,8 +20,8 @@ const STAGE_COLORS: Record<Stage, string> = {
 };
 
 export default function PipelinePage() {
-  const [items, setItems]       = useState<PipelineItem[]>([]);
-  const [toast, setToast]       = useState<string | null>(null);
+  const [items, setItems] = useState<PipelineItem[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(getPipeline());
@@ -33,13 +34,23 @@ export default function PipelinePage() {
 
   function showToast(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2200);
+  }
+
+  function handleDragEnd(result: DropResult) {
+    if (!result.destination) return;
+    const { draggableId, source, destination } = result;
+    if (source.droppableId === destination.droppableId) return;
+    const newStage = destination.droppableId as Stage;
+    moveStage(draggableId, newStage);
+    refresh();
+    showToast(`→ ${newStage}`);
   }
 
   function handleMove(id: string, stage: Stage) {
     moveStage(id, stage);
     refresh();
-    showToast(`Déplacé vers ${stage}`);
+    showToast(`→ ${stage}`);
   }
 
   function handleRemove(id: string) {
@@ -52,15 +63,11 @@ export default function PipelinePage() {
     showToast("Export CSV lancé");
   }
 
-  const columns = STAGES.map(stage => ({
-    stage,
-    cards: items.filter(i => i.stage === stage),
-  }));
-
   const total = items.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", background: "var(--bg)" }}>
+
       {/* Header */}
       <div style={{
         height: 48, borderBottom: "1px solid var(--border)", flexShrink: 0,
@@ -81,8 +88,7 @@ export default function PipelinePage() {
           style={{
             display: "flex", alignItems: "center", gap: 5,
             padding: "5px 12px", cursor: total > 0 ? "pointer" : "not-allowed",
-            background: "transparent",
-            border: "1px solid var(--border)",
+            background: "transparent", border: "1px solid var(--border)",
             color: total > 0 ? "var(--fg-muted)" : "var(--fg-dim)",
             ...S, fontSize: 12, transition: "all 0.15s",
           }}
@@ -97,17 +103,22 @@ export default function PipelinePage() {
       {total === 0 ? (
         <EmptyPipeline />
       ) : (
-        <div style={{ flex: 1, display: "flex", overflowX: "auto", overflowY: "hidden" }}>
-          {columns.map(({ stage, cards }) => (
-            <KanbanColumn
-              key={stage}
-              stage={stage}
-              cards={cards}
-              onMove={handleMove}
-              onRemove={handleRemove}
-            />
-          ))}
-        </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div style={{ flex: 1, display: "flex", overflowX: "auto", overflowY: "hidden" }}>
+            {STAGES.map(stage => {
+              const cards = items.filter(i => i.stage === stage);
+              return (
+                <KanbanColumn
+                  key={stage}
+                  stage={stage}
+                  cards={cards}
+                  onMove={handleMove}
+                  onRemove={handleRemove}
+                />
+              );
+            })}
+          </div>
+        </DragDropContext>
       )}
 
       {/* Toast */}
@@ -119,18 +130,18 @@ export default function PipelinePage() {
           ...M, fontSize: 10, letterSpacing: "0.08em",
           display: "flex", alignItems: "center", gap: 8,
           boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+          pointerEvents: "none",
         }}>
-          <span style={{ color: "var(--up)" }}>✓</span>
-          {toast}
+          <span style={{ color: "var(--up)" }}>✓</span> {toast}
         </div>
       )}
     </div>
   );
 }
 
-function KanbanColumn({
-  stage, cards, onMove, onRemove,
-}: {
+// ── Kanban Column ──────────────────────────────────────────────────────────────
+
+function KanbanColumn({ stage, cards, onMove, onRemove }: {
   stage: Stage;
   cards: PipelineItem[];
   onMove: (id: string, s: Stage) => void;
@@ -155,39 +166,66 @@ function KanbanColumn({
         <span style={{
           ...M, fontSize: 10, color,
           padding: "2px 7px", border: `1px solid ${color}`,
-          background: `${color}14`,
+          background: `${color}18`,
         }}>
           {cards.length}
         </span>
       </div>
 
-      {/* Cards */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-        {cards.map(item => (
-          <DealCard
-            key={item.company.id}
-            item={item}
-            onMove={onMove}
-            onRemove={onRemove}
-          />
-        ))}
-        {cards.length === 0 && (
-          <div style={{
-            padding: "20px 14px", textAlign: "center",
-            ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.08em",
-          }}>
-            VIDE
+      {/* Droppable zone */}
+      <Droppable droppableId={stage}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            style={{
+              flex: 1, overflowY: "auto", padding: "8px 0",
+              background: snapshot.isDraggingOver ? `${color}08` : "transparent",
+              transition: "background 0.15s",
+              minHeight: 80,
+            }}
+          >
+            {cards.map((item, index) => (
+              <Draggable key={item.company.id} draggableId={item.company.id} index={index}>
+                {(dragProvided, dragSnapshot) => (
+                  <div
+                    ref={dragProvided.innerRef}
+                    {...dragProvided.draggableProps}
+                    style={{ ...dragProvided.draggableProps.style }}
+                  >
+                    <DealCard
+                      item={item}
+                      isDragging={dragSnapshot.isDragging}
+                      dragHandleProps={dragProvided.dragHandleProps}
+                      onMove={onMove}
+                      onRemove={onRemove}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+            {cards.length === 0 && !snapshot.isDraggingOver && (
+              <div style={{
+                padding: "20px 14px", textAlign: "center",
+                ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.08em",
+              }}>
+                VIDE
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </Droppable>
     </div>
   );
 }
 
-function DealCard({
-  item, onMove, onRemove,
-}: {
+// ── Deal Card ──────────────────────────────────────────────────────────────────
+
+function DealCard({ item, isDragging, dragHandleProps, onMove, onRemove }: {
   item: PipelineItem;
+  isDragging: boolean;
+  dragHandleProps: object | null | undefined;
   onMove: (id: string, s: Stage) => void;
   onRemove: (id: string) => void;
 }) {
@@ -195,7 +233,6 @@ function DealCard({
   const [hovered, setHovered] = useState(false);
   const { company, stage, savedAt } = item;
   const stageColor = STAGE_COLORS[stage];
-
   const nextStages = STAGES.filter(s => s !== stage);
 
   return (
@@ -204,16 +241,29 @@ function DealCard({
       onMouseLeave={() => { setHovered(false); setStageOpen(false); }}
       style={{
         margin: "0 8px 6px",
-        background: hovered ? "var(--bg-hover)" : "var(--bg-raise)",
+        background: isDragging ? "var(--bg-raise)" : hovered ? "var(--bg-hover)" : "var(--bg-raise)",
         border: "1px solid var(--border)",
         borderLeft: `3px solid ${stageColor}`,
-        transition: "background 0.1s, border-color 0.1s",
+        boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.18)" : "none",
+        transform: isDragging ? "rotate(1.5deg)" : "none",
+        transition: isDragging ? "none" : "background 0.1s, box-shadow 0.15s",
         position: "relative",
+        cursor: isDragging ? "grabbing" : "default",
       }}
     >
       <div style={{ padding: "10px 12px" }}>
-        {/* Name + remove */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+        {/* Grip + Name + Remove */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 6 }}>
+          <div
+            {...dragHandleProps}
+            style={{
+              flexShrink: 0, marginTop: 2, cursor: "grab",
+              color: hovered ? "var(--fg-muted)" : "var(--fg-dim)",
+              transition: "color 0.1s",
+            }}
+          >
+            <GripVertical size={11} />
+          </div>
           <span style={{ ...S, fontSize: 12, fontWeight: 600, color: "var(--fg)", lineHeight: 1.3, flex: 1 }}>
             {company.name}
           </span>
@@ -238,10 +288,7 @@ function DealCard({
         {company.score != null && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <div style={{ flex: 1, height: 3, background: "var(--bg-alt)", overflow: "hidden" }}>
-              <div style={{
-                height: "100%", width: `${company.score}%`,
-                background: company.score >= 75 ? "var(--up)" : "var(--fg-muted)",
-              }} />
+              <div style={{ height: "100%", width: `${company.score}%`, background: company.score >= 75 ? "var(--up)" : "var(--fg-muted)" }} />
             </div>
             <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)" }}>{company.score}</span>
           </div>
@@ -283,7 +330,7 @@ function DealCard({
               <div style={{
                 position: "absolute", bottom: "calc(100% + 4px)", right: 0, zIndex: 20,
                 background: "var(--bg-raise)", border: "1px solid var(--border)",
-                minWidth: 130, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                minWidth: 130, boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
               }}>
                 {nextStages.map(s => (
                   <button
@@ -299,7 +346,7 @@ function DealCard({
                     onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
-                    <span style={{ width: 6, height: 6, flexShrink: 0, background: STAGE_COLORS[s] }} />
+                    <span style={{ width: 6, height: 6, flexShrink: 0, background: STAGE_COLORS[s], borderRadius: "50%" }} />
                     {s.toUpperCase()}
                   </button>
                 ))}
@@ -312,6 +359,8 @@ function DealCard({
   );
 }
 
+// ── Empty State ────────────────────────────────────────────────────────────────
+
 function EmptyPipeline() {
   return (
     <div style={{
@@ -321,8 +370,7 @@ function EmptyPipeline() {
       <div style={{ width: 120, height: 120 }}>
         <DotLottieReact
           src="https://lottie.host/5d2b20c9-2741-4270-af29-7c669d5878c5/VHODzIsBRa.lottie"
-          loop
-          autoplay
+          loop autoplay
         />
       </div>
       <span style={{ ...S, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Pipeline vide</span>
