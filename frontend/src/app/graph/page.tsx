@@ -26,7 +26,7 @@ class GraphErrorBoundary extends Component<{ children: ReactNode }, { crashed: b
     if (this.state.crashed) return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 12 }}>
         <Activity size={24} style={{ color: "#FF4500" }} />
-        <span style={{ ...M, fontSize: 9, color: "#444444", letterSpacing: "0.15em" }}>ERREUR_GRAPHE</span>
+        <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.15em" }}>ERREUR_GRAPHE</span>
         <button onClick={() => this.setState({ crashed: false })} style={{ ...M, fontSize: 9, color: "#FF4500", background: "transparent", border: "none", cursor: "pointer" }}>
           RÉESSAYER
         </button>
@@ -240,15 +240,15 @@ function GraphPageInner() {
   if (fetchError)  return <div style={{ height: "100dvh", display: "flex" }}><ErrorState onRetry={() => { setFetchError(false); setLoading(true); setRetryKey(k => k + 1); }} /></div>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg)" }}>
       {/* Header */}
       <div style={{
-        height: 40, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
+        height: 40, borderBottom: "1px solid var(--border)", flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-        background: "#050505",
+        background: "var(--bg-raise)",
       }}>
         <Network size={11} style={{ color: "#FF4500" }} />
-        <span style={{ ...M, fontSize: 10, color: "#444444", letterSpacing: "0.15em" }}>RÉSEAU_INTELLIGENCE_M&A</span>
+        <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", letterSpacing: "0.15em" }}>RÉSEAU_INTELLIGENCE_M&A</span>
         <div style={{ flex: 1 }} />
         {stats && (
           <div style={{ display: "flex", gap: 16 }}>
@@ -258,8 +258,8 @@ function GraphPageInner() {
               { v: stats.cross_mandates, l: "CROSS" },
               { v: stats.signals, l: "SIG" },
             ].map(s => (
-              <span key={s.l} style={{ ...M, fontSize: 8, color: "#333333" }}>
-                <span style={{ color: "#FAFAFA" }}>{s.v}</span> {s.l}
+              <span key={s.l} style={{ ...M, fontSize: 8, color: "var(--fg-dim)" }}>
+                <span style={{ color: "var(--fg)" }}>{s.v}</span> {s.l}
               </span>
             ))}
           </div>
@@ -268,18 +268,18 @@ function GraphPageInner() {
 
       {/* Toolbar */}
       <div style={{
-        height: 36, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
+        height: 36, borderBottom: "1px solid var(--border)", flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 16px", gap: 8,
-        background: "#080808",
+        background: "var(--bg-raise)",
       }}>
-        <Search size={11} style={{ color: "#333333" }} />
+        <Search size={11} style={{ color: "var(--fg-dim)" }} />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher nœud…"
           style={{
             background: "transparent", border: "none", outline: "none",
-            color: "#FAFAFA", ...M, fontSize: 10, flex: 1,
+            color: "var(--fg)", ...M, fontSize: 10, flex: 1,
           }}
         />
         {selectedNode && (
@@ -288,8 +288,8 @@ function GraphPageInner() {
             style={{
               ...M, fontSize: 8, padding: "3px 8px",
               background: focusMode ? "rgba(255,69,0,0.1)" : "transparent",
-              border: `1px solid ${focusMode ? "#FF4500" : "#1F1F1F"}`,
-              color: focusMode ? "#FF4500" : "#444444",
+              border: `1px solid ${focusMode ? "#FF4500" : "var(--border)"}`,
+              color: focusMode ? "#FF4500" : "var(--fg-muted)",
               cursor: "pointer", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.08em",
             }}
           >
@@ -298,15 +298,15 @@ function GraphPageInner() {
         )}
         <div style={{ display: "flex", gap: 4 }}>
           <button onClick={() => fgRef.current?.zoom?.((fgRef.current?.zoom?.() || 1) * 1.3, 200)}
-            style={{ ...M, fontSize: 8, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "3px 6px", cursor: "pointer" }}>
+            style={{ ...M, fontSize: 8, color: "var(--fg-muted)", background: "transparent", border: "1px solid var(--border)", padding: "3px 6px", cursor: "pointer" }}>
             <ZoomIn size={10} />
           </button>
           <button onClick={() => fgRef.current?.zoom?.((fgRef.current?.zoom?.() || 1) * 0.7, 200)}
-            style={{ ...M, fontSize: 8, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "3px 6px", cursor: "pointer" }}>
+            style={{ ...M, fontSize: 8, color: "var(--fg-muted)", background: "transparent", border: "1px solid var(--border)", padding: "3px 6px", cursor: "pointer" }}>
             <ZoomOut size={10} />
           </button>
           <button onClick={() => fgRef.current?.zoomToFit?.(500, 40)}
-            style={{ ...M, fontSize: 8, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "3px 6px", cursor: "pointer" }}>
+            style={{ ...M, fontSize: 8, color: "var(--fg-muted)", background: "transparent", border: "1px solid var(--border)", padding: "3px 6px", cursor: "pointer" }}>
             <Maximize2 size={10} />
           </button>
         </div>
@@ -320,7 +320,7 @@ function GraphPageInner() {
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 16 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF4500", animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite" }} />
-              <span style={{ ...M, fontSize: 9, color: "#444444", letterSpacing: "0.2em" }}>CHARGEMENT_GRAPHE…</span>
+              <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.2em" }}>CHARGEMENT_GRAPHE…</span>
             </div>
           ) : (
             <GraphErrorBoundary>
@@ -364,7 +364,7 @@ function GraphPageInner() {
             ].map(item => (
               <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: item.c, display: "block" }} />
-                <span style={{ ...M, fontSize: 7, color: "#333333", letterSpacing: "0.1em" }}>{item.l}</span>
+                <span style={{ ...M, fontSize: 7, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em" }}>{item.l}</span>
               </div>
             ))}
           </div>
@@ -374,29 +374,29 @@ function GraphPageInner() {
         {selectedNode && (
           <div style={{
             width: 260, flexShrink: 0,
-            borderLeft: "1px solid #1F1F1F",
+            borderLeft: "1px solid var(--border)",
             display: "flex", flexDirection: "column",
-            background: "#0A0A0A",
+            background: "var(--bg)",
           }}>
             {/* Panel header */}
             <div style={{
-              height: 40, borderBottom: "1px solid #1F1F1F",
+              height: 40, borderBottom: "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "0 12px", flexShrink: 0, background: "#080808",
+              padding: "0 12px", flexShrink: 0, background: "var(--bg-raise)",
             }}>
-              <span style={{ ...M, fontSize: 8, color: "#333333", letterSpacing: "0.12em" }}>NODE_ANALYSIS</span>
-              <button onClick={() => setSelectedNode(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#333333", display: "flex" }}>
+              <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>NODE_ANALYSIS</span>
+              <button onClick={() => setSelectedNode(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-dim)", display: "flex" }}>
                 <X size={12} />
               </button>
             </div>
 
             {/* Node name */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1A1A1A" }}>
-              <div style={{ ...S, fontSize: 14, color: "#FAFAFA", fontStyle: "italic", marginBottom: 4, lineHeight: 1.2 }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ ...S, fontSize: 14, color: "var(--fg)", fontStyle: "italic", marginBottom: 4, lineHeight: 1.2 }}>
                 {selectedNode.name}
               </div>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ ...M, fontSize: 8, color: selectedNode.type === "director" ? "#FAFAFA" : "#FF4500", letterSpacing: "0.1em" }}>
+                <span style={{ ...M, fontSize: 8, color: selectedNode.type === "director" ? "var(--fg)" : "#FF4500", letterSpacing: "0.1em" }}>
                   {selectedNode.type === "director" ? "DIRIGEANT" : selectedNode.is_holding ? "HOLDING" : "CIBLE_M&A"}
                 </span>
                 {selectedNode.score != null && (
@@ -406,13 +406,13 @@ function GraphPageInner() {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: "flex", borderBottom: "1px solid #1A1A1A", flexShrink: 0 }}>
+            <div style={{ display: "flex", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
               {(["profil", "connexions", "signaux"] as PanelTab[]).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
                   flex: 1, height: 32, background: "transparent",
                   border: "none", borderBottom: `2px solid ${activeTab === tab ? "#FF4500" : "transparent"}`,
                   cursor: "pointer", ...M, fontSize: 8,
-                  color: activeTab === tab ? "#FAFAFA" : "#333333",
+                  color: activeTab === tab ? "var(--fg)" : "var(--fg-dim)",
                   letterSpacing: "0.1em",
                 }}>
                   {tab === "profil" ? "PROFIL" : tab === "connexions" ? "LIENS" : "SIGNAUX"}
@@ -443,19 +443,19 @@ function GraphPageInner() {
                     { k: "RÔLE", v: selectedNode.role },
                     { k: "PRIORITÉ", v: selectedNode.priority },
                   ].filter(r => r.v && r.v !== "N/A").map(row => (
-                    <div key={row.k} style={{ background: "#111111", border: "1px solid #1A1A1A", padding: "6px 10px" }}>
-                      <div style={{ ...M, fontSize: 7, color: "#444444", marginBottom: 2, letterSpacing: "0.12em" }}>{row.k}</div>
-                      <div style={{ ...M, fontSize: 10, color: "#FAFAFA" }}>{row.v}</div>
+                    <div key={row.k} style={{ background: "var(--bg-alt)", border: "1px solid var(--border)", padding: "6px 10px" }}>
+                      <div style={{ ...M, fontSize: 7, color: "var(--fg-muted)", marginBottom: 2, letterSpacing: "0.12em" }}>{row.k}</div>
+                      <div style={{ ...M, fontSize: 10, color: "var(--fg)" }}>{row.v}</div>
                     </div>
                   ))}
                   {selectedNode.multi_mandats && (
-                    <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "4px 8px", border: "1px solid #2A2A2A" }}>
+                    <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "4px 8px", border: "1px solid var(--border)" }}>
                       <GitBranch size={9} style={{ color: "#FF4500" }} />
                       <span style={{ ...M, fontSize: 8, color: "#FF4500", letterSpacing: "0.1em" }}>MULTI_MANDATS</span>
                     </div>
                   )}
                   {selectedNode.age_signal && (
-                    <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "4px 8px", border: "1px solid #2A2A2A" }}>
+                    <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "4px 8px", border: "1px solid var(--border)" }}>
                       <TrendingUp size={9} style={{ color: "#FF4500" }} />
                       <span style={{ ...M, fontSize: 8, color: "#FF4500", letterSpacing: "0.1em" }}>SIGNAL_SUCCESSION</span>
                     </div>
@@ -466,21 +466,21 @@ function GraphPageInner() {
               {activeTab === "connexions" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {panelLinks.length === 0 ? (
-                    <span style={{ ...M, fontSize: 9, color: "#333333" }}>Aucune connexion visible</span>
+                    <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>Aucune connexion visible</span>
                   ) : panelLinks.map((l, i) => {
                     const other = (typeof l.source === "object" ? (l.source as GraphNode).id : l.source) === selectedNode.id
                       ? (typeof l.target === "object" ? l.target as GraphNode : null)
                       : (typeof l.source === "object" ? l.source as GraphNode : null);
                     return (
                       <div key={i} style={{
-                        borderLeft: "2px solid #1F1F1F", paddingLeft: 8, paddingBottom: 6,
+                        borderLeft: "2px solid var(--border)", paddingLeft: 8, paddingBottom: 6,
                         transition: "border-color 0.15s",
                       }}
                         onMouseEnter={e => (e.currentTarget.style.borderLeftColor = "#FF4500")}
-                        onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "#1F1F1F")}
+                        onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "var(--border)")}
                       >
-                        <div style={{ ...M, fontSize: 10, color: "#FAFAFA" }}>{other?.name?.slice(0, 18) ?? "—"}</div>
-                        <div style={{ ...M, fontSize: 8, color: "#555555" }}>{l.type?.toUpperCase()} // {l.label?.slice(0, 20)}</div>
+                        <div style={{ ...M, fontSize: 10, color: "var(--fg)" }}>{other?.name?.slice(0, 18) ?? "—"}</div>
+                        <div style={{ ...M, fontSize: 8, color: "var(--fg-muted)" }}>{l.type?.toUpperCase()} // {l.label?.slice(0, 20)}</div>
                       </div>
                     );
                   })}
@@ -488,9 +488,9 @@ function GraphPageInner() {
                     onClick={() => setFocusMode(p => !p)}
                     style={{
                       marginTop: 8, width: "100%", height: 32,
-                      border: `1px solid ${focusMode ? "#FF4500" : "#1F1F1F"}`,
+                      border: `1px solid ${focusMode ? "#FF4500" : "var(--border)"}`,
                       background: focusMode ? "rgba(255,69,0,0.05)" : "transparent",
-                      ...M, fontSize: 8, color: focusMode ? "#FF4500" : "#444444",
+                      ...M, fontSize: 8, color: focusMode ? "#FF4500" : "var(--fg-muted)",
                       cursor: "pointer", letterSpacing: "0.1em",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     }}
@@ -504,12 +504,12 @@ function GraphPageInner() {
               {activeTab === "signaux" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {(selectedNode.signals?.length ?? 0) === 0 ? (
-                    <span style={{ ...M, fontSize: 9, color: "#333333" }}>Aucun signal actif</span>
+                    <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>Aucun signal actif</span>
                   ) : selectedNode.signals?.map((sig, i) => (
                     <div key={i} style={{
                       borderLeft: "2px solid #FF4500", paddingLeft: 8, paddingBottom: 4,
                     }}>
-                      <div style={{ ...M, fontSize: 9, color: "#FAFAFA", lineHeight: 1.5 }}>{sig}</div>
+                      <div style={{ ...M, fontSize: 9, color: "var(--fg)", lineHeight: 1.5 }}>{sig}</div>
                     </div>
                   ))}
                 </div>
@@ -518,18 +518,18 @@ function GraphPageInner() {
 
             {/* Footer CTA */}
             {selectedNode.type === "company" && selectedNode.siren && (
-              <div style={{ padding: "10px 16px", borderTop: "1px solid #1A1A1A", flexShrink: 0 }}>
+              <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
                 <Link href={`/targets/${selectedNode.siren}`} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "10px 14px",
-                  background: "#111111", border: "1px solid #1F1F1F",
+                  background: "var(--bg-alt)", border: "1px solid var(--border)",
                   textDecoration: "none",
                   transition: "border-color 0.15s, background 0.15s",
                 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#FF4500"; (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,69,0,0.05)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1F1F1F"; (e.currentTarget as HTMLAnchorElement).style.background = "#111111"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-alt)"; }}
                 >
-                  <span style={{ ...M, fontSize: 9, color: "#FAFAFA", letterSpacing: "0.1em" }}>OUVRIR_DOSSIER</span>
+                  <span style={{ ...M, fontSize: 9, color: "var(--fg)", letterSpacing: "0.1em" }}>OUVRIR_DOSSIER</span>
                   <ChevronRight size={12} style={{ color: "#FF4500" }} />
                 </Link>
               </div>
@@ -548,7 +548,7 @@ function GraphPageInner() {
 
 export default function GraphPage() {
   return (
-    <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100dvh", background: "#0A0A0A", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "#444444", letterSpacing: "0.15em" }}>CHARGEMENT_GRAPHE…</div>}>
+    <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100dvh", background: "var(--bg)", fontFamily: "'JetBrains Mono',monospace", fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.15em" }}>CHARGEMENT_GRAPHE…</div>}>
       <GraphPageInner />
     </Suspense>
   );

@@ -18,7 +18,7 @@ const CHART_STYLE = {
   background: "transparent",
   fontFamily: "'JetBrains Mono',monospace",
   fontSize: 9,
-  fill: "#333333",
+  fill: "var(--fg-dim)",
 };
 
 export default function AnalyticsPage() {
@@ -76,36 +76,36 @@ export default function AnalyticsPage() {
   }));
 
   return (
-    <div style={{ height: "100dvh", overflowY: "auto", background: "#0A0A0A" }} className="thin-scrollbar">
+    <div style={{ height: "100dvh", overflowY: "auto", background: "var(--bg)" }} className="thin-scrollbar">
 
       {/* Header */}
       <div style={{
-        height: 40, borderBottom: "1px solid #1F1F1F",
+        height: 40, borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", padding: "0 16px",
-        background: "#050505", position: "sticky", top: 0, zIndex: 10,
+        background: "var(--bg-raise)", position: "sticky", top: 0, zIndex: 10,
       }}>
-        <span style={{ ...M, fontSize: 10, color: "#444444", letterSpacing: "0.2em" }}>ANALYTICS_INTELLIGENCE_A24</span>
+        <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)", letterSpacing: "0.2em" }}>ANALYTICS_INTELLIGENCE_A24</span>
         <div style={{ flex: 1 }} />
-        <span style={{ ...M, fontSize: 9, color: "#4A9A5A" }}>● {total.toLocaleString("fr")} CIBLES</span>
+        <span style={{ ...M, fontSize: 9, color: "var(--up)" }}>● {total.toLocaleString("fr")} CIBLES</span>
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", borderBottom: "1px solid #1F1F1F" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", borderBottom: "1px solid var(--border)" }}>
         {kpis.map((k, i) => (
           <div key={k.label} style={{
             padding: "24px 20px",
-            borderRight: i < 3 ? "1px solid #1F1F1F" : "none",
+            borderRight: i < 3 ? "1px solid var(--border)" : "none",
             display: "flex", flexDirection: "column", gap: 12,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <span style={{ ...M, fontSize: 9, color: "#444444", letterSpacing: "0.12em" }}>{k.label}</span>
-              <ArrowUpRight size={12} style={{ color: "#222222" }} />
+              <span style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em" }}>{k.label}</span>
+              <ArrowUpRight size={12} style={{ color: "var(--fg-dim)" }} />
             </div>
             <div>
-              <div style={{ ...M, fontSize: 32, color: i === 0 ? "#FF4500" : "#FAFAFA", letterSpacing: "-0.03em", lineHeight: 1 }}>
+              <div style={{ ...M, fontSize: 32, color: i === 0 ? "#FF4500" : "var(--fg)", letterSpacing: "-0.03em", lineHeight: 1 }}>
                 {isLoading ? "—" : k.value}
               </div>
-              <div style={{ ...M, fontSize: 9, color: k.up === true ? "#4A9A5A" : k.up === false ? "#FF4500" : "#444444", marginTop: 4 }}>
+              <div style={{ ...M, fontSize: 9, color: k.up === true ? "var(--up)" : k.up === false ? "#FF4500" : "var(--fg-muted)", marginTop: 4 }}>
                 {k.delta}
               </div>
             </div>
@@ -121,11 +121,11 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid #1F1F1F" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid var(--border)" }}>
 
         {/* Score distribution */}
-        <div style={{ padding: "20px", borderRight: "1px solid #1F1F1F" }}>
-          <h4 style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
+        <div style={{ padding: "20px", borderRight: "1px solid var(--border)" }}>
+          <h4 style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
             Score_Distribution
           </h4>
           <ResponsiveContainer width="100%" height={180}>
@@ -133,11 +133,11 @@ export default function AnalyticsPage() {
               <XAxis dataKey="range" tick={CHART_STYLE} axisLine={false} tickLine={false} />
               <YAxis tick={CHART_STYLE} axisLine={false} tickLine={false} width={28} />
               <Tooltip
-                contentStyle={{ background: "#111111", border: "1px solid #1F1F1F", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
-                labelStyle={{ color: "#666666" }}
-                itemStyle={{ color: "#FAFAFA" }}
+                contentStyle={{ background: "var(--bg-alt)", border: "1px solid var(--border)", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
+                labelStyle={{ color: "var(--fg-dim)" }}
+                itemStyle={{ color: "var(--fg)" }}
               />
-              <Bar dataKey="val" fill="#333333" radius={[1, 1, 0, 0]}
+              <Bar dataKey="val" fill="var(--fg-dim)" radius={[1, 1, 0, 0]}
                 onMouseEnter={(_, i) => i}
               />
             </BarChart>
@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
 
         {/* Sector volume */}
         <div style={{ padding: "20px" }}>
-          <h4 style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
+          <h4 style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
             Sector_Volume_Capture
           </h4>
           <ResponsiveContainer width="100%" height={180}>
@@ -154,9 +154,9 @@ export default function AnalyticsPage() {
               <XAxis type="number" tick={CHART_STYLE} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={CHART_STYLE} axisLine={false} tickLine={false} width={72} />
               <Tooltip
-                contentStyle={{ background: "#111111", border: "1px solid #1F1F1F", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
-                labelStyle={{ color: "#666666" }}
-                itemStyle={{ color: "#FAFAFA" }}
+                contentStyle={{ background: "var(--bg-alt)", border: "1px solid var(--border)", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
+                labelStyle={{ color: "var(--fg-dim)" }}
+                itemStyle={{ color: "var(--fg)" }}
               />
               <Bar dataKey="val" fill="#FF4500" radius={[0, 1, 1, 0]} />
             </BarChart>
@@ -165,16 +165,16 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Radar + Trend */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid #1F1F1F" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid var(--border)" }}>
 
         {/* Risk radar */}
-        <div style={{ padding: "20px", borderRight: "1px solid #1F1F1F" }}>
-          <h4 style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
+        <div style={{ padding: "20px", borderRight: "1px solid var(--border)" }}>
+          <h4 style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
             Risk_Radar_Matrix
           </h4>
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="#1F1F1F" />
+              <PolarGrid stroke="var(--border)" />
               <PolarAngleAxis dataKey="s" tick={{ ...CHART_STYLE }} />
               <Radar dataKey="A" stroke="#FF4500" fill="#FF4500" fillOpacity={0.15} strokeWidth={1.5} />
             </RadarChart>
@@ -183,7 +183,7 @@ export default function AnalyticsPage() {
 
         {/* Monthly trend */}
         <div style={{ padding: "20px" }}>
-          <h4 style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
+          <h4 style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.2em", marginBottom: 16, textTransform: "uppercase" }}>
             Signal_Velocity_Monthly
           </h4>
           <ResponsiveContainer width="100%" height={200}>
@@ -191,11 +191,11 @@ export default function AnalyticsPage() {
               <XAxis dataKey="m" tick={CHART_STYLE} axisLine={false} tickLine={false} />
               <YAxis tick={CHART_STYLE} axisLine={false} tickLine={false} width={28} />
               <Tooltip
-                contentStyle={{ background: "#111111", border: "1px solid #1F1F1F", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
-                labelStyle={{ color: "#666666" }}
-                itemStyle={{ color: "#FAFAFA" }}
+                contentStyle={{ background: "var(--bg-alt)", border: "1px solid var(--border)", fontFamily: "'JetBrains Mono',monospace", fontSize: 10 }}
+                labelStyle={{ color: "var(--fg-dim)" }}
+                itemStyle={{ color: "var(--fg)" }}
               />
-              <Area type="monotone" dataKey="v" stroke="#FAFAFA" fill="#FAFAFA" fillOpacity={0.04} strokeWidth={1} />
+              <Area type="monotone" dataKey="v" stroke="var(--fg)" fill="var(--fg)" fillOpacity={0.04} strokeWidth={1} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -203,30 +203,30 @@ export default function AnalyticsPage() {
 
       {/* Top 10 table */}
       <div style={{ padding: "20px" }}>
-        <h4 style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.2em", marginBottom: 12, textTransform: "uppercase" }}>
+        <h4 style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.2em", marginBottom: 12, textTransform: "uppercase" }}>
           Top_10_Targets_By_Score
         </h4>
         <div>
           {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 56px 80px 100px", height: 28, alignItems: "center", borderBottom: "1px solid #1A1A1A" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 56px 80px 100px", height: 28, alignItems: "center", borderBottom: "1px solid var(--border)" }}>
             {["#","NOM","SCORE","CA","SIGNAL"].map(h => (
-              <span key={h} style={{ ...M, fontSize: 8, color: "#2A2A2A", letterSpacing: "0.12em" }}>{h}</span>
+              <span key={h} style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>{h}</span>
             ))}
           </div>
           {[...targets].sort((a, b) => b.globalScore - a.globalScore).slice(0, 10).map((t, i) => (
             <div key={t.id} style={{
               display: "grid", gridTemplateColumns: "32px 1fr 56px 80px 100px",
-              height: 36, alignItems: "center", borderBottom: "1px solid #0D0D0D",
+              height: 36, alignItems: "center", borderBottom: "1px solid var(--border)",
               transition: "background 0.1s",
             }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#0D0D0D")}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
               onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
             >
-              <span style={{ ...M, fontSize: 9, color: "#222222" }}>{String(i + 1).padStart(2, "0")}</span>
-              <span style={{ ...S, fontSize: 12, color: "#FAFAFA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-              <span style={{ ...M, fontSize: 11, color: t.globalScore >= 75 ? "#FAFAFA" : "#666666" }}>{t.globalScore}</span>
-              <span style={{ ...M, fontSize: 10, color: "#555555" }}>{t.financials?.revenue ?? "—"}</span>
-              <span style={{ ...M, fontSize: 8, color: t.bodacc_recent ? "#FF4500" : "#333333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>{String(i + 1).padStart(2, "0")}</span>
+              <span style={{ ...S, fontSize: 12, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+              <span style={{ ...M, fontSize: 11, color: t.globalScore >= 75 ? "var(--fg)" : "var(--fg-muted)" }}>{t.globalScore}</span>
+              <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>{t.financials?.revenue ?? "—"}</span>
+              <span style={{ ...M, fontSize: 8, color: t.bodacc_recent ? "#FF4500" : "var(--fg-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {t.topSignals?.[0]?.label?.toUpperCase().slice(0, 16) ?? "—"}
               </span>
             </div>

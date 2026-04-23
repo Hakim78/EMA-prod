@@ -59,39 +59,39 @@ export default function MapPage() {
   if (isError)   return <div style={{ height: "100dvh", display: "flex" }}><ErrorState onRetry={() => refetch()} /></div>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "var(--bg)" }}>
 
       {/* Header */}
       <div style={{
-        height: 40, borderBottom: "1px solid #1F1F1F", flexShrink: 0,
+        height: 40, borderBottom: "1px solid var(--border)", flexShrink: 0,
         display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
-        background: "#050505",
+        background: "var(--bg-raise)",
       }}>
-        <span style={{ ...M, fontSize: 10, color: "#FAFAFA", letterSpacing: "0.15em" }}>Carte_Tactique</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, padding: "3px 8px", border: "1px solid #1F1F1F" }}>
+        <span style={{ ...M, fontSize: 10, color: "var(--fg)", letterSpacing: "0.15em" }}>Carte_Tactique</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, padding: "3px 8px", border: "1px solid var(--border)" }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#FF4500", animation: "pulse 2s infinite" }} />
-          <span style={{ ...M, fontSize: 8, color: "#FAFAFA", letterSpacing: "0.12em" }}>ACTIVE_SCAN</span>
+          <span style={{ ...M, fontSize: 8, color: "var(--fg)", letterSpacing: "0.12em" }}>ACTIVE_SCAN</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", border: "1px solid #1F1F1F" }}>
-          <span style={{ width: 4, height: 4, background: "#333333" }} />
-          <span style={{ ...M, fontSize: 8, color: "#666666", letterSpacing: "0.12em" }}>PASSIVE</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 8px", border: "1px solid var(--border)" }}>
+          <span style={{ width: 4, height: 4, background: "var(--fg-dim)" }} />
+          <span style={{ ...M, fontSize: 8, color: "var(--fg-muted)", letterSpacing: "0.12em" }}>PASSIVE</span>
         </div>
         <div style={{ flex: 1 }} />
         <select
           value={sectorFilter}
           onChange={e => setSectorFilter(e.target.value)}
-          style={{ ...M, fontSize: 9, color: "#444444", background: "transparent", border: "1px solid #1F1F1F", padding: "3px 8px", outline: "none", cursor: "pointer" }}
+          style={{ ...M, fontSize: 9, color: "var(--fg-muted)", background: "var(--bg)", border: "1px solid var(--border)", padding: "3px 8px", outline: "none", cursor: "pointer" }}
         >
           <option value="">TOUS SECTEURS</option>
           {sectors.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <span style={{ ...M, fontSize: 8, color: "#444444" }}>{targets.length} NODES</span>
+        <span style={{ ...M, fontSize: 8, color: "var(--fg-muted)" }}>{targets.length} NODES</span>
       </div>
 
       {/* Main split */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-        {/* Map */}
+        {/* Map — intentionally dark (tactical radar aesthetic) */}
         <div style={{
           flex: 1, position: "relative", overflow: "hidden",
           background: "radial-gradient(ellipse at center, #0E0E0E 0%, #050505 100%)",
@@ -178,22 +178,22 @@ export default function MapPage() {
         {/* HUD Panel */}
         <div style={{
           width: selected ? 280 : 200, flexShrink: 0,
-          borderLeft: "1px solid #1F1F1F",
+          borderLeft: "1px solid var(--border)",
           display: "flex", flexDirection: "column",
           transition: "width 0.2s",
-          background: "#0A0A0A",
+          background: "var(--bg)",
         }}>
           {/* HUD header */}
           <div style={{
-            height: 40, borderBottom: "1px solid #1F1F1F",
+            height: 40, borderBottom: "1px solid var(--border)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "0 12px", flexShrink: 0, background: "#080808",
+            padding: "0 12px", flexShrink: 0, background: "var(--bg-raise)",
           }}>
-            <span style={{ ...M, fontSize: 9, color: "#333333", letterSpacing: "0.12em" }}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>
               {selected ? "HUD_SECURE_ANALYSIS" : "TOP_CIBLES_ZONE"}
             </span>
             {selected && (
-              <button onClick={() => setSelected(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#444444", display: "flex" }}>
+              <button onClick={() => setSelected(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-muted)", display: "flex" }}>
                 <X size={12} />
               </button>
             )}
@@ -202,12 +202,12 @@ export default function MapPage() {
           {selected ? (
             /* Selected target detail */
             <div style={{ flex: 1, overflowY: "auto", padding: 16 }} className="thin-scrollbar">
-              <div style={{ ...S, fontSize: 18, color: "#FAFAFA", fontStyle: "italic", borderBottom: "1px solid rgba(255,69,0,0.2)", paddingBottom: 8, marginBottom: 12, lineHeight: 1.2 }}>
+              <div style={{ ...S, fontSize: 18, color: "var(--fg)", fontStyle: "italic", borderBottom: "1px solid rgba(255,69,0,0.2)", paddingBottom: 8, marginBottom: 12, lineHeight: 1.2 }}>
                 {selected.name}
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 16 }}>
                 <span style={{ ...M, fontSize: 32, color: "#FF4500", letterSpacing: "-0.03em" }}>{selected.globalScore}</span>
-                <span style={{ ...M, fontSize: 8, color: "#444444", letterSpacing: "0.1em" }}>M&A_INDEX_SCORE</span>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-muted)", letterSpacing: "0.1em" }}>M&A_INDEX_SCORE</span>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
@@ -217,29 +217,29 @@ export default function MapPage() {
                   { k: "VILLE",        v: selected.city ?? "—" },
                   { k: "STRUCTURE",    v: selected.structure ?? "—" },
                 ].map(row => (
-                  <div key={row.k} style={{ background: "#111111", border: "1px solid #1A1A1A", padding: "8px 10px" }}>
-                    <div style={{ ...M, fontSize: 8, color: "#444444", marginBottom: 3 }}>{row.k}</div>
-                    <div style={{ ...M, fontSize: 11, color: "#FAFAFA" }}>{row.v}</div>
+                  <div key={row.k} style={{ background: "var(--bg-alt)", border: "1px solid var(--border)", padding: "8px 10px" }}>
+                    <div style={{ ...M, fontSize: 8, color: "var(--fg-muted)", marginBottom: 3 }}>{row.k}</div>
+                    <div style={{ ...M, fontSize: 11, color: "var(--fg)" }}>{row.v}</div>
                   </div>
                 ))}
               </div>
 
               {/* Liens détectés */}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ ...M, fontSize: 8, color: "#2A2A2A", letterSpacing: "0.15em", borderBottom: "1px solid #1A1A1A", paddingBottom: 4, marginBottom: 8 }}>LIENS_DÉTECTÉS</div>
+                <div style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.15em", borderBottom: "1px solid var(--border)", paddingBottom: 4, marginBottom: 8 }}>LIENS_DÉTECTÉS</div>
                 {[
                   { n: selected.group?.parent ?? "HOLDING MÈRE", r: "PARENT_ENTITY", c: "CONFIRMED" },
                   { n: selected.dirigeants?.[0]?.name ?? "DIRIGEANT", r: selected.dirigeants?.[0]?.role ?? "PDG", c: "ACTIVE" },
                 ].map((l, i) => (
                   <div key={i} style={{
-                    borderLeft: "2px solid #1F1F1F", paddingLeft: 8, paddingBottom: 6,
+                    borderLeft: "2px solid var(--border)", paddingLeft: 8, paddingBottom: 6,
                     marginBottom: 4, transition: "border-color 0.15s",
                   }}
                     onMouseEnter={e => (e.currentTarget.style.borderLeftColor = "#FF4500")}
-                    onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "#1F1F1F")}
+                    onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "var(--border)")}
                   >
-                    <div style={{ ...M, fontSize: 10, color: "#FAFAFA" }}>{l.n?.slice(0, 16)}</div>
-                    <div style={{ ...M, fontSize: 8, color: "#666666" }}>{l.r} // {l.c}</div>
+                    <div style={{ ...M, fontSize: 10, color: "var(--fg)" }}>{l.n?.slice(0, 16)}</div>
+                    <div style={{ ...M, fontSize: 8, color: "var(--fg-muted)" }}>{l.r} // {l.c}</div>
                   </div>
                 ))}
               </div>
@@ -250,22 +250,22 @@ export default function MapPage() {
                   onClick={() => router.push(`/graph?siren=${selected.siren}`)}
                   style={{
                     width: "100%", height: 40,
-                    border: "1px solid #1F1F1F", background: "#111111",
+                    border: "1px solid var(--border)", background: "var(--bg-alt)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    cursor: "pointer", color: "#FAFAFA",
+                    cursor: "pointer", color: "var(--fg)",
                     transition: "border-color 0.15s, background 0.15s",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#FF4500"; e.currentTarget.style.background = "rgba(255,69,0,0.05)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1F1F1F"; e.currentTarget.style.background = "#111111"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-alt)"; }}
                 >
                   <Network size={13} style={{ color: "#FF4500" }} />
                   <span style={{ ...M, fontSize: 9, letterSpacing: "0.12em" }}>ISOLER_LE_RÉSEAU</span>
                 </button>
                 <button
                   onClick={() => router.push(`/targets/${selected.id}`)}
-                  style={{ ...M, fontSize: 8, color: "#333333", background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.1em", padding: "6px 0" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#FAFAFA")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "#333333")}
+                  style={{ ...M, fontSize: 8, color: "var(--fg-dim)", background: "transparent", border: "none", cursor: "pointer", letterSpacing: "0.1em", padding: "6px 0" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--fg)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--fg-dim)")}
                 >
                   EXPORT_TACTICAL_DATA
                 </button>
@@ -278,15 +278,15 @@ export default function MapPage() {
                 <button key={t.id} onClick={() => setSelected(t)} style={{
                   width: "100%", display: "flex", alignItems: "center",
                   padding: "8px 12px",
-                  background: "transparent", border: "none", borderBottom: "1px solid #0D0D0D",
+                  background: "transparent", border: "none", borderBottom: "1px solid var(--border)",
                   cursor: "pointer", textAlign: "left",
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#0D0D0D")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
-                  <span style={{ ...M, fontSize: 9, color: "#222222", width: 20 }}>{String(i + 1).padStart(2, "0")}</span>
-                  <span style={{ ...S, fontSize: 11, color: "#FAFAFA", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-                  <span style={{ ...M, fontSize: 10, color: t.globalScore >= 75 ? "#FF4500" : "#555555" }}>{t.globalScore}</span>
+                  <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", width: 20 }}>{String(i + 1).padStart(2, "0")}</span>
+                  <span style={{ ...S, fontSize: 11, color: "var(--fg)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                  <span style={{ ...M, fontSize: 10, color: t.globalScore >= 75 ? "#FF4500" : "var(--fg-muted)" }}>{t.globalScore}</span>
                 </button>
               ))}
             </div>
