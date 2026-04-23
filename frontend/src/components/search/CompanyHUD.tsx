@@ -8,6 +8,7 @@ import { HintIcon } from "@/components/ui/Tooltip";
 import ErrorState from "@/components/ui/ErrorState";
 import type { SearchCompany } from "@/types/search";
 import type { Target } from "@/types/index";
+import CompanyNetworkGraph, { type NetworkNode, type NetworkLink } from "@/components/ui/CompanyNetworkGraph";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -19,7 +20,7 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
-const TABS = ["Summary", "Funding", "Portfolio", "People", "Financials"] as const;
+const TABS = ["Summary", "Funding", "Portfolio", "People", "Financials", "Network"] as const;
 type Tab = typeof TABS[number];
 
 interface Props {
@@ -185,6 +186,7 @@ export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
                   {tab === "Financials" && <FinancialsTab financials={financials} revenue={revenue} />}
                   {tab === "Funding"    && <FundingTab    group={group} company={company} />}
                   {tab === "Portfolio"  && <PortfolioTab  group={group} signals={signals} target={target} />}
+                  {tab === "Network"    && <NetworkTab    target={target} company={company} />}
                 </>
               )}
             </motion.div>
@@ -664,6 +666,47 @@ function FundingTab({ group, company }: {
           Aucune donnée de groupe disponible pour cette entreprise.
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Network Tab ────────────────────────────────────────────────────────────────
+
+function NetworkTab({ target, company }: {
+  target: Target | null;
+  company: SearchCompany;
+}) {
+  const nodes: NetworkNode[] = [
+    { id: company.siren ?? company.id, name: company.name, type: "company" },
+  ];
+  const links: NetworkLink[] = [];
+  const cid = company.siren ?? company.id;
+
+  target?.dirigeants?.forEach((d, i) => {
+    nodes.push({ id: `dir-${i}`, name: d.name, type: "director" });
+    links.push({ source: cid, target: `dir-${i}`, label: d.role });
+  });
+  target?.group?.subsidiaries?.slice(0, 5).forEach((sub, i) => {
+    nodes.push({ id: `sub-${i}`, name: sub, type: "subsidiary" });
+    links.push({ source: cid, target: `sub-${i}`, label: "filiale" });
+  });
+  if (target?.group?.parent) {
+    nodes.push({ id: "parent", name: target.group.parent, type: "investor" });
+    links.push({ source: "parent", target: cid, label: "détient" });
+  }
+
+  if (nodes.length <= 1) return (
+    <div style={{ ...S, fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.7 }}>
+      Aucune relation disponible pour construire le réseau.
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
+        RÉSEAU RELATIONNEL — {nodes.length} nœuds · {links.length} liens
+      </div>
+      <CompanyNetworkGraph nodes={nodes} links={links} height={360} />
     </div>
   );
 }

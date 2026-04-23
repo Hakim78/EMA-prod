@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
+import CompanyNetworkGraph, { type NetworkNode, type NetworkLink } from "@/components/ui/CompanyNetworkGraph";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
@@ -463,43 +464,66 @@ function GraphPageInner() {
                 </div>
               )}
 
-              {activeTab === "connexions" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {panelLinks.length === 0 ? (
-                    <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>Aucune connexion visible</span>
-                  ) : panelLinks.map((l, i) => {
-                    const other = (typeof l.source === "object" ? (l.source as GraphNode).id : l.source) === selectedNode.id
-                      ? (typeof l.target === "object" ? l.target as GraphNode : null)
-                      : (typeof l.source === "object" ? l.source as GraphNode : null);
-                    return (
-                      <div key={i} style={{
-                        borderLeft: "2px solid var(--border)", paddingLeft: 8, paddingBottom: 6,
-                        transition: "border-color 0.15s",
+              {activeTab === "connexions" && (() => {
+                const neighborNodes: NetworkNode[] = [
+                  { id: selectedNode.id, name: selectedNode.name, type: selectedNode.type === "director" ? "director" : selectedNode.is_holding ? "investor" : "company" },
+                  ...panelLinks.map(l => {
+                    const sid = typeof l.source === "object" ? (l.source as GraphNode).id : l.source;
+                    const tid = typeof l.target === "object" ? (l.target as GraphNode).id : l.target;
+                    const otherId = sid === selectedNode.id ? tid : sid;
+                    const other = graphData.nodes.find(n => n.id === otherId);
+                    if (!other) return null;
+                    return { id: other.id, name: other.name, type: other.type === "director" ? "director" as const : other.is_holding ? "investor" as const : "company" as const };
+                  }).filter((n): n is NetworkNode => n !== null),
+                ];
+                const neighborLinks: NetworkLink[] = panelLinks.map(l => ({
+                  source: typeof l.source === "object" ? (l.source as GraphNode).id : l.source as string,
+                  target: typeof l.target === "object" ? (l.target as GraphNode).id : l.target as string,
+                  label: l.label,
+                }));
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {panelLinks.length === 0 ? (
+                      <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)" }}>Aucune connexion visible</span>
+                    ) : (
+                      <>
+                        <CompanyNetworkGraph nodes={neighborNodes} links={neighborLinks} height={200} />
+                        {panelLinks.map((l, i) => {
+                          const other = (typeof l.source === "object" ? (l.source as GraphNode).id : l.source) === selectedNode.id
+                            ? (typeof l.target === "object" ? l.target as GraphNode : null)
+                            : (typeof l.source === "object" ? l.source as GraphNode : null);
+                          return (
+                            <div key={i} style={{
+                              borderLeft: "2px solid var(--border)", paddingLeft: 8, paddingBottom: 6,
+                              transition: "border-color 0.15s",
+                            }}
+                              onMouseEnter={e => (e.currentTarget.style.borderLeftColor = "#FF4500")}
+                              onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "var(--border)")}
+                            >
+                              <div style={{ ...M, fontSize: 10, color: "var(--fg)" }}>{other?.name?.slice(0, 18) ?? "—"}</div>
+                              <div style={{ ...M, fontSize: 8, color: "var(--fg-muted)" }}>{l.type?.toUpperCase()} // {l.label?.slice(0, 20)}</div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                    <button
+                      onClick={() => setFocusMode(p => !p)}
+                      style={{
+                        marginTop: 4, width: "100%", height: 32,
+                        border: `1px solid ${focusMode ? "#FF4500" : "var(--border)"}`,
+                        background: focusMode ? "rgba(255,69,0,0.05)" : "transparent",
+                        ...M, fontSize: 8, color: focusMode ? "#FF4500" : "var(--fg-muted)",
+                        cursor: "pointer", letterSpacing: "0.1em",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                       }}
-                        onMouseEnter={e => (e.currentTarget.style.borderLeftColor = "#FF4500")}
-                        onMouseLeave={e => (e.currentTarget.style.borderLeftColor = "var(--border)")}
-                      >
-                        <div style={{ ...M, fontSize: 10, color: "var(--fg)" }}>{other?.name?.slice(0, 18) ?? "—"}</div>
-                        <div style={{ ...M, fontSize: 8, color: "var(--fg-muted)" }}>{l.type?.toUpperCase()} // {l.label?.slice(0, 20)}</div>
-                      </div>
-                    );
-                  })}
-                  <button
-                    onClick={() => setFocusMode(p => !p)}
-                    style={{
-                      marginTop: 8, width: "100%", height: 32,
-                      border: `1px solid ${focusMode ? "#FF4500" : "var(--border)"}`,
-                      background: focusMode ? "rgba(255,69,0,0.05)" : "transparent",
-                      ...M, fontSize: 8, color: focusMode ? "#FF4500" : "var(--fg-muted)",
-                      cursor: "pointer", letterSpacing: "0.1em",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    }}
-                  >
-                    <Filter size={9} />
-                    {focusMode ? "DÉSACTIVER_FOCUS" : "ISOLER_CE_NŒUD"}
-                  </button>
-                </div>
-              )}
+                    >
+                      <Filter size={9} />
+                      {focusMode ? "DÉSACTIVER_FOCUS" : "ISOLER_CE_NŒUD"}
+                    </button>
+                  </div>
+                );
+              })()}
 
               {activeTab === "signaux" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

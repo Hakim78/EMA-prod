@@ -9,6 +9,24 @@ import {
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import type { Target } from "@/types";
+import CompanyNetworkGraph, { type NetworkNode, type NetworkLink } from "@/components/ui/CompanyNetworkGraph";
+
+function buildNetworkNodes(t: Target): NetworkNode[] {
+  const nodes: NetworkNode[] = [{ id: t.siren ?? t.id, name: t.name, type: "company" }];
+  t.dirigeants?.forEach((d, i) => nodes.push({ id: `dir-${i}`, name: d.name, type: "director" }));
+  t.group?.subsidiaries?.slice(0, 6).forEach((sub, i) => nodes.push({ id: `sub-${i}`, name: sub, type: "subsidiary" }));
+  if (t.group?.parent) nodes.push({ id: "parent", name: t.group.parent, type: "investor" });
+  return nodes;
+}
+
+function buildNetworkLinks(t: Target): NetworkLink[] {
+  const links: NetworkLink[] = [];
+  const cid = t.siren ?? t.id;
+  t.dirigeants?.forEach((_, i) => links.push({ source: cid, target: `dir-${i}`, label: "dirige" }));
+  t.group?.subsidiaries?.slice(0, 6).forEach((_, i) => links.push({ source: cid, target: `sub-${i}`, label: "filiale" }));
+  if (t.group?.parent) links.push({ source: "parent", target: cid, label: "détient" });
+  return links;
+}
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -384,6 +402,16 @@ export default function TargetDetail() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Réseau cartographique */}
+          <div style={{ background: "#0D0D0D", border: "1px solid #1F1F1F", padding: 20 }}>
+            <div style={{ ...M, fontSize: 8, color: "#2A2A2A", letterSpacing: "0.2em", marginBottom: 12 }}>04. RÉSEAU_CARTOGRAPHIQUE</div>
+            <CompanyNetworkGraph
+              nodes={buildNetworkNodes(target)}
+              links={buildNetworkLinks(target)}
+              height={300}
+            />
           </div>
 
           {/* Bottom bar */}
