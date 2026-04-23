@@ -7,6 +7,7 @@ import ReactCountryFlag from "react-country-flag";
 import { getLists, createList, deleteList } from "@/lib/lists";
 import type { WorkList } from "@/lib/lists";
 import type { SearchCompany } from "@/types/search";
+import { HintIcon } from "@/components/ui/Tooltip";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -206,6 +207,7 @@ export default function CompanyRow({
               <div style={{ height: "100%", width: `${company.score ?? 0}%`, background: (company.score ?? 0) >= 75 ? "var(--up)" : "var(--fg-muted)" }} />
             </div>
             <span style={{ ...M, fontSize: 10, color: "var(--fg-muted)" }}>{company.score ?? "—"}</span>
+            <HintIcon text="Score de pertinence M&A (0–100) calculé sur la base des signaux BODACC, financials et correspondance sectorielle." placement="top" />
           </div>
         );
       case "revenue":

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NumberTicker from "@/components/ui/NumberTicker";
 import { X, Globe, Linkedin, MapPin, Users, Calendar, Building2, Tag, Zap, Lock, Mail, Phone } from "lucide-react";
+import { HintIcon } from "@/components/ui/Tooltip";
 import type { SearchCompany } from "@/types/search";
 import type { Target } from "@/types/index";
 
@@ -478,8 +479,9 @@ function MatchScoreBlock({ company }: { company: SearchCompany }) {
 
       {/* Match score bars */}
       <div>
-        <div style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em", marginBottom: 10 }}>
+        <div style={{ ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.08em", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
           MATCH SCORE
+          <HintIcon text="Score de pertinence M&A de 0 à 100 — calculé sur signaux BODACC, financials, croissance et correspondance sectorielle. ≥75 = cible prioritaire." placement="right" />
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
           {/* 3 vertical bars — height grows with score */}
