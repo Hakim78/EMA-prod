@@ -264,6 +264,7 @@ export default function CompanyRow({
             {/* Checkbox */}
             <div
               onClick={e => { e.stopPropagation(); onToggleSelect?.(); }}
+              onPointerDown={(e: { stopPropagation: () => void }) => e.stopPropagation()}
               style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
             >
               <div style={{

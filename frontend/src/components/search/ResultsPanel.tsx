@@ -150,7 +150,7 @@ export default function ResultsPanel({
 
   // ── Selection ────────────────────────────────────────────────────────────────
   const allSelected = displayed.length > 0 && displayed.every(c => selectedIds.has(c.id));
-  const someSelected = selectedIds.size > 0;
+  const someSelected = displayed.some(c => selectedIds.has(c.id));
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
