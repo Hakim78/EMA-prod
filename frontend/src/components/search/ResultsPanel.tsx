@@ -43,6 +43,8 @@ export default function ResultsPanel({
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId]         = useState<string | null>(null);
   const colEditorRef                      = useRef<HTMLDivElement>(null);
+  const rowsContainerRef                  = useRef<HTMLDivElement>(null);
+  const displayedRef                      = useRef<SearchCompany[]>([]);
 
   const showAI = Object.keys(aiInsights).length > 0;
 
@@ -64,21 +66,54 @@ export default function ResultsPanel({
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      switch (e.key.toLowerCase()) {
-        case "s":
-          if (hoveredId && !savedIds.has(hoveredId)) { e.preventDefault(); onSave(hoveredId); }
-          break;
-        case "h":
-          if (hoveredId) { e.preventDefault(); onHide(hoveredId); }
-          break;
-        case "e":
-          if (e.ctrlKey || e.metaKey) break; // let browser handle Ctrl+E
+      switch (e.key) {
+        case "ArrowDown": {
           e.preventDefault();
-          exportAll();
+          const list = displayedRef.current;
+          const idx = hoveredId ? list.findIndex(c => c.id === hoveredId) : -1;
+          const next = list[Math.min(idx + 1, list.length - 1)];
+          if (next) {
+            setHoveredId(next.id);
+            rowsContainerRef.current?.querySelector(`[data-id="${next.id}"]`)?.scrollIntoView({ block: "nearest" });
+          }
           break;
-        case "a":
-          if (e.ctrlKey || e.metaKey) { e.preventDefault(); toggleSelectAll(); }
+        }
+        case "ArrowUp": {
+          e.preventDefault();
+          const list = displayedRef.current;
+          const idx = hoveredId ? list.findIndex(c => c.id === hoveredId) : 1;
+          const prev = list[Math.max(idx - 1, 0)];
+          if (prev) {
+            setHoveredId(prev.id);
+            rowsContainerRef.current?.querySelector(`[data-id="${prev.id}"]`)?.scrollIntoView({ block: "nearest" });
+          }
           break;
+        }
+        case "Enter": {
+          if (hoveredId) {
+            e.preventDefault();
+            const company = displayedRef.current.find(c => c.id === hoveredId);
+            if (company) onRowClick(company);
+          }
+          break;
+        }
+        default:
+          switch (e.key.toLowerCase()) {
+            case "s":
+              if (hoveredId && !savedIds.has(hoveredId)) { e.preventDefault(); onSave(hoveredId); }
+              break;
+            case "h":
+              if (hoveredId) { e.preventDefault(); onHide(hoveredId); }
+              break;
+            case "e":
+              if (e.ctrlKey || e.metaKey) break;
+              e.preventDefault();
+              exportAll();
+              break;
+            case "a":
+              if (e.ctrlKey || e.metaKey) { e.preventDefault(); toggleSelectAll(); }
+              break;
+          }
       }
     }
     document.addEventListener("keydown", onKey);
@@ -109,6 +144,9 @@ export default function ResultsPanel({
       return !excludePills.some(p => hay.includes(p.value.toLowerCase()));
     });
   }
+
+  // Keep ref in sync so keyboard handler always reads latest list
+  displayedRef.current = displayed;
 
   // ── Selection ────────────────────────────────────────────────────────────────
   const allSelected = displayed.length > 0 && displayed.every(c => selectedIds.has(c.id));
@@ -394,7 +432,7 @@ export default function ResultsPanel({
       )}
 
       {/* ── Rows — minHeight:0 critique pour que le footer reste en bas ─────── */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+      <div ref={rowsContainerRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         {loading && companies.length === 0
           ? Array.from({ length: 10 }).map((_, i) => (
               <SkeletonRow key={i} index={i} cols={visibleCols} showAI={showAI} />
@@ -402,26 +440,27 @@ export default function ResultsPanel({
           : displayed.length === 0
             ? <EmptyState signalFilter={signalFilter} />
             : displayed.map((c, i) => (
-                <CompanyRow
-                  key={c.id}
-                  company={c}
-                  rank={i + 1}
-                  saved={savedIds.has(c.id)}
-                  cols={visibleCols}
-                  selected={selectedIds.has(c.id)}
-                  crmStatus={
-                    i === 1 ? { source: "Salesforce", lastContact: "Oct 2025" } :
-                    i === 3 ? { source: "DealCloud",  lastContact: "Jan 2025" } :
-                    undefined
-                  }
-                  aiInsight={aiInsights[c.id]}
-                  onSave={() => onSave(c.id)}
-                  onHide={() => onHide(c.id)}
-                  onClick={() => onRowClick(c)}
-                  onToggleSelect={() => toggleSelect(c.id)}
-                  onMouseEnter={() => setHoveredId(c.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                />
+                <div key={c.id} data-id={c.id}>
+                  <CompanyRow
+                    company={c}
+                    rank={i + 1}
+                    saved={savedIds.has(c.id)}
+                    cols={visibleCols}
+                    selected={selectedIds.has(c.id)}
+                    crmStatus={
+                      i === 1 ? { source: "Salesforce", lastContact: "Oct 2025" } :
+                      i === 3 ? { source: "DealCloud",  lastContact: "Jan 2025" } :
+                      undefined
+                    }
+                    aiInsight={aiInsights[c.id]}
+                    onSave={() => onSave(c.id)}
+                    onHide={() => onHide(c.id)}
+                    onClick={() => onRowClick(c)}
+                    onToggleSelect={() => toggleSelect(c.id)}
+                    onMouseEnter={() => setHoveredId(c.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  />
+                </div>
               ))
         }
       </div>
