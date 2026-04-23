@@ -8,6 +8,7 @@ import {
   AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, Radar,
 } from "recharts";
 import { ArrowUpRight } from "lucide-react";
+import { AnalyticsSkeleton } from "@/components/ui/PageSkeleton";
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -22,6 +23,8 @@ const CHART_STYLE = {
 export default function AnalyticsPage() {
   const { data, isLoading } = useTargets();
   const targets: Target[] = data?.data ?? [];
+
+  if (isLoading) return <AnalyticsSkeleton />;
 
   const total = data?.total ?? 0;
   const avgScore = useMemo(() => {

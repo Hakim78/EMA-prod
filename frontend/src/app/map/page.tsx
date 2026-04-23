@@ -5,6 +5,7 @@ import { useTargets } from "@/lib/queries/useTargets";
 import type { Target } from "@/types";
 import { Network, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
 
 const M = { fontFamily: "'JetBrains Mono',monospace" } as const;
 const S = { fontFamily: "Inter,sans-serif" } as const;
@@ -52,6 +53,8 @@ export default function MapPage() {
   }, [data, sectorFilter]);
 
   const sectors = data?.filters?.sectors ?? [];
+
+  if (isLoading) return <CanvasSkeleton label="CHARGEMENT_CARTE…" />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>

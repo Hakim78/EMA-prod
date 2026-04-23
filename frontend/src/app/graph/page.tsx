@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { CanvasSkeleton } from "@/components/ui/PageSkeleton";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
@@ -230,6 +231,8 @@ function GraphPageInner() {
       return s === selectedNode.id || t === selectedNode.id;
     }).slice(0, 8);
   }, [selectedNode, graphData.links]);
+
+  if (loading) return <CanvasSkeleton label="CHARGEMENT_GRAPHE…" />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden", background: "#0A0A0A" }}>
