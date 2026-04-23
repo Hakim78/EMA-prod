@@ -17,17 +17,21 @@ export default function SignalsPage() {
   const [sevFilter, setSevFilter] = useState("");
   const [srcFilter, setSrcFilter] = useState("");
 
+  const rawList = useMemo(() => {
+    const d = data as { data?: Signal[] } | Signal[] | undefined;
+    return (Array.isArray(d) ? d : (d as { data?: Signal[] })?.data ?? []) as Signal[];
+  }, [data]);
+
   const signals: Signal[] = useMemo(() => {
-    let list = (Array.isArray(data) ? data : []) as Signal[];
+    let list = [...rawList];
     if (sevFilter) list = list.filter(s => s.severity === sevFilter);
     if (srcFilter) list = list.filter(s => s.source === srcFilter);
     return list;
-  }, [data, sevFilter, srcFilter]);
+  }, [rawList, sevFilter, srcFilter]);
 
   const sources = useMemo(() => {
-    const all = (Array.isArray(data) ? data : []) as Signal[];
-    return [...new Set(all.map(s => s.source))].filter(Boolean);
-  }, [data]);
+    return [...new Set(rawList.map(s => s.source))].filter(Boolean);
+  }, [rawList]);
 
   if (isError) return <div style={{ height: "100%", display: "flex" }}><ErrorState onRetry={() => refetch()} /></div>;
 

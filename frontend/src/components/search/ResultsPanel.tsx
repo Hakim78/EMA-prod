@@ -392,77 +392,80 @@ export default function ResultsPanel({
         </div>
       )}
 
-      {/* ── Table header ────────────────────────────────────────────────────── */}
-      {hasData && (
-        <div style={{
-          display: "grid", gridTemplateColumns: COL_WIDTHS,
-          padding: "0 16px", height: 26, alignItems: "center",
-          borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--bg-alt)",
-        }}>
-          {COL_LABELS.map((h, idx) =>
-            idx === 0 ? (
-              <div key="select-all" style={{ display: "flex", alignItems: "center" }}>
-                <div
-                  onClick={toggleSelectAll}
-                  style={{
-                    width: 14, height: 14, cursor: "pointer",
-                    border: `1px solid ${allSelected ? "#2563EB" : "var(--border)"}`,
-                    background: allSelected ? "#2563EB" : someSelected ? "rgba(37,99,235,0.15)" : "transparent",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.1s",
-                  }}
-                >
-                  {allSelected && <Check size={9} style={{ color: "#fff" }} />}
-                  {!allSelected && someSelected && (
-                    <div style={{ width: 6, height: 2, background: "#2563EB" }} />
-                  )}
-                </div>
-              </div>
-            ) : (
-              <span key={h + idx} style={{
-                ...M, fontSize: 9,
-                color: "var(--fg-dim)",
-                letterSpacing: "0.1em",
-              }}>
-                {h.toUpperCase()}
-              </span>
-            )
-          )}
-        </div>
-      )}
+      {/* ── Table header + Rows (shared horizontal scroll) ───────────────── */}
+      <div ref={rowsContainerRef} style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+        {/* Inner wrapper enforces min-width so fr columns never collapse */}
+        <div style={{ minWidth: "max-content", width: "100%" }}>
 
-      {/* ── Rows — minHeight:0 critique pour que le footer reste en bas ─────── */}
-      <div ref={rowsContainerRef} style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-        {loading && companies.length === 0
-          ? Array.from({ length: 10 }).map((_, i) => (
-              <SkeletonRow key={i} index={i} cols={visibleCols} showAI={showAI} />
-            ))
-          : displayed.length === 0
-            ? <EmptyState signalFilter={signalFilter} />
-            : displayed.map((c, i) => (
-                <div key={c.id} data-id={c.id}>
-                  <CompanyRow
-                    company={c}
-                    rank={i + 1}
-                    saved={savedIds.has(c.id)}
-                    cols={visibleCols}
-                    selected={selectedIds.has(c.id)}
-                    crmStatus={
-                      i === 1 ? { source: "Salesforce", lastContact: "Oct 2025" } :
-                      i === 3 ? { source: "DealCloud",  lastContact: "Jan 2025" } :
-                      undefined
-                    }
-                    aiInsight={aiInsights[c.id]}
-                    onSave={() => onSave(c.id)}
-                    onHide={() => onHide(c.id)}
-                    onClick={() => onRowClick(c)}
-                    onToggleSelect={() => toggleSelect(c.id)}
-                    onMouseEnter={() => setHoveredId(c.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                  />
-                </div>
+          {/* Sticky header */}
+          {hasData && (
+            <div style={{
+              display: "grid", gridTemplateColumns: COL_WIDTHS,
+              padding: "0 16px", height: 26, alignItems: "center",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--bg-alt)",
+              position: "sticky", top: 0, zIndex: 2,
+            }}>
+              {COL_LABELS.map((h, idx) =>
+                idx === 0 ? (
+                  <div key="select-all" style={{ display: "flex", alignItems: "center" }}>
+                    <div
+                      onClick={toggleSelectAll}
+                      style={{
+                        width: 14, height: 14, cursor: "pointer",
+                        border: `1px solid ${allSelected ? "#2563EB" : "var(--border)"}`,
+                        background: allSelected ? "#2563EB" : someSelected ? "rgba(37,99,235,0.15)" : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.1s",
+                      }}
+                    >
+                      {allSelected && <Check size={9} style={{ color: "#fff" }} />}
+                      {!allSelected && someSelected && (
+                        <div style={{ width: 6, height: 2, background: "#2563EB" }} />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <span key={h + idx} style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
+                    {h.toUpperCase()}
+                  </span>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Rows */}
+          {loading && companies.length === 0
+            ? Array.from({ length: 10 }).map((_, i) => (
+                <SkeletonRow key={i} index={i} cols={visibleCols} showAI={showAI} />
               ))
-        }
+            : displayed.length === 0
+              ? <EmptyState signalFilter={signalFilter} />
+              : displayed.map((c, i) => (
+                  <div key={c.id} data-id={c.id}>
+                    <CompanyRow
+                      company={c}
+                      rank={i + 1}
+                      saved={savedIds.has(c.id)}
+                      cols={visibleCols}
+                      selected={selectedIds.has(c.id)}
+                      crmStatus={
+                        i === 1 ? { source: "Salesforce", lastContact: "Oct 2025" } :
+                        i === 3 ? { source: "DealCloud",  lastContact: "Jan 2025" } :
+                        undefined
+                      }
+                      aiInsight={aiInsights[c.id]}
+                      onSave={() => onSave(c.id)}
+                      onHide={() => onHide(c.id)}
+                      onClick={() => onRowClick(c)}
+                      onToggleSelect={() => toggleSelect(c.id)}
+                      onMouseEnter={() => setHoveredId(c.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                    />
+                  </div>
+                ))
+          }
+        </div>
       </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}

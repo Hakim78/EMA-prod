@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import {
   MagnifyingGlassIcon,
   PersonIcon,
@@ -40,9 +40,6 @@ const CREDITS = 47;
 export default function TopNav() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <aside className="w-12 h-full flex flex-col items-center shrink-0 z-50 bg-[var(--bg-raise)] border-r border-[var(--border)] relative">
@@ -135,22 +132,20 @@ export default function TopNav() {
         </Link>
 
         {/* Theme toggle */}
-        {mounted && (
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="group relative w-8 h-8 flex items-center justify-center rounded-md border border-transparent hover:border-[var(--border)] hover:bg-[var(--bg-alt)] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-all"
-            style={{ cursor: "pointer", background: "transparent" }}
-          >
-            {theme === "dark"
-              ? <SunIcon width={15} height={15} />
-              : <MoonIcon width={15} height={15} />
-            }
-            <div className="absolute left-12 px-2.5 py-1.5 bg-[var(--fg)] text-[var(--bg)] text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 whitespace-nowrap shadow-lg z-50">
-              {theme === "dark" ? "Mode clair" : "Mode sombre"}
-              <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[4px] border-r-[var(--fg)]" />
-            </div>
-          </button>
-        )}
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="group relative w-8 h-8 flex items-center justify-center rounded-md border border-transparent hover:border-[var(--border)] hover:bg-[var(--bg-alt)] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-all"
+          style={{ cursor: "pointer", background: "transparent" }}
+        >
+          {theme === "dark"
+            ? <SunIcon width={15} height={15} />
+            : <MoonIcon width={15} height={15} />
+          }
+          <div className="absolute left-12 px-2.5 py-1.5 bg-[var(--fg)] text-[var(--bg)] text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 whitespace-nowrap shadow-lg z-50">
+            {theme === "dark" ? "Mode clair" : "Mode sombre"}
+            <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[4px] border-r-[var(--fg)]" />
+          </div>
+        </button>
 
         {/* User avatar */}
         <div

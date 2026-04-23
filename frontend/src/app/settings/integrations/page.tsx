@@ -97,16 +97,15 @@ const INTEGRATIONS = [
   { id: "outlook",    Logo: OutlookLogo,    color: "#0078D4", title: "Outlook / Exchange", sub: "Email Intelligence",       desc: "Détection de relations via l'historique email et réunions.", category: "Messaging" },
 ];
 
-// EdRCF canonical fields
 const EDRCF_FIELDS = [
-  { key: "company_name",   label: "Company Name",       type: "string",  required: true  },
-  { key: "siren",          label: "SIREN / Tax ID",     type: "string",  required: true  },
-  { key: "revenue",        label: "Revenue (k€)",       type: "number",  required: false },
-  { key: "sector",         label: "Sector",             type: "string",  required: false },
-  { key: "city",           label: "City",               type: "string",  required: false },
-  { key: "deal_stage",     label: "Deal Stage",         type: "string",  required: false },
-  { key: "last_contact",   label: "Last Contact Date",  type: "date",    required: false },
-  { key: "owner",          label: "Deal Owner",         type: "string",  required: false },
+  { key: "company_name", label: "Company Name",      type: "string", required: true  },
+  { key: "siren",        label: "SIREN / Tax ID",    type: "string", required: true  },
+  { key: "revenue",      label: "Revenue (k€)",      type: "number", required: false },
+  { key: "sector",       label: "Sector",            type: "string", required: false },
+  { key: "city",         label: "City",              type: "string", required: false },
+  { key: "deal_stage",   label: "Deal Stage",        type: "string", required: false },
+  { key: "last_contact", label: "Last Contact Date", type: "date",   required: false },
+  { key: "owner",        label: "Deal Owner",        type: "string", required: false },
 ];
 
 const CRM_FIELD_SUGGESTIONS: Record<string, string[]> = {
@@ -122,17 +121,16 @@ const CRM_FIELD_SUGGESTIONS: Record<string, string[]> = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
-  const [status, setStatus]   = useState<Record<string, "idle" | "loading" | "connected">>(
+  const [status, setStatus] = useState<Record<string, "idle" | "loading" | "connected">>(
     Object.fromEntries(INTEGRATIONS.map(i => [i.id, "idle"]))
   );
   const [mappingFor, setMappingFor] = useState<string | null>(null);
   const [fieldMaps, setFieldMaps]   = useState<Record<string, Record<string, string>>>({});
 
-  const handleConnect = (id: string) => {
+  const handleConnect    = (id: string) => {
     setStatus(p => ({ ...p, [id]: "loading" }));
     setTimeout(() => setStatus(p => ({ ...p, [id]: "connected" })), 1400 + Math.random() * 700);
   };
-
   const handleDisconnect = (id: string) => {
     setStatus(p => ({ ...p, [id]: "idle" }));
     setFieldMaps(p => { const n = { ...p }; delete n[id]; return n; });
@@ -141,31 +139,31 @@ export default function IntegrationsPage() {
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", background: "#FAFAFA", ...S }}>
+    <div style={{ height: "100%", overflowY: "auto", background: "var(--bg)", ...S }}>
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "32px 24px 80px" }}>
 
         {/* Page header */}
         <div style={{ marginBottom: 36 }}>
-          <div style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.14em", marginBottom: 10 }}>
+          <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.14em", marginBottom: 10 }}>
             SETTINGS / INTEGRATIONS
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: "0 0 6px" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--fg)", margin: "0 0 6px" }}>
             Data & Integrations
           </h1>
-          <p style={{ fontSize: 13, color: "#6B7280", margin: 0, lineHeight: 1.65 }}>
+          <p style={{ fontSize: 13, color: "var(--fg-muted)", margin: 0, lineHeight: 1.65 }}>
             Connect your CRM and sourcing tools to eliminate duplicates and enrich your pipeline automatically.
           </p>
         </div>
 
-        {/* Connected count banner */}
+        {/* Connected banner */}
         {Object.values(status).some(s => s === "connected") && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 16px", marginBottom: 24,
-            background: "#F0FDF4", border: "1px solid #BBF7D0",
+            background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.25)",
           }}>
             <Check size={13} style={{ color: "#16A34A", flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: "#166534" }}>
+            <span style={{ fontSize: 12, color: "#16A34A" }}>
               {Object.values(status).filter(s => s === "connected").length} integration{Object.values(status).filter(s => s === "connected").length > 1 ? "s" : ""} active — duplicate detection enabled
             </span>
           </div>
@@ -174,12 +172,12 @@ export default function IntegrationsPage() {
         {/* Groups */}
         {categories.map(cat => (
           <div key={cat} style={{ marginBottom: 28 }}>
-            <div style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.12em", marginBottom: 10 }}>
+            <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", marginBottom: 10 }}>
               {cat.toUpperCase()}
             </div>
 
-            <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-              {INTEGRATIONS.filter(i => i.category === cat).map(({ id, Logo, color, title, sub, desc }, idx, arr) => {
+            <div style={{ background: "var(--bg-raise)", border: "1px solid var(--border)" }}>
+              {INTEGRATIONS.filter(i => i.category === cat).map(({ id, Logo, title, sub, desc }, idx, arr) => {
                 const s = status[id];
                 const mapped = !!fieldMaps[id];
                 return (
@@ -188,13 +186,13 @@ export default function IntegrationsPage() {
                     style={{
                       display: "flex", alignItems: "center", gap: 16,
                       padding: "15px 20px",
-                      borderBottom: idx < arr.length - 1 ? "1px solid #F3F4F6" : "none",
+                      borderBottom: idx < arr.length - 1 ? "1px solid var(--border-sub)" : "none",
                     }}
                   >
                     {/* Icon */}
                     <div style={{
                       width: 34, height: 34, flexShrink: 0,
-                      border: "1px solid #F3F4F6", background: "#FAFAFA",
+                      border: "1px solid var(--border)", background: "var(--bg-alt)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       <Logo />
@@ -203,10 +201,10 @@ export default function IntegrationsPage() {
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{title}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{title}</span>
                         <span style={{
-                          ...M, fontSize: 8, color: "#9CA3AF", letterSpacing: "0.06em",
-                          border: "1px solid #F3F4F6", padding: "1px 5px",
+                          ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.06em",
+                          border: "1px solid var(--border)", padding: "1px 5px",
                         }}>
                           {sub.toUpperCase()}
                         </span>
@@ -221,7 +219,7 @@ export default function IntegrationsPage() {
                           </span>
                         )}
                       </div>
-                      <span style={{ fontSize: 12, color: "#9CA3AF", lineHeight: 1.5 }}>{desc}</span>
+                      <span style={{ fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5 }}>{desc}</span>
                     </div>
 
                     {/* Actions */}
@@ -231,24 +229,24 @@ export default function IntegrationsPage() {
                           <button
                             onClick={() => setMappingFor(id)}
                             style={{
-                              fontSize: 12, color: "#374151",
-                              background: "transparent", border: "1px solid #E5E7EB",
+                              fontSize: 12, color: "var(--fg)",
+                              background: "transparent", border: "1px solid var(--border)",
                               padding: "6px 14px", cursor: "pointer", transition: "all 0.1s",
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.borderColor = "#374151")}
-                            onMouseLeave={e => (e.currentTarget.style.borderColor = "#E5E7EB")}
+                            onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--fg)")}
+                            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
                           >
                             {mapped ? "Edit Mapping" : "Set Up"}
                           </button>
                           <button
                             onClick={() => handleDisconnect(id)}
                             style={{
-                              fontSize: 12, color: "#9CA3AF",
-                              background: "transparent", border: "1px solid #F3F4F6",
+                              fontSize: 12, color: "var(--fg-muted)",
+                              background: "transparent", border: "1px solid var(--border)",
                               padding: "6px 10px", cursor: "pointer", transition: "all 0.1s",
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = "#DC2626"; e.currentTarget.style.color = "#DC2626"; }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = "#F3F4F6"; e.currentTarget.style.color = "#9CA3AF"; }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--down)"; e.currentTarget.style.color = "var(--down)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
                           >
                             Disconnect
                           </button>
@@ -261,14 +259,14 @@ export default function IntegrationsPage() {
                           style={{
                             display: "flex", alignItems: "center", gap: 6,
                             fontSize: 12, fontWeight: 500, padding: "6px 16px",
-                            border: "1px solid #111827",
-                            background: s === "loading" ? "#F9FAFB" : "transparent",
-                            color: s === "loading" ? "#9CA3AF" : "#111827",
+                            border: "1px solid var(--fg)",
+                            background: s === "loading" ? "var(--bg-alt)" : "transparent",
+                            color: s === "loading" ? "var(--fg-muted)" : "var(--fg)",
                             cursor: s === "idle" ? "pointer" : "default",
                             transition: "all 0.15s", whiteSpace: "nowrap" as const,
                           }}
-                          onMouseEnter={e => { if (s === "idle") { e.currentTarget.style.background = "#111827"; e.currentTarget.style.color = "#fff"; } }}
-                          onMouseLeave={e => { if (s === "idle") { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#111827"; } }}
+                          onMouseEnter={e => { if (s === "idle") { e.currentTarget.style.background = "var(--fg)"; e.currentTarget.style.color = "var(--bg)"; } }}
+                          onMouseLeave={e => { if (s === "idle") { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--fg)"; } }}
                         >
                           {s === "loading"
                             ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Connecting…</>
@@ -308,53 +306,47 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
   onClose: () => void;
 }) {
   const [map, setMap] = useState<Record<string, string>>(existing);
-  const suggestions = CRM_FIELD_SUGGESTIONS[id] ?? CRM_FIELD_SUGGESTIONS.dealcloud;
-  const mappedCount = Object.values(map).filter(Boolean).length;
+  const suggestions  = CRM_FIELD_SUGGESTIONS[id] ?? CRM_FIELD_SUGGESTIONS.dealcloud;
+  const mappedCount  = Object.values(map).filter(Boolean).length;
   const requiredMapped = EDRCF_FIELDS.filter(f => f.required).every(f => !!map[f.key]);
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.2)", zIndex: 200 }}
-      />
-
-      {/* Dialog */}
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 200 }} />
       <div style={{
         position: "fixed", top: "50%", left: "50%",
         transform: "translate(-50%,-50%)",
         zIndex: 201,
         width: 620, maxHeight: "82vh",
-        background: "#FFFFFF", border: "1px solid #E5E7EB",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.10)",
+        background: "var(--bg-raise)", border: "1px solid var(--border)",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
         display: "flex", flexDirection: "column",
         ...S,
       }}>
 
-        {/* Dialog header */}
+        {/* Header */}
         <div style={{
           padding: "18px 24px 14px",
-          borderBottom: "1px solid #F3F4F6",
+          borderBottom: "1px solid var(--border)",
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
           flexShrink: 0,
         }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <integration.Logo />
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--fg)" }}>
                 Configure {integration.title}
               </span>
             </div>
-            <p style={{ fontSize: 12, color: "#6B7280", margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 12, color: "var(--fg-muted)", margin: 0, lineHeight: 1.55 }}>
               Map your {integration.title} fields to EdRCF properties for bi-directional sync.
             </p>
           </div>
           <button
             onClick={onClose}
-            style={{ background: "transparent", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 4, display: "flex" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#374151")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#9CA3AF")}
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-muted)", padding: 4, display: "flex" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--fg)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--fg-muted)")}
           >
             <X size={15} />
           </button>
@@ -363,12 +355,12 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
         {/* Column headers */}
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 28px 1fr",
-          padding: "8px 24px", background: "#F9FAFB",
-          borderBottom: "1px solid #F3F4F6", flexShrink: 0,
+          padding: "8px 24px", background: "var(--bg-alt)",
+          borderBottom: "1px solid var(--border)", flexShrink: 0,
         }}>
-          <span style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.1em" }}>EdRCF FIELD</span>
+          <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>EdRCF FIELD</span>
           <span />
-          <span style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.1em" }}>
+          <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em" }}>
             {integration.title.toUpperCase()} FIELD
           </span>
         </div>
@@ -382,33 +374,30 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
                 display: "grid", gridTemplateColumns: "1fr 28px 1fr",
                 alignItems: "center",
                 padding: "11px 24px",
-                borderBottom: i < EDRCF_FIELDS.length - 1 ? "1px solid #F9FAFB" : "none",
-                background: map[key] ? "transparent" : required ? "rgba(254,243,199,0.3)" : "transparent",
+                borderBottom: i < EDRCF_FIELDS.length - 1 ? "1px solid var(--border-sub)" : "none",
+                background: !map[key] && required ? "rgba(234,88,12,0.04)" : "transparent",
               }}
             >
-              {/* EdRCF */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>{label}</span>
-                <span style={{ ...M, fontSize: 8, color: "#D1D5DB", letterSpacing: "0.06em" }}>{type}</span>
-                {required && <span style={{ ...M, fontSize: 8, color: "#DC2626" }}>REQ</span>}
+                <span style={{ fontSize: 13, color: "var(--fg)", fontWeight: 500 }}>{label}</span>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.06em" }}>{type}</span>
+                {required && <span style={{ ...M, fontSize: 8, color: "var(--signal)" }}>REQ</span>}
               </div>
 
-              {/* Arrow */}
-              <ArrowRight size={11} style={{ color: "#D1D5DB", justifySelf: "center" as const }} />
+              <ArrowRight size={11} style={{ color: "var(--fg-dim)", justifySelf: "center" as const }} />
 
-              {/* CRM select */}
               <select
                 value={map[key] ?? ""}
                 onChange={e => setMap(p => ({ ...p, [key]: e.target.value }))}
                 style={{
-                  width: "100%", border: "1px solid #E5E7EB",
+                  width: "100%", border: "1px solid var(--border)",
                   padding: "6px 9px", fontSize: 12, cursor: "pointer",
-                  color: map[key] ? "#111827" : "#9CA3AF",
-                  background: "#FFFFFF", outline: "none",
+                  color: map[key] ? "var(--fg)" : "var(--fg-muted)",
+                  background: "var(--bg-raise)", outline: "none",
                   ...M, transition: "border-color 0.1s",
                 }}
-                onFocus={e => (e.target.style.borderColor = "#374151")}
-                onBlur={e => (e.target.style.borderColor = "#E5E7EB")}
+                onFocus={e => (e.target.style.borderColor = "var(--fg)")}
+                onBlur={e => (e.target.style.borderColor = "var(--border)")}
               >
                 <option value="">— Not mapped —</option>
                 {suggestions.map(opt => (
@@ -422,12 +411,12 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
         {/* Footer */}
         <div style={{
           padding: "14px 24px",
-          borderTop: "1px solid #F3F4F6",
+          borderTop: "1px solid var(--border)",
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          flexShrink: 0, background: "#FAFAFA",
+          flexShrink: 0, background: "var(--bg-alt)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.06em" }}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.06em" }}>
               {mappedCount}/{EDRCF_FIELDS.length} MAPPED
             </span>
             {!requiredMapped && (
@@ -440,12 +429,12 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
             <button
               onClick={onClose}
               style={{
-                fontSize: 12, color: "#6B7280", background: "transparent",
-                border: "1px solid #E5E7EB", padding: "8px 18px",
+                fontSize: 12, color: "var(--fg-muted)", background: "transparent",
+                border: "1px solid var(--border)", padding: "8px 18px",
                 cursor: "pointer", transition: "all 0.1s",
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "#374151")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = "#E5E7EB")}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--fg)")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
             >
               Cancel
             </button>
@@ -453,11 +442,11 @@ function FieldMappingModal({ id, integration, existing, onSave, onClose }: {
               onClick={() => onSave(map)}
               style={{
                 fontSize: 12, fontWeight: 500,
-                background: "#111827", color: "#FFFFFF",
+                background: "var(--fg)", color: "var(--bg)",
                 border: "none", padding: "8px 22px",
                 cursor: "pointer", transition: "opacity 0.1s",
               }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
+              onMouseEnter={e => (e.currentTarget.style.opacity = "0.8")}
               onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
             >
               Save Mapping
