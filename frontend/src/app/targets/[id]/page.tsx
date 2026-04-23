@@ -113,7 +113,7 @@ export default function TargetDetail() {
   const hot = target.bodacc_recent;
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#0A0A0A", overflowY: "auto" }} className="thin-scrollbar">
+    <div style={{ height: "100%", background: "#0A0A0A", overflowY: "auto" }} className="thin-scrollbar">
 
       {/* Toast */}
       {toast && (
