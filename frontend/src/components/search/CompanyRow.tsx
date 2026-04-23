@@ -48,22 +48,24 @@ function CompanyLogo({ name, website, logo }: { name: string; website?: string; 
 export type ColKey = "description" | "siren" | "country" | "score" | "revenue" | "signal" | "city";
 
 export const COL_DEFS: Record<ColKey, { label: string; width: string }> = {
-  description: { label: "AI Match",     width: "minmax(150px,1.6fr)" },
-  siren:       { label: "SIREN",        width: "100px" },
-  country:     { label: "Country",      width: "80px" },
-  score:       { label: "Score",        width: "76px" },
-  revenue:     { label: "CA",           width: "100px" },
-  signal:      { label: "Signal",       width: "minmax(110px,1fr)" },
-  city:        { label: "Ville",        width: "80px" },
+  description: { label: "AI Match", width: "220px" },
+  siren:       { label: "SIREN",    width: "110px" },
+  country:     { label: "Country",  width: "90px"  },
+  score:       { label: "Score",    width: "80px"  },
+  revenue:     { label: "CA",       width: "110px" },
+  signal:      { label: "Signal",   width: "150px" },
+  city:        { label: "Ville",    width: "90px"  },
 };
 
 export const DEFAULT_COLS: ColKey[] = ["description", "siren", "country"];
 
-/** 24px checkbox · 36px rank · 76px actions · 1.2fr company · dynamic cols · AI? */
+/** Fixed-width columns so horizontal scroll is reliable regardless of container size.
+ *  Total minimums: 24+36+76+200 base + sum(col widths) + 220 AI
+ */
 export function buildGridTemplate(cols: ColKey[], showAI: boolean): string {
   const colWidths = cols.map(k => COL_DEFS[k].width).join(" ");
-  const base = `24px 36px 76px minmax(150px,1.2fr) ${colWidths}`;
-  return showAI ? `${base} minmax(160px,1.5fr)` : base;
+  const base = `24px 36px 76px 200px ${colWidths}`;
+  return showAI ? `${base} 220px` : base;
 }
 
 

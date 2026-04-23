@@ -394,8 +394,8 @@ export default function ResultsPanel({
 
       {/* ── Table header + Rows (shared horizontal scroll) ───────────────── */}
       <div ref={rowsContainerRef} style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-        {/* Inner wrapper enforces min-width so fr columns never collapse */}
-        <div style={{ minWidth: "max-content", width: "100%" }}>
+        {/* Inner wrapper — min-width prevents grid from collapsing below column sum */}
+        <div style={{ minWidth: "fit-content", width: "100%" }}>
 
           {/* Sticky header */}
           {hasData && (
