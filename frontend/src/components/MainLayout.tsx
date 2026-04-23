@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/layout/TopNav";
+import CommandPalette from "@/components/layout/CommandPalette";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +24,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <main style={{ flex: 1, height: "100%", overflow: "hidden", position: "relative", minWidth: 0, minHeight: 0 }}>
         {children}
       </main>
+      <CommandPalette />
     </div>
   );
 }
