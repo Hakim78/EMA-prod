@@ -23,9 +23,10 @@ type Tab = typeof TABS[number];
 interface Props {
   company: SearchCompany;
   onClose: () => void;
+  onSimilar?: () => void;
 }
 
-export default function CompanyHUD({ company, onClose }: Props) {
+export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
   const [tab, setTab]         = useState<Tab>("Summary");
   const [target, setTarget]   = useState<Target | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -104,13 +105,32 @@ export default function CompanyHUD({ company, onClose }: Props) {
                 )}
               </div>
             </div>
-            <button onClick={onClose} style={{
-              width: 28, height: 28, flexShrink: 0, background: "transparent",
-              border: "1px solid var(--border)", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg-muted)",
-            }}>
-              <X size={13} />
-            </button>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              {onSimilar && (
+                <button
+                  onClick={onSimilar}
+                  title="Rechercher des entreprises similaires"
+                  style={{
+                    height: 28, padding: "0 10px", background: "transparent",
+                    border: "1px solid var(--border)", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 5,
+                    ...S, fontSize: 11, color: "var(--fg-muted)",
+                    transition: "border-color 0.1s, color 0.1s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--fg)"; e.currentTarget.style.color = "var(--fg)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; }}
+                >
+                  Similaires
+                </button>
+              )}
+              <button onClick={onClose} style={{
+                width: 28, height: 28, background: "transparent",
+                border: "1px solid var(--border)", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg-muted)",
+              }}>
+                <X size={13} />
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}

@@ -202,7 +202,15 @@ export default function SearchPage() {
       </PanelGroup>
 
       {selectedCompany && (
-        <CompanyHUD company={selectedCompany} onClose={() => setSelectedCompany(null)} />
+        <CompanyHUD
+          company={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
+          onSimilar={() => {
+            const c = selectedCompany;
+            setSelectedCompany(null);
+            send(`Entreprises similaires à ${c.name}${c.sector ? `, secteur ${c.sector}` : ""}${c.city ? `, région ${c.city}` : ""}`);
+          }}
+        />
       )}
     </div>
   );
