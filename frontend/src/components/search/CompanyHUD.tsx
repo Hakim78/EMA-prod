@@ -67,8 +67,13 @@ export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
           zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden",
         }}
       >
-        {/* Header */}
-        <div style={{ padding: "16px 20px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+        {/* Header — fades when company changes */}
+        <motion.div
+          key={`hud-header-${company.id}`}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          transition={{ duration: 0.18 }}
+          style={{ padding: "16px 20px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 }}
+        >
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
             <ScoreRingAvatar name={company.name} score={company.score} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -147,21 +152,32 @@ export default function CompanyHUD({ company, onClose, onSimilar }: Props) {
               </button>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-          {fetching ? (
-            <SkeletonTab />
-          ) : (
-            <>
-              {tab === "Summary"    && <SummaryTab    company={company} employees={employees} revenue={revenue} signals={signals} />}
-              {tab === "People"     && <PeopleTab     dirigeants={dirigeants} />}
-              {tab === "Financials" && <FinancialsTab financials={financials} revenue={revenue} />}
-              {tab === "Funding"    && <FundingTab    group={group} company={company} />}
-              {tab === "Portfolio"  && <PortfolioTab  group={group} signals={signals} target={target} />}
-            </>
-          )}
+        <div style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={company.id + tab}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              style={{ padding: "20px" }}
+            >
+              {fetching ? (
+                <SkeletonTab />
+              ) : (
+                <>
+                  {tab === "Summary"    && <SummaryTab    company={company} employees={employees} revenue={revenue} signals={signals} />}
+                  {tab === "People"     && <PeopleTab     dirigeants={dirigeants} />}
+                  {tab === "Financials" && <FinancialsTab financials={financials} revenue={revenue} />}
+                  {tab === "Funding"    && <FundingTab    group={group} company={company} />}
+                  {tab === "Portfolio"  && <PortfolioTab  group={group} signals={signals} target={target} />}
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </motion.div>
     </AnimatePresence>
