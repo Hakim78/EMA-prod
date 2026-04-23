@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Download, Sparkles, Radio, Columns, Check, BookmarkPlus, FileDown } from "lucide-react";
+import { Download, Sparkles, Radio, Columns, Check, BookmarkPlus, FileDown, EyeOff } from "lucide-react";
 import ShinyButton from "@/components/ui/ShinyButton";
 import CompanyRow, { COL_DEFS, DEFAULT_COLS, buildGridTemplate } from "./CompanyRow";
 import type { ColKey } from "./CompanyRow";
@@ -136,6 +136,11 @@ export default function ResultsPanel({
       addToPipeline(c);
       onSave(c.id);
     });
+    setSelectedIds(new Set());
+  }
+
+  function bulkHide() {
+    displayed.filter(c => selectedIds.has(c.id)).forEach(c => onHide(c.id));
     setSelectedIds(new Set());
   }
 
@@ -438,17 +443,17 @@ export default function ResultsPanel({
           position: "fixed",
           bottom: 44, left: "50%", transform: "translateX(-50%)",
           zIndex: 50,
-          background: "#111827",
-          border: "1px solid #374151",
+          background: "var(--bg-raise)",
+          border: "1px solid var(--border)",
           display: "flex", alignItems: "center", gap: 0,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
           overflow: "hidden",
         }}>
           {/* Count */}
           <div style={{
             padding: "10px 16px",
-            borderRight: "1px solid #374151",
-            ...M, fontSize: 10, color: "#9CA3AF", letterSpacing: "0.08em",
+            borderRight: "1px solid var(--border)",
+            ...M, fontSize: 10, color: "var(--fg-muted)", letterSpacing: "0.08em",
             whiteSpace: "nowrap",
           }}>
             {selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}
@@ -460,11 +465,11 @@ export default function ResultsPanel({
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: "10px 18px", background: "transparent", border: "none",
-              borderRight: "1px solid #374151",
-              cursor: "pointer", ...S, fontSize: 12, color: "#F9FAFB",
+              borderRight: "1px solid var(--border)",
+              cursor: "pointer", ...S, fontSize: 12, color: "var(--fg)",
               transition: "background 0.1s",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <BookmarkPlus size={13} />
@@ -477,11 +482,11 @@ export default function ResultsPanel({
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: "10px 18px", background: "transparent", border: "none",
-              borderRight: "1px solid #374151",
-              cursor: "pointer", ...S, fontSize: 12, color: "#93C5FD",
+              borderRight: "1px solid var(--border)",
+              cursor: "pointer", ...S, fontSize: 12, color: "#2563EB",
               transition: "background 0.1s",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <Sparkles size={13} />
@@ -494,14 +499,31 @@ export default function ResultsPanel({
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: "10px 18px", background: "transparent", border: "none",
-              cursor: "pointer", ...S, fontSize: 12, color: "#F9FAFB",
+              borderRight: "1px solid var(--border)",
+              cursor: "pointer", ...S, fontSize: 12, color: "var(--fg)",
               transition: "background 0.1s",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#1F2937")}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             <FileDown size={13} />
             Export
+          </button>
+
+          {/* Masquer */}
+          <button
+            onClick={bulkHide}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "10px 18px", background: "transparent", border: "none",
+              cursor: "pointer", ...S, fontSize: 12, color: "var(--fg-muted)",
+              transition: "background 0.1s, color 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--fg)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--fg-muted)"; }}
+          >
+            <EyeOff size={13} />
+            Masquer
           </button>
         </div>
       )}

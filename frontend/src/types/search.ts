@@ -21,6 +21,7 @@ export interface SearchCompany {
   city?: string;
   logo?: string;
   signal?: string;
+  bodacc_recent?: boolean;
   structure?: string;
   founded?: string;
 }

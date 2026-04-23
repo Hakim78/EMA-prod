@@ -316,6 +316,15 @@ export default function CompanyRow({
               }}>
                 {company.name}
               </span>
+              {(company.bodacc_recent || company.signal?.toLowerCase().includes("bodacc")) && (
+                <span style={{
+                  ...M, fontSize: 7, padding: "1px 4px", flexShrink: 0,
+                  background: "rgba(234,88,12,0.10)", border: "1px solid #EA580C",
+                  color: "#EA580C", letterSpacing: "0.06em", lineHeight: 1.5,
+                }}>
+                  BODACC
+                </span>
+              )}
               {/* CRM badge */}
               {crmStatus && (
                 <div

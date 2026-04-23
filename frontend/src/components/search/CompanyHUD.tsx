@@ -10,6 +10,13 @@ import type { Target } from "@/types/index";
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
+const AVATAR_COLORS = ["#4F46E5","#0EA5E9","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6"];
+function avatarColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 const TABS = ["Summary", "Funding", "Portfolio", "People", "Financials"] as const;
 type Tab = typeof TABS[number];
 
@@ -61,14 +68,7 @@ export default function CompanyHUD({ company, onClose }: Props) {
         {/* Header */}
         <div style={{ padding: "16px 20px 0", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
-            <div style={{
-              width: 44, height: 44, flexShrink: 0,
-              background: "var(--bg-alt)", border: "1px solid var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              ...M, fontSize: 16, color: "var(--fg)",
-            }}>
-              {company.name.charAt(0).toUpperCase()}
-            </div>
+            <ScoreRingAvatar name={company.name} score={company.score} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <h1 style={{ ...S, fontSize: 16, fontWeight: 700, color: "var(--fg)", margin: 0, lineHeight: 1.2 }}>
                 {company.name}
@@ -85,8 +85,17 @@ export default function CompanyHUD({ company, onClose }: Props) {
                     <Globe size={11} /> Societe.com
                   </a>
                 )}
-                <a href="#" style={{ ...S, fontSize: 11, color: "var(--primary)", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}>
-                  <Linkedin size={11} /> LinkedIn
+                <a
+                  href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+                    (dirigeants[0]?.name ? dirigeants[0].name + " " : "") + company.name
+                  )}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ ...S, fontSize: 11, color: "var(--primary)", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}
+                  onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
+                >
+                  <Linkedin size={11} />
+                  {dirigeants[0]?.name ? `${dirigeants[0].name.split(" ")[0]} – LinkedIn` : "LinkedIn"}
                 </a>
                 {company.city && (
                   <span style={{ ...S, fontSize: 11, color: "var(--fg-muted)", display: "flex", alignItems: "center", gap: 3 }}>
@@ -477,6 +486,45 @@ function MatchScoreBlock({ company }: { company: SearchCompany }) {
           <span style={{ ...M, fontSize: 10, color: "var(--fg-dim)" }}>/100</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Score Ring Avatar ──────────────────────────────────────────────────────────
+
+function ScoreRingAvatar({ name, score }: { name: string; score?: number }) {
+  const SIZE = 44;
+  const CENTER = SIZE / 2;
+  const R = CENTER - 3;
+  const CIRC = 2 * Math.PI * R;
+  const pct = score != null ? Math.min(score, 100) / 100 : 0;
+  const dash = pct * CIRC;
+  const gap = CIRC - dash;
+  const ringColor = score == null ? "transparent" : score >= 75 ? "var(--up)" : score >= 50 ? "#2563EB" : "var(--fg-muted)";
+
+  return (
+    <div style={{ position: "relative", width: SIZE, height: SIZE, flexShrink: 0 }}>
+      <div style={{
+        position: "absolute", inset: 4,
+        background: avatarColor(name),
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Space Mono', monospace", fontSize: 15, color: "#fff", fontWeight: 700,
+      }}>
+        {name.charAt(0).toUpperCase()}
+      </div>
+      {score != null && (
+        <svg
+          width={SIZE} height={SIZE}
+          style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}
+        >
+          <circle cx={CENTER} cy={CENTER} r={R} fill="none" stroke="var(--border)" strokeWidth={2} />
+          <circle
+            cx={CENTER} cy={CENTER} r={R}
+            fill="none" stroke={ringColor} strokeWidth={2.5}
+            strokeDasharray={`${dash} ${gap}`} strokeLinecap="round"
+          />
+        </svg>
+      )}
     </div>
   );
 }
