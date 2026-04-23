@@ -13,7 +13,7 @@ import {
   MoonIcon,
   SunIcon,
   LightningBoltIcon,
-  CrosshairIcon,
+  TargetIcon,
 } from "@radix-ui/react-icons";
 import { useEffect, useState } from "react";
 import NumberTicker from "@/components/ui/NumberTicker";
@@ -120,7 +120,7 @@ export default function TopNav() {
           className="group relative w-8 h-8 flex items-center justify-center rounded-md border border-transparent hover:border-[var(--border)] hover:bg-[var(--bg-alt)] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-all"
           style={{ textDecoration: "none" }}
         >
-          <CrosshairIcon width={15} height={15} />
+          <TargetIcon width={15} height={15} />
           <div className="absolute left-12 px-2.5 py-1.5 bg-[var(--fg)] text-[var(--bg)] text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 whitespace-nowrap shadow-lg z-50">
             Getting Started
             <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-[4px] border-y-transparent border-r-[4px] border-r-[var(--fg)]" />
