@@ -1,65 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Target, Building2, Search as SearchIcon, Briefcase,
   Plug, Users, Chrome, Bookmark, BookmarkCheck,
-  Check, ArrowRight, ArrowLeft, X, Loader2,
+  Check, ArrowRight, X, Loader2, ChevronDown,
 } from "lucide-react";
 
 const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
-type StepId = 0 | 1 | 2 | 3;
 type UseCase = "pe" | "ma" | "corpdev" | "search" | "other";
 
 interface UseCaseDef {
   id: UseCase;
   Icon: React.ElementType;
-  title: string;
-  desc: string;
+  label: string;
 }
 
 const USE_CASES: UseCaseDef[] = [
-  { id: "pe",      Icon: Briefcase,  title: "Private Equity",        desc: "Source add-ons and platform investments." },
-  { id: "ma",      Icon: Target,     title: "M&A Advisor",           desc: "Find buyers and acquisition targets." },
-  { id: "corpdev", Icon: Building2,  title: "Corporate Development", desc: "Map strategic targets in your verticals." },
-  { id: "search",  Icon: SearchIcon, title: "Search Fund",           desc: "Find your first acquisition." },
+  { id: "pe",      Icon: Briefcase,  label: "Private Equity"        },
+  { id: "ma",      Icon: Target,     label: "M&A Advisor"           },
+  { id: "corpdev", Icon: Building2,  label: "Corporate Development" },
+  { id: "search",  Icon: SearchIcon, label: "Search Fund"           },
+  { id: "other",   Icon: Sparkles,   label: "Other"                 },
 ];
 
-interface SearchTemplate {
-  id: string;
-  title: string;
-  query: string;
-}
-
-const TEMPLATES: Record<UseCase, SearchTemplate[]> = {
+const TEMPLATES: Record<UseCase, { id: string; title: string; query: string }[]> = {
   pe: [
-    { id: "1", title: "Industrials in France, founder 60+",  query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€, structure familiale" },
-    { id: "2", title: "B2B SaaS in EU, PE-backed",           query: "B2B SaaS Europe, ARR 1-10M€, PE-backed, croissance organique" },
-    { id: "3", title: "Healthcare services, family-owned",   query: "Services santé, familiale, headcount 50-500, France" },
+    { id: "1", title: "Industrials FR, founder 60+",  query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€, structure familiale" },
+    { id: "2", title: "B2B SaaS EU, PE-backed",       query: "B2B SaaS Europe, ARR 1-10M€, PE-backed, croissance organique" },
+    { id: "3", title: "Healthcare, family-owned",     query: "Services santé, familiale, headcount 50-500, France" },
   ],
   ma: [
-    { id: "1", title: "Strategic buyers for industrial",     query: "Industriels EU, CA > 50M€, croissance externe active" },
-    { id: "2", title: "PE acquirers for SaaS",               query: "PE funds, ticket 5-50M€, focus B2B SaaS" },
-    { id: "3", title: "Roll-up consolidators",               query: "Consolidateurs sectoriels, multiples acquisitions récentes" },
+    { id: "1", title: "Strategic buyers · industrial", query: "Industriels EU, CA > 50M€, croissance externe active" },
+    { id: "2", title: "PE acquirers · SaaS",           query: "PE funds, ticket 5-50M€, focus B2B SaaS" },
+    { id: "3", title: "Roll-up consolidators",         query: "Consolidateurs sectoriels, multiples acquisitions récentes" },
   ],
   corpdev: [
-    { id: "1", title: "Sector mapping — adjacent verticals", query: "Sociétés adjacentes secteur, France & Benelux" },
-    { id: "2", title: "Tech tuck-ins under $50M",            query: "Tech tuck-ins, ARR < $50M, US & EU" },
-    { id: "3", title: "Geographic expansion targets",        query: "Cibles d'expansion géographique, secteur similaire" },
+    { id: "1", title: "Adjacent verticals mapping",    query: "Sociétés adjacentes secteur, France & Benelux" },
+    { id: "2", title: "Tech tuck-ins < $50M",          query: "Tech tuck-ins, ARR < $50M, US & EU" },
+    { id: "3", title: "Geographic expansion",          query: "Cibles d'expansion géographique, secteur similaire" },
   ],
   search: [
-    { id: "1", title: "Niche industrial, founder retiring",  query: "Industriel niche, fondateur en retraite, EBITDA 1-3M€" },
-    { id: "2", title: "Service businesses with recurring",   query: "Services B2B récurrents, marges > 20%, succession" },
-    { id: "3", title: "Family-owned, no successor",          query: "Familiale sans successeur identifié, < 10 ans existence" },
+    { id: "1", title: "Niche industrial, retiring",    query: "Industriel niche, fondateur en retraite, EBITDA 1-3M€" },
+    { id: "2", title: "Recurring service businesses",  query: "Services B2B récurrents, marges > 20%, succession" },
+    { id: "3", title: "Family-owned, no successor",    query: "Familiale sans successeur identifié, < 10 ans existence" },
   ],
   other: [
-    { id: "1", title: "Industrials in France, founder 60+",  query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€" },
-    { id: "2", title: "B2B SaaS in EU",                      query: "B2B SaaS Europe, ARR 1-10M€, PE-backed" },
-    { id: "3", title: "Healthcare services",                 query: "Services santé France, familiale, headcount 50-500" },
+    { id: "1", title: "Industrials FR, founder 60+",   query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€" },
+    { id: "2", title: "B2B SaaS EU",                   query: "B2B SaaS Europe, ARR 1-10M€, PE-backed" },
+    { id: "3", title: "Healthcare services",           query: "Services santé France, familiale, headcount 50-500" },
   ],
 };
 
@@ -74,25 +66,27 @@ interface MockResult {
 }
 
 const MOCK_RESULTS: MockResult[] = [
-  { id: "r1", name: "Polymer Tech SAS",      sector: "Industrie · Plasturgie",       city: "Lyon",       score: 92, signal: "BODACC procédure",       revenue: "€8.4M" },
-  { id: "r2", name: "Atlas Composants",      sector: "Industrie · Mécanique",        city: "Saint-Étienne", score: 88, signal: "Fondateur 67 ans",   revenue: "€12.1M" },
-  { id: "r3", name: "Bordeaux Logistics",    sector: "Transport · Frigorifique",     city: "Bordeaux",   score: 85, signal: null,                     revenue: "€5.6M" },
-  { id: "r4", name: "Régale Foods",          sector: "Agroalimentaire",              city: "Nantes",     score: 82, signal: "Pas de successeur",       revenue: "€18.0M" },
-  { id: "r5", name: "Nordique Marine",       sector: "Construction navale",          city: "Brest",      score: 78, signal: null,                     revenue: "€4.2M" },
-  { id: "r6", name: "Thermal Group",         sector: "Industrie · Chaud/froid",      city: "Strasbourg", score: 76, signal: "M&A signal",              revenue: "€9.8M" },
+  { id: "r1", name: "Polymer Tech SAS",      sector: "Industrie · Plasturgie",       city: "Lyon",          score: 92, signal: "BODACC procédure",  revenue: "€8.4M"  },
+  { id: "r2", name: "Atlas Composants",      sector: "Industrie · Mécanique",        city: "Saint-Étienne", score: 88, signal: "Fondateur 67 ans",  revenue: "€12.1M" },
+  { id: "r3", name: "Bordeaux Logistics",    sector: "Transport · Frigorifique",     city: "Bordeaux",      score: 85, signal: null,                revenue: "€5.6M"  },
+  { id: "r4", name: "Régale Foods",          sector: "Agroalimentaire",              city: "Nantes",        score: 82, signal: "Pas de successeur", revenue: "€18.0M" },
+  { id: "r5", name: "Nordique Marine",       sector: "Construction navale",          city: "Brest",         score: 78, signal: null,                revenue: "€4.2M"  },
+  { id: "r6", name: "Thermal Group",         sector: "Industrie · Chaud/froid",      city: "Strasbourg",    score: 76, signal: "M&A signal",        revenue: "€9.8M"  },
 ];
+
+// ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<StepId>(0);
   const [name, setName] = useState("there");
-  const [useCase, setUseCase] = useState<UseCase | null>(null);
+  const [useCase, setUseCase] = useState<UseCase>("pe");
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<MockResult[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [optDone, setOptDone] = useState<Record<string, boolean>>({});
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Derive a friendly first-name from any localStorage hint, else "there"
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem("ema_user_name") || "";
@@ -106,20 +100,18 @@ export default function OnboardingPage() {
     router.push("/");
   };
 
-  const skip = () => finish();
-
-  const goNext = () => setStep((s) => (s + 1) as StepId);
-  const goBack = () => setStep((s) => Math.max(0, s - 1) as StepId);
-
   const launchSearch = (q: string) => {
     setQuery(q);
     setSearching(true);
     setResults([]);
-    setStep(2);
+    setSaved(new Set());
+    requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     setTimeout(() => {
       setResults(MOCK_RESULTS);
       setSearching(false);
-    }, 1100);
+    }, 900);
   };
 
   const toggleSave = (id: string) => {
@@ -130,666 +122,503 @@ export default function OnboardingPage() {
     });
   };
 
+  const templates = TEMPLATES[useCase];
+  const hasResults = results.length > 0;
+
   return (
-    <div style={{
-      minHeight: "100dvh",
-      background: "var(--bg)",
-      display: "flex", flexDirection: "column",
-    }}>
-      {/* ─── Top bar ─── */}
-      <header style={{
-        height: 52, padding: "0 28px", flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "1px solid var(--border)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{
-            width: 24, height: 24, background: "var(--fg)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            borderRadius: 4,
-          }}>
+    <div className="onb-page" style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      {/* ─── Top bar ───────────────────────────────────────────────────────── */}
+      <header className="onb-header" style={headerStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div style={logoBox}>
             <span style={{ ...M, fontSize: 11, fontWeight: 700, color: "var(--bg)", letterSpacing: "0.04em" }}>Ed</span>
           </div>
           <span style={{ ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>EdRCF</span>
-          <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", marginLeft: 8 }}>
-            ONBOARDING
+          <span className="onb-tag" style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", marginLeft: 8 }}>
+            ONBOARDING · {name.toUpperCase()}
           </span>
         </div>
-        <button
-          onClick={skip}
-          style={{
-            ...S, fontSize: 12, color: "var(--fg-muted)",
-            background: "transparent", border: "none", cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 5,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-muted)")}
-        >
-          Skip onboarding <X size={12} />
+        <button onClick={finish} style={skipBtn}>
+          Skip <X size={11} />
         </button>
       </header>
 
-      {/* ─── Progress ─── */}
-      <div style={{ padding: "16px 28px 0", maxWidth: 920, margin: "0 auto", width: "100%" }}>
-        <ProgressBar step={step} />
-      </div>
+      <main className="onb-main" style={mainStyle}>
 
-      {/* ─── Body ─── */}
-      <main style={{
-        flex: 1, padding: "32px 28px 60px",
-        maxWidth: 920, margin: "0 auto", width: "100%",
-        display: "flex", flexDirection: "column",
-      }}>
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <motion.div
-              key="step-0"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <StepWelcome name={name} useCase={useCase} onPick={(uc) => { setUseCase(uc); goNext(); }} />
-            </motion.div>
-          )}
-          {step === 1 && useCase && (
-            <motion.div
-              key="step-1"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <StepSearch
-                useCase={useCase}
-                query={query}
-                onQueryChange={setQuery}
-                onLaunch={launchSearch}
-                onBack={goBack}
-              />
-            </motion.div>
-          )}
-          {step === 2 && (
-            <motion.div
-              key="step-2"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <StepResults
-                searching={searching}
-                results={results}
-                saved={saved}
-                onToggleSave={toggleSave}
-                onContinue={goNext}
-                onBack={() => setStep(1)}
-              />
-            </motion.div>
-          )}
-          {step === 3 && (
-            <motion.div
-              key="step-3"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <StepDone savedCount={saved.size} onFinish={finish} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-    </div>
-  );
-}
-
-// ─── PROGRESS BAR ───────────────────────────────────────────────────────────
-
-const STEP_LABELS = ["Welcome", "First search", "Results", "Done"];
-
-function ProgressBar({ step }: { step: StepId }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-      {STEP_LABELS.map((label, i) => {
-        const done = i < step;
-        const active = i === step;
-        const last = i === STEP_LABELS.length - 1;
-        return (
-          <div key={label} style={{ display: "flex", alignItems: "center", flex: last ? 0 : 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: 11,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: done ? "var(--fg)" : active ? "var(--bg-raise)" : "var(--bg-alt)",
-                border: `1px solid ${done || active ? "var(--fg)" : "var(--border)"}`,
-                color: done ? "var(--bg)" : active ? "var(--fg)" : "var(--fg-muted)",
-                ...M, fontSize: 9, fontWeight: 700,
-                flexShrink: 0,
-                transition: "all 0.2s",
-              }}>
-                {done ? <Check size={11} /> : i + 1}
-              </div>
-              <span style={{
-                ...S, fontSize: 11,
-                fontWeight: active ? 600 : 400,
-                color: done || active ? "var(--fg)" : "var(--fg-muted)",
-                whiteSpace: "nowrap",
-              }}>
-                {label}
-              </span>
-            </div>
-            {!last && (
-              <div style={{
-                flex: 1, height: 1, margin: "0 12px",
-                background: done ? "var(--fg)" : "var(--border)",
-                minWidth: 20,
-                transition: "background 0.2s",
-              }} />
-            )}
+        {/* ─── BLOCK 1 · Use case (compact chip row) ─────────────────────── */}
+        <section className="onb-block" style={blockStyle}>
+          <div className="onb-block-head" style={blockHeadStyle}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              01 · Profile
+            </span>
+            <span style={{ ...S, fontSize: 12, color: "var(--fg-muted)" }}>
+              Pick what fits — adjusts templates &amp; defaults.
+            </span>
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── STEP 0 — WELCOME / USE CASE ────────────────────────────────────────────
-
-function StepWelcome({
-  name, useCase, onPick,
-}: {
-  name: string;
-  useCase: UseCase | null;
-  onPick: (uc: UseCase) => void;
-}) {
-  return (
-    <>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "4px 10px", marginBottom: 16,
-        background: "var(--bg-raise)",
-        border: "1px solid var(--border)",
-        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
-      }}>
-        <Sparkles size={11} /> Welcome
-      </div>
-
-      <h1 style={{
-        ...S, fontSize: 30, fontWeight: 700, color: "var(--fg)",
-        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.15,
-      }}>
-        Hi {name}, what brings you to EdRCF?
-      </h1>
-      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 32px", lineHeight: 1.6 }}>
-        Pick the option that fits best. We&apos;ll tailor your first search around it. You can change this later.
-      </p>
-
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12,
-      }}>
-        {USE_CASES.map(({ id, Icon, title, desc }) => {
-          const active = useCase === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onPick(id)}
-              style={{
-                textAlign: "left",
-                padding: "18px 20px",
-                background: active ? "var(--bg-alt)" : "var(--bg-raise)",
-                border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
-                cursor: "pointer",
-                display: "flex", flexDirection: "column", gap: 8,
-                transition: "all 0.12s",
-              }}
-              onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--fg-muted)"; }}
-              onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--border)"; }}
-            >
-              <div style={{
-                width: 32, height: 32,
-                background: "var(--bg)", border: "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Icon size={15} style={{ color: "var(--fg)" }} />
-              </div>
-              <div style={{ ...S, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{title}</div>
-              <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5 }}>{desc}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      <button
-        onClick={() => onPick("other")}
-        style={{
-          ...S, fontSize: 13, color: "var(--fg-muted)",
-          background: "transparent", border: "none", cursor: "pointer",
-          marginTop: 18, padding: 6, alignSelf: "flex-start",
-          textDecoration: "underline",
-        }}
-      >
-        Something else
-      </button>
-    </>
-  );
-}
-
-// ─── STEP 1 — FIRST SEARCH ──────────────────────────────────────────────────
-
-function StepSearch({
-  useCase, query, onQueryChange, onLaunch, onBack,
-}: {
-  useCase: UseCase;
-  query: string;
-  onQueryChange: (q: string) => void;
-  onLaunch: (q: string) => void;
-  onBack: () => void;
-}) {
-  const templates = TEMPLATES[useCase];
-
-  return (
-    <>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "4px 10px", marginBottom: 16,
-        background: "var(--bg-raise)",
-        border: "1px solid var(--border)",
-        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
-      }}>
-        <SearchIcon size={11} /> Step 2 of 4
-      </div>
-
-      <h1 style={{
-        ...S, fontSize: 28, fontWeight: 700, color: "var(--fg)",
-        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2,
-      }}>
-        Let&apos;s find your first targets
-      </h1>
-      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 28px", lineHeight: 1.6 }}>
-        Describe what you&apos;re looking for in plain English, or pick a template below to get started in one click.
-      </p>
-
-      {/* Big NL search */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); if (query.trim()) onLaunch(query.trim()); }}
-        style={{
-          display: "flex",
-          background: "var(--bg-raise)",
-          border: "1px solid var(--border)",
-          marginBottom: 18,
-          transition: "border-color 0.15s",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", paddingLeft: 14, flexShrink: 0 }}>
-          <SearchIcon size={15} style={{ color: "var(--fg-muted)" }} />
-        </div>
-        <input
-          autoFocus
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="e.g. Industrial PMEs in France with founders aged 60+, EBITDA 1-5M€"
-          style={{
-            ...S, flex: 1,
-            padding: "14px 12px", fontSize: 14,
-            color: "var(--fg)", background: "transparent",
-            border: "none", outline: "none",
-          }}
-        />
-        <button
-          type="submit"
-          disabled={!query.trim()}
-          style={{
-            ...S, fontSize: 13, fontWeight: 500,
-            padding: "0 22px",
-            background: query.trim() ? "var(--fg)" : "var(--bg-alt)",
-            color: query.trim() ? "var(--bg)" : "var(--fg-dim)",
-            border: "none", cursor: query.trim() ? "pointer" : "not-allowed",
-            display: "inline-flex", alignItems: "center", gap: 6,
-            flexShrink: 0,
-          }}
-        >
-          Run search <ArrowRight size={13} />
-        </button>
-      </form>
-
-      {/* Template pills */}
-      <div style={{
-        ...M, fontSize: 9, color: "var(--fg-dim)",
-        letterSpacing: "0.12em", textTransform: "uppercase",
-        marginBottom: 10,
-      }}>
-        Or try one of these
-      </div>
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10,
-      }}>
-        {templates.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onLaunch(t.query)}
-            style={{
-              textAlign: "left",
-              padding: "14px 16px",
-              background: "var(--bg-raise)",
-              border: "1px solid var(--border)",
-              cursor: "pointer",
-              transition: "all 0.12s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--fg)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-alt)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-raise)"; }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-              <Sparkles size={11} style={{ color: "var(--fg-muted)" }} />
-              <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Template
-              </span>
-            </div>
-            <div style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)", lineHeight: 1.4 }}>
-              {t.title}
-            </div>
-            <div style={{ ...S, fontSize: 11, color: "var(--fg-muted)", marginTop: 6, lineHeight: 1.5, fontStyle: "italic" }}>
-              {t.query}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <BackButton onClick={onBack} />
-      </div>
-    </>
-  );
-}
-
-// ─── STEP 2 — RESULTS ───────────────────────────────────────────────────────
-
-function StepResults({
-  searching, results, saved, onToggleSave, onContinue, onBack,
-}: {
-  searching: boolean;
-  results: MockResult[];
-  saved: Set<string>;
-  onToggleSave: (id: string) => void;
-  onContinue: () => void;
-  onBack: () => void;
-}) {
-  if (searching) {
-    return (
-      <div style={{ paddingTop: 60, textAlign: "center" }}>
-        <Loader2 size={28} style={{ color: "var(--fg)" }} className="onb-spin" />
-        <p style={{ ...S, fontSize: 14, color: "var(--fg)", marginTop: 18, fontWeight: 500 }}>
-          Scanning 16M+ companies…
-        </p>
-        <p style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 4 }}>
-          Matching firmographics, signals, and intent indicators.
-        </p>
-        <style jsx>{`
-          .onb-spin { animation: spin 0.8s linear infinite; }
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "4px 10px", marginBottom: 16,
-        background: "var(--bg-raise)",
-        border: "1px solid var(--border)",
-        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
-      }}>
-        <Target size={11} /> Step 3 of 4
-      </div>
-
-      <h1 style={{
-        ...S, fontSize: 26, fontWeight: 700, color: "var(--fg)",
-        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2,
-      }}>
-        {results.length} companies matched.
-      </h1>
-      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 24px", lineHeight: 1.6 }}>
-        Save the ones you want to follow up on. We&apos;ll create your first list automatically.
-      </p>
-
-      <div style={{ background: "var(--bg-raise)", border: "1px solid var(--border)" }}>
-        {results.map((r, i) => {
-          const isSaved = saved.has(r.id);
-          return (
-            <div
-              key={r.id}
-              onClick={() => onToggleSave(r.id)}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "auto 1fr 110px 90px 32px",
-                gap: 14, padding: "12px 16px",
-                alignItems: "center",
-                borderBottom: i === results.length - 1 ? "none" : "1px solid var(--border)",
-                cursor: "pointer",
-                background: isSaved ? "rgba(34,197,94,0.04)" : "transparent",
-                transition: "background 0.1s",
-              }}
-              onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = "var(--bg-hover)"; }}
-              onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = "transparent"; }}
-            >
-              {/* Score circle */}
-              <div style={{
-                width: 36, height: 36, borderRadius: 18,
-                background: r.score >= 85 ? "var(--up)" : "var(--bg-alt)",
-                color: r.score >= 85 ? "#fff" : "var(--fg)",
-                border: r.score >= 85 ? "none" : "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                ...M, fontSize: 11, fontWeight: 700,
-                flexShrink: 0,
-              }}>
-                {r.score}
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <div style={{ ...S, fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                  {r.name}
-                </div>
-                <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 2 }}>
-                  {r.sector} · {r.city}
-                </div>
-              </div>
-
-              {r.signal ? (
-                <span style={{
-                  ...M, fontSize: 9,
-                  padding: "2px 6px",
-                  background: "rgba(234,88,12,0.08)",
-                  border: "1px solid #EA580C",
-                  color: "#EA580C",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden", textOverflow: "ellipsis",
-                }}>
-                  {r.signal}
-                </span>
-              ) : (
-                <span />
-              )}
-
-              <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)", textAlign: "right" }}>
-                {r.revenue}
-              </span>
-
-              {/* Save */}
-              <div
-                style={{
-                  width: 28, height: 28,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: `1px solid ${isSaved ? "var(--up)" : "var(--border)"}`,
-                  background: isSaved ? "var(--up)" : "transparent",
-                  color: isSaved ? "#fff" : "var(--fg-muted)",
-                  transition: "all 0.12s",
-                }}
-              >
-                {isSaved ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{
-        marginTop: 24,
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
-        <BackButton onClick={onBack} />
-        <button
-          onClick={onContinue}
-          style={{
-            ...S, fontSize: 13, fontWeight: 500,
-            padding: "10px 18px",
-            background: "var(--fg)", color: "var(--bg)",
-            border: "none", cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 6,
-          }}
-        >
-          {saved.size > 0 ? `Save ${saved.size} and continue` : "Continue"} <ArrowRight size={13} />
-        </button>
-      </div>
-    </>
-  );
-}
-
-// ─── STEP 3 — DONE / OPTIONAL SETUP ─────────────────────────────────────────
-
-function StepDone({ savedCount, onFinish }: { savedCount: number; onFinish: () => void }) {
-  const [doneItems, setDoneItems] = useState<Record<string, boolean>>({});
-
-  const optionals: { id: string; Icon: React.ElementType; title: string; desc: string; cta: string }[] = [
-    { id: "crm",      Icon: Plug,   title: "Connect your CRM",        desc: "HubSpot, Salesforce, Affinity, DealCloud. Avoid duplicates and sync deals.", cta: "Connect" },
-    { id: "team",     Icon: Users,  title: "Invite your team",        desc: "Share lists, get alerts together. Admins can invite by email in one click.",   cta: "Invite"  },
-    { id: "chrome",   Icon: Chrome, title: "Install Chrome extension", desc: "Surface mutual LinkedIn connections and push companies to your CRM.",         cta: "Install" },
-  ];
-
-  return (
-    <>
-      <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{
-          width: 56, height: 56, margin: "0 auto 18px",
-          borderRadius: 28,
-          background: "var(--up)", color: "#fff",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Check size={26} />
-        </div>
-        <h1 style={{
-          ...S, fontSize: 28, fontWeight: 700, color: "var(--fg)",
-          margin: 0, letterSpacing: "-0.02em",
-        }}>
-          You&apos;re all set.
-        </h1>
-        <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 0", lineHeight: 1.6 }}>
-          {savedCount > 0
-            ? <>We saved {savedCount} {savedCount === 1 ? "company" : "companies"} to your first list.</>
-            : <>Your account is ready. Jump in and start sourcing.</>}
-        </p>
-      </div>
-
-      {/* Optional setup */}
-      <div style={{
-        ...M, fontSize: 9, color: "var(--fg-dim)",
-        letterSpacing: "0.12em", textTransform: "uppercase",
-        marginBottom: 10,
-      }}>
-        Optional · 30 seconds each
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
-        {optionals.map(({ id, Icon, title, desc, cta }) => {
-          const isDone = doneItems[id];
-          return (
-            <div
-              key={id}
-              style={{
-                display: "flex", alignItems: "center", gap: 14,
-                padding: "14px 16px",
-                background: "var(--bg-raise)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <div style={{
-                width: 36, height: 36, flexShrink: 0,
-                background: "var(--bg)", border: "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Icon size={15} style={{ color: "var(--fg)" }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{title}</div>
-                <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
-              </div>
-              {isDone ? (
-                <span style={{
-                  ...M, fontSize: 9, padding: "4px 8px",
-                  background: "var(--up)", color: "#fff",
-                  letterSpacing: "0.06em", textTransform: "uppercase",
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                }}>
-                  <Check size={9} /> Done
-                </span>
-              ) : (
+          <div className="onb-usecase-row" style={useCaseRow}>
+            {USE_CASES.map(({ id, Icon, label }) => {
+              const active = useCase === id;
+              return (
                 <button
-                  onClick={() => setDoneItems((p) => ({ ...p, [id]: true }))}
+                  key={id}
+                  onClick={() => setUseCase(id)}
                   style={{
                     ...S, fontSize: 12, fontWeight: 500,
-                    padding: "6px 14px",
-                    background: "transparent",
-                    color: "var(--fg)",
-                    border: "1px solid var(--border)",
-                    cursor: "pointer",
-                    flexShrink: 0,
+                    height: 32, padding: "0 12px",
+                    background: active ? "var(--fg)" : "var(--bg-raise)",
+                    color: active ? "var(--bg)" : "var(--fg)",
+                    border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    transition: "all 0.1s",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--fg)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--fg-muted)"; }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--border)"; }}
                 >
-                  {cta}
+                  <Icon size={12} /> {label}
                 </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </section>
 
-      <button
-        onClick={onFinish}
-        style={{
-          ...S, fontSize: 14, fontWeight: 500,
-          padding: "12px 22px",
-          background: "var(--fg)", color: "var(--bg)",
-          border: "none", cursor: "pointer",
-          display: "inline-flex", alignItems: "center", gap: 8,
-          alignSelf: "center", margin: "0 auto",
-        }}
-      >
-        Go to dashboard <ArrowRight size={14} />
-      </button>
-    </>
+        {/* ─── BLOCK 2 · Search ──────────────────────────────────────────── */}
+        <section className="onb-block" style={blockStyle}>
+          <div className="onb-block-head" style={blockHeadStyle}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              02 · First search
+            </span>
+            <span style={{ ...S, fontSize: 12, color: "var(--fg-muted)" }}>
+              Describe a target or pick a template.
+            </span>
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (query.trim()) launchSearch(query.trim()); }}
+            style={searchFormStyle}
+          >
+            <SearchIcon size={14} style={{ color: "var(--fg-muted)", flexShrink: 0, marginLeft: 12 }} />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g. Industrial PMEs France, founder 60+, EBITDA 1-5M€"
+              style={searchInputStyle}
+            />
+            <button
+              type="submit"
+              disabled={!query.trim() || searching}
+              style={{
+                ...S, fontSize: 12, fontWeight: 500,
+                height: 36, padding: "0 16px", margin: 2,
+                background: query.trim() && !searching ? "var(--fg)" : "var(--bg-alt)",
+                color: query.trim() && !searching ? "var(--bg)" : "var(--fg-dim)",
+                border: "none",
+                cursor: query.trim() && !searching ? "pointer" : "not-allowed",
+                display: "inline-flex", alignItems: "center", gap: 6,
+                flexShrink: 0,
+              }}
+            >
+              {searching ? <Loader2 size={11} className="onb-spin" /> : <SearchIcon size={11} />}
+              Run
+            </button>
+          </form>
+
+          <div className="onb-tpl-row" style={tplRow}>
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => launchSearch(t.query)}
+                disabled={searching}
+                style={tplBtn}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--fg)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-alt)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-raise)"; }}
+              >
+                <Sparkles size={10} style={{ color: "var(--fg-muted)", flexShrink: 0 }} />
+                <span style={{ ...S, fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>{t.title}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── BLOCK 3 · Results ─────────────────────────────────────────── */}
+        <section ref={resultsRef} className="onb-block" style={blockStyle}>
+          <div className="onb-block-head" style={blockHeadStyle}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              03 · Results
+            </span>
+            <span style={{ ...S, fontSize: 12, color: "var(--fg-muted)" }}>
+              {searching
+                ? "Scanning 16M+ companies…"
+                : hasResults
+                  ? <>{results.length} matched · click row to save{saved.size > 0 ? ` · ${saved.size} saved` : ""}</>
+                  : "Run a search to see results."}
+            </span>
+          </div>
+
+          {searching && (
+            <div style={loadingBox}>
+              <Loader2 size={20} style={{ color: "var(--fg)" }} className="onb-spin" />
+            </div>
+          )}
+
+          {!searching && !hasResults && (
+            <div style={emptyBox}>
+              <span style={{ ...S, fontSize: 12, color: "var(--fg-dim)", fontStyle: "italic" }}>
+                Pick a template above or type a description.
+              </span>
+            </div>
+          )}
+
+          {hasResults && (
+            <div style={resultsBox} className="onb-results">
+              {/* Header (desktop only) */}
+              <div className="onb-results-head" style={resultsHead}>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>SCORE</span>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>COMPANY</span>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em" }}>SIGNAL</span>
+                <span style={{ ...M, fontSize: 8, color: "var(--fg-dim)", letterSpacing: "0.12em", textAlign: "right" }}>REVENUE</span>
+                <span />
+              </div>
+              {results.map((r) => {
+                const isSaved = saved.has(r.id);
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => toggleSave(r.id)}
+                    className="onb-row"
+                    style={{
+                      ...resultRow,
+                      background: isSaved ? "rgba(34,197,94,0.04)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                    onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <div style={{
+                      ...M, fontSize: 11, fontWeight: 700,
+                      width: 32, height: 24,
+                      background: r.score >= 85 ? "var(--up)" : "var(--bg-alt)",
+                      color: r.score >= 85 ? "#fff" : "var(--fg)",
+                      border: r.score >= 85 ? "none" : "1px solid var(--border)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      {r.score}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.name}
+                      </div>
+                      <div style={{ ...S, fontSize: 11, color: "var(--fg-muted)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.sector} · {r.city}
+                      </div>
+                    </div>
+                    <span className="onb-signal" style={{
+                      ...M, fontSize: 9,
+                      padding: "2px 6px",
+                      background: r.signal ? "rgba(234,88,12,0.08)" : "transparent",
+                      border: r.signal ? "1px solid #EA580C" : "1px solid transparent",
+                      color: r.signal ? "#EA580C" : "var(--fg-dim)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden", textOverflow: "ellipsis",
+                      maxWidth: "100%",
+                    }}>
+                      {r.signal ?? "—"}
+                    </span>
+                    <span className="onb-revenue" style={{ ...M, fontSize: 11, color: "var(--fg-muted)", textAlign: "right" }}>
+                      {r.revenue}
+                    </span>
+                    <div style={{
+                      width: 26, height: 26, flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: `1px solid ${isSaved ? "var(--up)" : "var(--border)"}`,
+                      background: isSaved ? "var(--up)" : "transparent",
+                      color: isSaved ? "#fff" : "var(--fg-muted)",
+                    }}>
+                      {isSaved ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ─── BLOCK 4 · Optional setup (footer) ─────────────────────────── */}
+        <section className="onb-block" style={{ ...blockStyle, paddingBottom: 24 }}>
+          <div className="onb-block-head" style={blockHeadStyle}>
+            <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              04 · Setup (optional)
+            </span>
+            <span style={{ ...S, fontSize: 12, color: "var(--fg-muted)" }}>
+              Skip — configure later from Settings.
+            </span>
+          </div>
+
+          <div className="onb-opt-row" style={optRow}>
+            <OptItem id="crm"    Icon={Plug}   title="Connect CRM"      desc="HubSpot · Salesforce · Affinity · DealCloud"   done={!!optDone.crm}    onClick={() => setOptDone((p) => ({ ...p, crm: !p.crm }))} />
+            <OptItem id="team"   Icon={Users}  title="Invite team"      desc="Bulk paste emails · Admin/Member roles"        done={!!optDone.team}   onClick={() => setOptDone((p) => ({ ...p, team: !p.team }))} />
+            <OptItem id="chrome" Icon={Chrome} title="Chrome extension" desc="LinkedIn warm intros · push to CRM"            done={!!optDone.chrome} onClick={() => setOptDone((p) => ({ ...p, chrome: !p.chrome }))} />
+          </div>
+        </section>
+
+      </main>
+
+      {/* ─── Sticky footer with finish CTA ───────────────────────────────── */}
+      <footer className="onb-footer" style={footerStyle}>
+        <span className="onb-footer-meta" style={{ ...M, fontSize: 10, color: "var(--fg-dim)", letterSpacing: "0.06em" }}>
+          {hasResults
+            ? <>{saved.size} saved · {results.length - saved.size} hidden</>
+            : "No search yet"}
+        </span>
+        <button onClick={finish} style={finishBtn}>
+          {hasResults && saved.size > 0 ? `Save ${saved.size} & go to dashboard` : "Go to dashboard"}
+          <ArrowRight size={13} />
+        </button>
+      </footer>
+
+      <style jsx>{`
+        .onb-spin { animation: spin 0.8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ─── Default desktop layout ─── */
+        .onb-results-head, .onb-row {
+          display: grid !important;
+          grid-template-columns: 32px 1fr 180px 90px 26px;
+          gap: 12px;
+          align-items: center;
+        }
+
+        /* ─── Mobile (< 720px) ─── */
+        @media (max-width: 720px) {
+          .onb-tag { display: none; }
+          .onb-block-head { flex-direction: column !important; align-items: flex-start !important; gap: 4px !important; }
+          .onb-block-head > span:last-child { font-size: 11px !important; }
+          .onb-usecase-row { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+          .onb-usecase-row::-webkit-scrollbar { display: none; }
+          .onb-tpl-row { grid-template-columns: 1fr !important; }
+          .onb-opt-row { grid-template-columns: 1fr !important; }
+          .onb-results-head { display: none !important; }
+          .onb-row {
+            grid-template-columns: 32px 1fr 26px !important;
+            grid-template-areas: "score body save";
+            row-gap: 6px !important;
+          }
+          .onb-row > :nth-child(1) { grid-area: score; }
+          .onb-row > :nth-child(2) { grid-area: body; }
+          .onb-row > :nth-child(5) { grid-area: save; }
+          .onb-row > :nth-child(3),
+          .onb-row > :nth-child(4) {
+            grid-column: 2 / -1;
+            justify-self: start;
+            font-size: 10px !important;
+          }
+          .onb-revenue { text-align: left !important; }
+          .onb-footer-meta { display: none; }
+        }
+
+        /* ─── Tablet (720-1024px) ─── */
+        @media (min-width: 721px) and (max-width: 1024px) {
+          .onb-tpl-row { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
+    </div>
   );
 }
 
-// ─── BACK BUTTON ────────────────────────────────────────────────────────────
+// ─── OPT ITEM ────────────────────────────────────────────────────────────────
 
-function BackButton({ onClick }: { onClick: () => void }) {
+function OptItem({
+  Icon, title, desc, done, onClick,
+}: {
+  id: string;
+  Icon: React.ElementType;
+  title: string;
+  desc: string;
+  done: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
       style={{
-        ...S, fontSize: 12, color: "var(--fg-muted)",
-        background: "transparent", border: "none", cursor: "pointer",
-        display: "inline-flex", alignItems: "center", gap: 5,
-        padding: 4,
+        textAlign: "left",
+        padding: "10px 12px",
+        background: done ? "rgba(34,197,94,0.04)" : "var(--bg-raise)",
+        border: `1px solid ${done ? "var(--up)" : "var(--border)"}`,
+        cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 10,
+        transition: "all 0.1s",
+        minWidth: 0,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
-      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-muted)")}
+      onMouseEnter={(e) => { if (!done) e.currentTarget.style.borderColor = "var(--fg-muted)"; }}
+      onMouseLeave={(e) => { if (!done) e.currentTarget.style.borderColor = "var(--border)"; }}
     >
-      <ArrowLeft size={12} /> Back
+      <div style={{
+        width: 26, height: 26, flexShrink: 0,
+        background: done ? "var(--up)" : "var(--bg)",
+        border: `1px solid ${done ? "var(--up)" : "var(--border)"}`,
+        color: done ? "#fff" : "var(--fg-muted)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {done ? <Check size={12} /> : <Icon size={13} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...S, fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>
+          {title}
+        </div>
+        <div style={{ ...S, fontSize: 10, color: "var(--fg-muted)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {desc}
+        </div>
+      </div>
+      <span style={{
+        ...M, fontSize: 8,
+        padding: "2px 5px",
+        background: done ? "var(--up)" : "var(--bg-alt)",
+        color: done ? "#fff" : "var(--fg-dim)",
+        letterSpacing: "0.08em",
+        flexShrink: 0,
+      }}>
+        {done ? "DONE" : "OFF"}
+      </span>
     </button>
   );
 }
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
+
+const headerStyle: React.CSSProperties = {
+  height: 44, padding: "0 20px", flexShrink: 0,
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  borderBottom: "1px solid var(--border)",
+  background: "var(--bg-raise)",
+};
+
+const logoBox: React.CSSProperties = {
+  width: 22, height: 22, background: "var(--fg)",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  borderRadius: 3,
+};
+
+const skipBtn: React.CSSProperties = {
+  ...S, fontSize: 11, color: "var(--fg-muted)",
+  background: "transparent", border: "1px solid var(--border)",
+  padding: "4px 10px",
+  cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 5,
+};
+
+const mainStyle: React.CSSProperties = {
+  flex: 1,
+  width: "100%",
+  maxWidth: 1080,
+  margin: "0 auto",
+  padding: "20px 20px 80px",
+};
+
+const blockStyle: React.CSSProperties = {
+  marginBottom: 20,
+};
+
+const blockHeadStyle: React.CSSProperties = {
+  display: "flex", alignItems: "baseline", gap: 12,
+  marginBottom: 10,
+  paddingBottom: 6,
+  borderBottom: "1px solid var(--border)",
+  flexWrap: "wrap",
+};
+
+const useCaseRow: React.CSSProperties = {
+  display: "flex", flexWrap: "wrap", gap: 6,
+};
+
+const searchFormStyle: React.CSSProperties = {
+  display: "flex", alignItems: "center",
+  background: "var(--bg-raise)",
+  border: "1px solid var(--border)",
+  marginBottom: 10,
+};
+
+const searchInputStyle: React.CSSProperties = {
+  ...S, flex: 1,
+  height: 40, padding: "0 12px",
+  fontSize: 13, color: "var(--fg)",
+  background: "transparent",
+  border: "none", outline: "none",
+  minWidth: 0,
+};
+
+const tplRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: 6,
+};
+
+const tplBtn: React.CSSProperties = {
+  ...S, textAlign: "left",
+  padding: "8px 10px",
+  background: "var(--bg-raise)",
+  border: "1px solid var(--border)",
+  cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6,
+  transition: "all 0.1s",
+  minWidth: 0,
+};
+
+const loadingBox: React.CSSProperties = {
+  height: 120,
+  background: "var(--bg-raise)",
+  border: "1px solid var(--border)",
+  display: "flex", alignItems: "center", justifyContent: "center",
+};
+
+const emptyBox: React.CSSProperties = {
+  padding: "24px 16px",
+  background: "var(--bg-raise)",
+  border: "1px dashed var(--border)",
+  textAlign: "center",
+};
+
+const resultsBox: React.CSSProperties = {
+  background: "var(--bg-raise)",
+  border: "1px solid var(--border)",
+};
+
+const resultsHead: React.CSSProperties = {
+  padding: "8px 14px",
+  background: "var(--bg-alt)",
+  borderBottom: "1px solid var(--border)",
+};
+
+const resultRow: React.CSSProperties = {
+  padding: "10px 14px",
+  borderBottom: "1px solid var(--border)",
+  cursor: "pointer",
+  transition: "background 0.1s",
+};
+
+const optRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: 8,
+};
+
+const footerStyle: React.CSSProperties = {
+  position: "sticky", bottom: 0,
+  height: 52, padding: "0 20px",
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  borderTop: "1px solid var(--border)",
+  background: "var(--bg-raise)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+};
+
+const finishBtn: React.CSSProperties = {
+  ...S, fontSize: 12, fontWeight: 500,
+  height: 34, padding: "0 14px",
+  background: "var(--fg)", color: "var(--bg)",
+  border: "none", cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6,
+};
