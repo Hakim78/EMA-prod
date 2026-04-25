@@ -1,552 +1,795 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Target, List, Check, ChevronRight, ArrowRight,
-  Database, Zap, TrendingUp, Chrome,
+  Sparkles, Target, Building2, Search as SearchIcon, Briefcase,
+  Plug, Users, Chrome, Bookmark, BookmarkCheck,
+  Check, ArrowRight, ArrowLeft, X, Loader2,
 } from "lucide-react";
-import AnimatedBentoCard from "@/components/ui/AnimatedBentoCard";
 
-const M: React.CSSProperties = { fontFamily: "'JetBrains Mono', 'Space Mono', monospace" };
+const M: React.CSSProperties = { fontFamily: "'Space Mono', monospace" };
 const S: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
-const CHECKLIST = [
-  { id: "thesis", label: "Définir votre thèse",  sub: "Active le scoring IA",        href: "/settings/thesis"       },
-  { id: "crm",    label: "Connecter votre CRM",   sub: "Évite les doublons pipeline", href: "/settings/integrations" },
-  { id: "li",     label: "Sync LinkedIn",          sub: "Active le warm sourcing",     href: "/settings/integrations" },
-  { id: "team",   label: "Inviter l'équipe",       sub: "Collaboration & alertes",     href: "/settings/team"         },
+type StepId = 0 | 1 | 2 | 3;
+type UseCase = "pe" | "ma" | "corpdev" | "search" | "other";
+
+interface UseCaseDef {
+  id: UseCase;
+  Icon: React.ElementType;
+  title: string;
+  desc: string;
+}
+
+const USE_CASES: UseCaseDef[] = [
+  { id: "pe",      Icon: Briefcase,  title: "Private Equity",        desc: "Source add-ons and platform investments." },
+  { id: "ma",      Icon: Target,     title: "M&A Advisor",           desc: "Find buyers and acquisition targets." },
+  { id: "corpdev", Icon: Building2,  title: "Corporate Development", desc: "Map strategic targets in your verticals." },
+  { id: "search",  Icon: SearchIcon, title: "Search Fund",           desc: "Find your first acquisition." },
 ];
 
-const STATS = [
-  { Icon: Database,   value: "16.2M", label: "entreprises indexées"     },
-  { Icon: Zap,        value: "24K+",  label: "signaux BODACC / mois"    },
-  { Icon: TrendingUp, value: "Actif", label: "scoring IA en temps réel" },
+interface SearchTemplate {
+  id: string;
+  title: string;
+  query: string;
+}
+
+const TEMPLATES: Record<UseCase, SearchTemplate[]> = {
+  pe: [
+    { id: "1", title: "Industrials in France, founder 60+",  query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€, structure familiale" },
+    { id: "2", title: "B2B SaaS in EU, PE-backed",           query: "B2B SaaS Europe, ARR 1-10M€, PE-backed, croissance organique" },
+    { id: "3", title: "Healthcare services, family-owned",   query: "Services santé, familiale, headcount 50-500, France" },
+  ],
+  ma: [
+    { id: "1", title: "Strategic buyers for industrial",     query: "Industriels EU, CA > 50M€, croissance externe active" },
+    { id: "2", title: "PE acquirers for SaaS",               query: "PE funds, ticket 5-50M€, focus B2B SaaS" },
+    { id: "3", title: "Roll-up consolidators",               query: "Consolidateurs sectoriels, multiples acquisitions récentes" },
+  ],
+  corpdev: [
+    { id: "1", title: "Sector mapping — adjacent verticals", query: "Sociétés adjacentes secteur, France & Benelux" },
+    { id: "2", title: "Tech tuck-ins under $50M",            query: "Tech tuck-ins, ARR < $50M, US & EU" },
+    { id: "3", title: "Geographic expansion targets",        query: "Cibles d'expansion géographique, secteur similaire" },
+  ],
+  search: [
+    { id: "1", title: "Niche industrial, founder retiring",  query: "Industriel niche, fondateur en retraite, EBITDA 1-3M€" },
+    { id: "2", title: "Service businesses with recurring",   query: "Services B2B récurrents, marges > 20%, succession" },
+    { id: "3", title: "Family-owned, no successor",          query: "Familiale sans successeur identifié, < 10 ans existence" },
+  ],
+  other: [
+    { id: "1", title: "Industrials in France, founder 60+",  query: "PME industrielle France, fondateur 60+, EBITDA 1-5M€" },
+    { id: "2", title: "B2B SaaS in EU",                      query: "B2B SaaS Europe, ARR 1-10M€, PE-backed" },
+    { id: "3", title: "Healthcare services",                 query: "Services santé France, familiale, headcount 50-500" },
+  ],
+};
+
+interface MockResult {
+  id: string;
+  name: string;
+  sector: string;
+  city: string;
+  score: number;
+  signal: string | null;
+  revenue: string;
+}
+
+const MOCK_RESULTS: MockResult[] = [
+  { id: "r1", name: "Polymer Tech SAS",      sector: "Industrie · Plasturgie",       city: "Lyon",       score: 92, signal: "BODACC procédure",       revenue: "€8.4M" },
+  { id: "r2", name: "Atlas Composants",      sector: "Industrie · Mécanique",        city: "Saint-Étienne", score: 88, signal: "Fondateur 67 ans",   revenue: "€12.1M" },
+  { id: "r3", name: "Bordeaux Logistics",    sector: "Transport · Frigorifique",     city: "Bordeaux",   score: 85, signal: null,                     revenue: "€5.6M" },
+  { id: "r4", name: "Régale Foods",          sector: "Agroalimentaire",              city: "Nantes",     score: 82, signal: "Pas de successeur",       revenue: "€18.0M" },
+  { id: "r5", name: "Nordique Marine",       sector: "Construction navale",          city: "Brest",      score: 78, signal: null,                     revenue: "€4.2M" },
+  { id: "r6", name: "Thermal Group",         sector: "Industrie · Chaud/froid",      city: "Strasbourg", score: 76, signal: "M&A signal",              revenue: "€9.8M" },
 ];
 
-/* ─── Shared radius token ─── */
-const R = 20;
-
-export default function GettingStartedHub() {
+export default function OnboardingPage() {
   const router = useRouter();
-  const [query, setQuery]     = useState("");
-  const [checked, setChecked] = useState<Record<string, boolean>>(
-    Object.fromEntries(CHECKLIST.map(c => [c.id, false]))
-  );
+  const [step, setStep] = useState<StepId>(0);
+  const [name, setName] = useState("there");
+  const [useCase, setUseCase] = useState<UseCase | null>(null);
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<MockResult[]>([]);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
 
-  const done  = Object.values(checked).filter(Boolean).length;
-  const total = CHECKLIST.length;
-  const pct   = Math.round((done / total) * 100);
+  // Derive a friendly first-name from any localStorage hint, else "there"
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem("ema_user_name") || "";
+    if (stored) setName(stored.split(/\s+/)[0]);
+  }, []);
 
-  const goTo = (href: string) => {
-    if (typeof window !== "undefined") localStorage.setItem("ema_onboarding_done", "1");
-    router.push(href);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const finish = () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("ema_onboarding_done", "1");
-      if (query.trim()) sessionStorage.setItem("ema_prefill_query", query.trim());
     }
     router.push("/");
   };
 
+  const skip = () => finish();
+
+  const goNext = () => setStep((s) => (s + 1) as StepId);
+  const goBack = () => setStep((s) => Math.max(0, s - 1) as StepId);
+
+  const launchSearch = (q: string) => {
+    setQuery(q);
+    setSearching(true);
+    setResults([]);
+    setStep(2);
+    setTimeout(() => {
+      setResults(MOCK_RESULTS);
+      setSearching(false);
+    }, 1100);
+  };
+
+  const toggleSave = (id: string) => {
+    setSaved((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  return (
+    <div style={{
+      minHeight: "100dvh",
+      background: "var(--bg)",
+      display: "flex", flexDirection: "column",
+    }}>
+      {/* ─── Top bar ─── */}
+      <header style={{
+        height: 52, padding: "0 28px", flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderBottom: "1px solid var(--border)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 24, height: 24, background: "var(--fg)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 4,
+          }}>
+            <span style={{ ...M, fontSize: 11, fontWeight: 700, color: "var(--bg)", letterSpacing: "0.04em" }}>Ed</span>
+          </div>
+          <span style={{ ...S, fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>EdRCF</span>
+          <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.12em", marginLeft: 8 }}>
+            ONBOARDING
+          </span>
+        </div>
+        <button
+          onClick={skip}
+          style={{
+            ...S, fontSize: 12, color: "var(--fg-muted)",
+            background: "transparent", border: "none", cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 5,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-muted)")}
+        >
+          Skip onboarding <X size={12} />
+        </button>
+      </header>
+
+      {/* ─── Progress ─── */}
+      <div style={{ padding: "16px 28px 0", maxWidth: 920, margin: "0 auto", width: "100%" }}>
+        <ProgressBar step={step} />
+      </div>
+
+      {/* ─── Body ─── */}
+      <main style={{
+        flex: 1, padding: "32px 28px 60px",
+        maxWidth: 920, margin: "0 auto", width: "100%",
+        display: "flex", flexDirection: "column",
+      }}>
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div
+              key="step-0"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <StepWelcome name={name} useCase={useCase} onPick={(uc) => { setUseCase(uc); goNext(); }} />
+            </motion.div>
+          )}
+          {step === 1 && useCase && (
+            <motion.div
+              key="step-1"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <StepSearch
+                useCase={useCase}
+                query={query}
+                onQueryChange={setQuery}
+                onLaunch={launchSearch}
+                onBack={goBack}
+              />
+            </motion.div>
+          )}
+          {step === 2 && (
+            <motion.div
+              key="step-2"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <StepResults
+                searching={searching}
+                results={results}
+                saved={saved}
+                onToggleSave={toggleSave}
+                onContinue={goNext}
+                onBack={() => setStep(1)}
+              />
+            </motion.div>
+          )}
+          {step === 3 && (
+            <motion.div
+              key="step-3"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <StepDone savedCount={saved.size} onFinish={finish} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+
+// ─── PROGRESS BAR ───────────────────────────────────────────────────────────
+
+const STEP_LABELS = ["Welcome", "First search", "Results", "Done"];
+
+function ProgressBar({ step }: { step: StepId }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+      {STEP_LABELS.map((label, i) => {
+        const done = i < step;
+        const active = i === step;
+        const last = i === STEP_LABELS.length - 1;
+        return (
+          <div key={label} style={{ display: "flex", alignItems: "center", flex: last ? 0 : 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 11,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: done ? "var(--fg)" : active ? "var(--bg-raise)" : "var(--bg-alt)",
+                border: `1px solid ${done || active ? "var(--fg)" : "var(--border)"}`,
+                color: done ? "var(--bg)" : active ? "var(--fg)" : "var(--fg-muted)",
+                ...M, fontSize: 9, fontWeight: 700,
+                flexShrink: 0,
+                transition: "all 0.2s",
+              }}>
+                {done ? <Check size={11} /> : i + 1}
+              </div>
+              <span style={{
+                ...S, fontSize: 11,
+                fontWeight: active ? 600 : 400,
+                color: done || active ? "var(--fg)" : "var(--fg-muted)",
+                whiteSpace: "nowrap",
+              }}>
+                {label}
+              </span>
+            </div>
+            {!last && (
+              <div style={{
+                flex: 1, height: 1, margin: "0 12px",
+                background: done ? "var(--fg)" : "var(--border)",
+                minWidth: 20,
+                transition: "background 0.2s",
+              }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── STEP 0 — WELCOME / USE CASE ────────────────────────────────────────────
+
+function StepWelcome({
+  name, useCase, onPick,
+}: {
+  name: string;
+  useCase: UseCase | null;
+  onPick: (uc: UseCase) => void;
+}) {
   return (
     <>
-      <style>{`
-        /* ─── Page background mesh (makes glass visible) ─── */
-        html, body { height: auto; overflow-y: auto; }
-        .hub-page {
-          min-height: 100dvh;
-          display: flex;
-          flex-direction: column;
-          overflow-x: hidden;
-          background:
-            radial-gradient(ellipse at 15% 40%, rgba(139,92,246,.10) 0%, transparent 55%),
-            radial-gradient(ellipse at 85% 15%, rgba(59,130,246,.09) 0%, transparent 50%),
-            radial-gradient(ellipse at 60% 85%, rgba(16,185,129,.07) 0%, transparent 48%),
-            #dfe3ec;
-        }
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", marginBottom: 16,
+        background: "var(--bg-raise)",
+        border: "1px solid var(--border)",
+        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
+      }}>
+        <Sparkles size={11} /> Welcome
+      </div>
 
-        /* ─── Glassmorphism header ─── */
-        .hub-header {
-          height: 52px;
-          background: rgba(255,255,255,0.58);
-          backdrop-filter: blur(20px) saturate(180%);
-          -webkit-backdrop-filter: blur(20px) saturate(180%);
-          border-bottom: 1px solid rgba(255,255,255,0.75);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 28px;
-          flex-shrink: 0;
-          position: sticky;
-          top: 0;
-          z-index: 40;
-        }
+      <h1 style={{
+        ...S, fontSize: 30, fontWeight: 700, color: "var(--fg)",
+        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.15,
+      }}>
+        Hi {name}, what brings you to EdRCF?
+      </h1>
+      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 32px", lineHeight: 1.6 }}>
+        Pick the option that fits best. We&apos;ll tailor your first search around it. You can change this later.
+      </p>
 
-        /* ─── Bento grid ─── */
-        .hub-bento {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 14px;
-        }
-        @media (min-width: 640px) {
-          .hub-bento {
-            grid-template-columns: 1fr 1fr;
-          }
-          .bc-lookalike  { grid-column: span 2; }
-          .bc-checklist  { grid-column: span 2; }
-        }
-        @media (min-width: 960px) {
-          .hub-bento {
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: 280px 230px;
-          }
-          .bc-lookalike  { grid-column: span 2; grid-row: 1; }
-          .bc-linkedin   { grid-column: span 1; grid-row: 1; }
-          .bc-pipeline   { grid-column: span 1; grid-row: 2; }
-          .bc-checklist  { grid-column: span 2; grid-row: 2; }
-          .checklist-items { grid-template-columns: 1fr 1fr !important; }
-        }
-
-        /* ─── Dark bento card base ─── */
-        .bento-card {
-          position: relative;
-          overflow: hidden;
-          cursor: pointer;
-          min-height: 200px;
-          border-radius: ${R}px;
-          border: 1px solid rgba(255,255,255,0.10);
-          box-shadow:
-            0 20px 48px rgba(0,0,0,0.22),
-            0 4px 12px rgba(0,0,0,0.12),
-            inset 0 1px 0 rgba(255,255,255,0.08);
-          transition: transform 0.32s cubic-bezier(.22,.68,0,1.2), box-shadow 0.32s ease;
-        }
-        .bento-card:hover {
-          transform: translateY(-4px) scale(1.005);
-          box-shadow:
-            0 32px 72px rgba(0,0,0,0.30),
-            0 8px 20px rgba(0,0,0,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.10);
-        }
-        /* ─── Glass checklist card ─── */
-        .bc-checklist {
-          border-radius: ${R}px;
-          background: rgba(255,255,255,0.60);
-          backdrop-filter: blur(28px) saturate(200%);
-          -webkit-backdrop-filter: blur(28px) saturate(200%);
-          border: 1px solid rgba(255,255,255,0.82);
-          box-shadow:
-            0 8px 32px rgba(0,0,0,0.07),
-            0 2px 8px rgba(0,0,0,0.05),
-            inset 0 1px 0 rgba(255,255,255,0.95);
-          padding: 22px 24px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        /* ─── Shimmer sweep (LinkedIn card) ─── */
-        @keyframes shimmerSweep {
-          0%   { left: -80%; }
-          100% { left: 200%; }
-        }
-
-        /* ─── Progress bar ─── */
-        .pb-fill { transition: width .55s cubic-bezier(.4,0,.2,1); }
-
-        /* ─── Search bar ─── */
-        .hub-search {
-          max-width: 620px;
-          margin: 0 auto;
-          display: flex;
-          border-radius: 14px;
-          overflow: hidden;
-          background: rgba(255,255,255,0.72);
-          backdrop-filter: blur(16px) saturate(180%);
-          -webkit-backdrop-filter: blur(16px) saturate(180%);
-          border: 1px solid rgba(255,255,255,0.88);
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95);
-          transition: box-shadow .2s, border-color .2s;
-        }
-        .hub-search:focus-within {
-          border-color: rgba(99,102,241,0.5);
-          box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 0 0 3px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.95);
-        }
-
-        /* ─── Mobile tweaks ─── */
-        @media (max-width: 639px) {
-          .hub-main     { padding: 28px 14px 0 !important; }
-          .hub-hero h1  { font-size: 20px !important; }
-          .hub-search   { max-width: 100% !important; }
-          .hub-footer   { flex-direction: column !important; gap: 14px !important; }
-          .hub-footer-stats { flex-wrap: wrap; gap: 10px 18px; }
-          .bento-card   { min-height: 190px; }
-        }
-      `}</style>
-
-      <div className="hub-page" style={{ ...S }}>
-
-        {/* ══ HEADER ══ */}
-        <header className="hub-header">
-          <span style={{ ...M, fontSize: 11, fontWeight: 700, color: "#111827", letterSpacing: "0.06em" }}>
-            EdRCF <span style={{ color: "#9CA3AF", fontWeight: 400 }}>6.0</span>
-          </span>
-          <button
-            onClick={() => goTo("/")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              fontSize: 12, color: "#6B7280",
-              background: "transparent", border: "none", cursor: "pointer",
-              transition: "color .15s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#111827")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#6B7280")}
-          >
-            Passer au Dashboard <ArrowRight size={12} />
-          </button>
-        </header>
-
-        {/* ══ MAIN ══ */}
-        <main className="hub-main" style={{ flex: 1, padding: "44px 24px 0", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
-
-          {/* ── ZONE 1 : HERO SEARCH ── */}
-          <section className="hub-hero" style={{ textAlign: "center", marginBottom: 36 }}>
-            <div style={{ ...M, fontSize: 9, color: "#9CA3AF", letterSpacing: "0.18em", marginBottom: 14 }}>
-              BIENVENUE SUR EdRCF 6.0
-            </div>
-            <h1 style={{
-              fontSize: 30, fontWeight: 700, color: "#111827",
-              margin: "0 0 10px", letterSpacing: "-0.02em", lineHeight: 1.2,
-            }}>
-              Que souhaitez-vous sourcer aujourd'hui ?
-            </h1>
-            <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 28px", lineHeight: 1.6 }}>
-              Décrivez votre cible idéale — secteur, taille, région, signal.
-            </p>
-
-            <form className="hub-search" onSubmit={handleSearch}>
-              <div style={{ display: "flex", alignItems: "center", paddingLeft: 16, flexShrink: 0 }}>
-                <Search size={15} style={{ color: "#9CA3AF" }} />
-              </div>
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="PME industrielle Bretagne, CA > 5M€, fondateur cédant…"
-                style={{
-                  flex: 1, padding: "14px 12px", fontSize: 13,
-                  color: "#111827", background: "transparent",
-                  border: "none", outline: "none", ...S,
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  padding: "0 22px", background: "#111827",
-                  border: "none", color: "#fff",
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer", flexShrink: 0,
-                  transition: "opacity .12s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = "0.80")}
-                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-              >
-                Rechercher
-              </button>
-            </form>
-
-            <p style={{ ...M, fontSize: 9, color: "#C4C9D4", marginTop: 10, letterSpacing: "0.08em" }}>
-              ENTRÉE · SHIFT+ENTRÉE POUR MULTILIGNE DANS LE COPILOT
-            </p>
-          </section>
-
-          {/* ── ZONES 2+3 : BENTO GRID ── */}
-          <div className="hub-bento">
-
-            {/* ── CARD 1 : LOOKALIKE (2 cols) — Rive background ── */}
-            <AnimatedBentoCard
-              className="bc-lookalike"
-              riveSrc="/bento-cards.riv"
-              scrim="linear-gradient(to top, rgba(0,0,0,.94) 0%, rgba(0,0,0,.40) 55%, transparent 100%)"
-              onClick={() => goTo("/?mode=lookalike")}
-            >
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0,
-                padding: "0 26px 26px",
-                display: "flex", flexDirection: "column", gap: 10,
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,.16)",
-                  background: "rgba(255,255,255,.08)",
-                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <Target size={17} style={{ color: "#E0E7FF" }} />
-                </div>
-                <div>
-                  <div style={{ ...M, fontSize: 9, color: "rgba(255,255,255,.38)", letterSpacing: "0.14em", marginBottom: 7 }}>
-                    INTELLIGENCE ARTIFICIELLE · 16M+ SOCIÉTÉS
-                  </div>
-                  <div style={{ fontSize: 21, fontWeight: 700, color: "#fff", marginBottom: 7, lineHeight: 1.2 }}>
-                    Lookalike Search
-                  </div>
-                  <div style={{ fontSize: 13, color: "rgba(255,255,255,.50)", lineHeight: 1.7, maxWidth: 440 }}>
-                    Entrez l'URL ou le nom d'une entreprise cible.
-                    L'IA trouve des clones structurels parmi 16 millions de sociétés en temps réel.
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    background: "rgba(255,255,255,.08)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-                    border: "1px solid rgba(255,255,255,.14)", borderRadius: 8, padding: "5px 12px",
-                    ...M, fontSize: 10, color: "rgba(255,255,255,.72)", letterSpacing: "0.05em",
-                    marginTop: 4, width: "fit-content", transition: "background .15s", cursor: "pointer",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,.14)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,.08)")}
-                >
-                  LANCER UN LOOKALIKE <ChevronRight size={11} />
-                </div>
-              </div>
-            </AnimatedBentoCard>
-
-            {/* ── CARD 2 : LINKEDIN (1 col) — Rive + blue tint ── */}
-            <AnimatedBentoCard
-              className="bc-linkedin"
-              riveSrc="/bento-cards.riv"
-              scrim="linear-gradient(to top, rgba(0,15,50,.92) 0%, rgba(0,60,120,.55) 50%, rgba(0,100,180,.25) 100%)"
-              riveOpacity={0.45}
-              onClick={() => typeof window !== "undefined" && window.open("https://chrome.google.com/webstore", "_blank")}
-            >
-              {/* Shimmer top edge */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, overflow: "hidden" }}>
-                <div style={{
-                  position: "absolute", top: 0, width: "55%", height: "100%",
-                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent)",
-                  animation: "shimmerSweep 3.4s ease-in-out infinite",
-                }} />
-              </div>
-              {/* Recommended badge */}
-              <div style={{
-                position: "absolute", top: 16, right: 16,
-                background: "rgba(245,158,11,.9)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                color: "#1a0800", ...M, fontSize: 8, letterSpacing: "0.10em", fontWeight: 700,
-                padding: "4px 10px", borderRadius: 6,
-              }}>
-                RECOMMANDÉ
-              </div>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 20px 22px" }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 7, lineHeight: 1.3 }}>
-                  LinkedIn<br />Warm Sourcing
-                </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", lineHeight: 1.65, marginBottom: 16 }}>
-                  Révélez vos connexions communes avec les dirigeants des cibles.
-                </div>
-                <button
-                  onClick={e => { e.stopPropagation(); if (typeof window !== "undefined") window.open("https://chrome.google.com/webstore", "_blank"); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    background: "rgba(255,255,255,.11)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-                    border: "1px solid rgba(255,255,255,.26)", borderRadius: 10,
-                    color: "#fff", fontSize: 11, fontWeight: 600,
-                    padding: "8px 14px", cursor: "pointer", transition: "background .15s, border-color .15s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.20)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.40)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.11)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.26)"; }}
-                >
-                  <Chrome size={13} /> Installer l'extension Chrome
-                </button>
-              </div>
-            </AnimatedBentoCard>
-
-            {/* ── CARD 3 : PIPELINE (1 col, row 2) — Rive + emerald tint ── */}
-            <AnimatedBentoCard
-              className="bc-pipeline"
-              riveSrc="/bento-cards.riv"
-              scrim="linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,30,20,.45) 55%, transparent 100%)"
-              riveOpacity={0.55}
-              onClick={() => goTo("/pipeline")}
-            >
-              {/* Saved badge */}
-              <div style={{
-                position: "absolute", top: 16, left: 16,
-                background: "rgba(16,185,129,.12)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                border: "1px solid rgba(16,185,129,.28)", borderRadius: 7,
-                ...M, fontSize: 8, color: "#34D399", letterSpacing: "0.08em", padding: "4px 10px",
-              }}>
-                14 CIBLES SAUVEGARDÉES
-              </div>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 20px 22px" }}>
-                <div style={{
-                  width: 34, height: 34, marginBottom: 10, borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)",
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <List size={14} style={{ color: "#CBD5E1" }} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6 }}>Mon Pipeline</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,.48)", lineHeight: 1.65 }}>
-                  Gérez vos listes et exportez vers votre CRM.
-                </div>
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  ...M, fontSize: 10, color: "rgba(255,255,255,.45)", letterSpacing: "0.05em", marginTop: 10,
-                }}>
-                  VOIR LE PIPELINE <ChevronRight size={10} />
-                </div>
-              </div>
-            </AnimatedBentoCard>
-
-            {/* ── CARD 4 : CHECKLIST — Glassmorphism (2 cols, row 2) ── */}
-            <div className="bc-checklist">
-              {/* Header + progress */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10,
-                }}>
-                  <div style={{ ...M, fontSize: 9, color: "#6B7280", letterSpacing: "0.12em" }}>
-                    DÉBLOQUEZ TOUT LE POTENTIEL
-                  </div>
-                  <span style={{ ...M, fontSize: 10, color: pct === 100 ? "#10B981" : "#9CA3AF" }}>
-                    {done}/{total} · {pct}%
-                  </span>
-                </div>
-
-                {/* Progress bar */}
-                <div style={{ height: 4, background: "rgba(0,0,0,.08)", borderRadius: 4, overflow: "hidden" }}>
-                  <div
-                    className="pb-fill"
-                    style={{
-                      height: "100%",
-                      width: `${pct}%`,
-                      borderRadius: 4,
-                      background: pct === 100
-                        ? "#10B981"
-                        : "linear-gradient(90deg, #1e293b 0%, #374151 100%)",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Items */}
-              <div
-                className="checklist-items"
-                style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0 28px", flex: 1 }}
-              >
-                {CHECKLIST.map((item) => {
-                  const isDone = checked[item.id];
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => setChecked(p => ({ ...p, [item.id]: !p[item.id] }))}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 12,
-                        padding: "10px 8px",
-                        borderBottom: "1px solid rgba(0,0,0,.06)",
-                        cursor: "pointer", borderRadius: 8,
-                        transition: "background .12s",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,.55)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      {/* Circle tick */}
-                      <div style={{
-                        width: 20, height: 20, flexShrink: 0, borderRadius: "50%",
-                        border: `1.5px solid ${isDone ? "#10B981" : "#D1D5DB"}`,
-                        background: isDone ? "#10B981" : "rgba(255,255,255,.5)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "all .2s",
-                        boxShadow: isDone ? "0 2px 8px rgba(16,185,129,.3)" : "none",
-                      }}>
-                        {isDone && <Check size={10} style={{ color: "#fff" }} />}
-                      </div>
-
-                      {/* Label */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: 12, fontWeight: 500,
-                          color: isDone ? "#9CA3AF" : "#1f2937",
-                          textDecoration: isDone ? "line-through" : "none",
-                        }}>
-                          {item.label}
-                        </div>
-                        {!isDone && (
-                          <div style={{ ...M, fontSize: 9, color: "#9CA3AF", marginTop: 2, letterSpacing: "0.04em" }}>
-                            {item.sub}
-                          </div>
-                        )}
-                      </div>
-
-                      {!isDone && (
-                        <button
-                          onClick={e => { e.stopPropagation(); goTo(item.href); }}
-                          style={{
-                            ...M, fontSize: 9, color: "#374151", padding: "3px 9px",
-                            border: "1px solid rgba(0,0,0,.15)",
-                            background: "rgba(255,255,255,.6)",
-                            backdropFilter: "blur(8px)",
-                            WebkitBackdropFilter: "blur(8px)",
-                            borderRadius: 6,
-                            cursor: "pointer", letterSpacing: "0.04em", flexShrink: 0,
-                            transition: "all .12s",
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.95)"; e.currentTarget.style.borderColor = "#374151"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.6)"; e.currentTarget.style.borderColor = "rgba(0,0,0,.15)"; }}
-                        >
-                          Config
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* ── ZONE 4 : FOOTER STATS ── */}
-          <footer
-            className="hub-footer"
-            style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "20px 0 32px", marginTop: 20,
-              borderTop: "1px solid rgba(0,0,0,.10)",
-            }}
-          >
-            <div className="hub-footer-stats" style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              {STATS.map(({ Icon, value, label }) => (
-                <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icon size={12} style={{ color: "#9CA3AF" }} />
-                  <span style={{ ...M, fontSize: 13, fontWeight: 700, color: "#1f2937" }}>{value}</span>
-                  <span style={{ fontSize: 11, color: "#6B7280" }}>{label}</span>
-                </div>
-              ))}
-            </div>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12,
+      }}>
+        {USE_CASES.map(({ id, Icon, title, desc }) => {
+          const active = useCase === id;
+          return (
             <button
-              onClick={() => goTo("/")}
+              key={id}
+              onClick={() => onPick(id)}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
-                fontSize: 12, color: "#6B7280",
-                background: "rgba(255,255,255,.58)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                border: "1px solid rgba(255,255,255,.80)",
-                borderRadius: 10, padding: "7px 16px",
-                cursor: "pointer", transition: "all .15s",
-                boxShadow: "0 2px 8px rgba(0,0,0,.06)",
+                textAlign: "left",
+                padding: "18px 20px",
+                background: active ? "var(--bg-alt)" : "var(--bg-raise)",
+                border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
+                cursor: "pointer",
+                display: "flex", flexDirection: "column", gap: 8,
+                transition: "all 0.12s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.88)"; e.currentTarget.style.color = "#111827"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.58)"; e.currentTarget.style.color = "#6B7280"; }}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--fg-muted)"; }}
+              onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = "var(--border)"; }}
             >
-              Accéder au Dashboard <ArrowRight size={12} />
+              <div style={{
+                width: 32, height: 32,
+                background: "var(--bg)", border: "1px solid var(--border)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Icon size={15} style={{ color: "var(--fg)" }} />
+              </div>
+              <div style={{ ...S, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{title}</div>
+              <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.5 }}>{desc}</div>
             </button>
-          </footer>
-        </main>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => onPick("other")}
+        style={{
+          ...S, fontSize: 13, color: "var(--fg-muted)",
+          background: "transparent", border: "none", cursor: "pointer",
+          marginTop: 18, padding: 6, alignSelf: "flex-start",
+          textDecoration: "underline",
+        }}
+      >
+        Something else
+      </button>
+    </>
+  );
+}
+
+// ─── STEP 1 — FIRST SEARCH ──────────────────────────────────────────────────
+
+function StepSearch({
+  useCase, query, onQueryChange, onLaunch, onBack,
+}: {
+  useCase: UseCase;
+  query: string;
+  onQueryChange: (q: string) => void;
+  onLaunch: (q: string) => void;
+  onBack: () => void;
+}) {
+  const templates = TEMPLATES[useCase];
+
+  return (
+    <>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", marginBottom: 16,
+        background: "var(--bg-raise)",
+        border: "1px solid var(--border)",
+        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
+      }}>
+        <SearchIcon size={11} /> Step 2 of 4
+      </div>
+
+      <h1 style={{
+        ...S, fontSize: 28, fontWeight: 700, color: "var(--fg)",
+        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2,
+      }}>
+        Let&apos;s find your first targets
+      </h1>
+      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 28px", lineHeight: 1.6 }}>
+        Describe what you&apos;re looking for in plain English, or pick a template below to get started in one click.
+      </p>
+
+      {/* Big NL search */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (query.trim()) onLaunch(query.trim()); }}
+        style={{
+          display: "flex",
+          background: "var(--bg-raise)",
+          border: "1px solid var(--border)",
+          marginBottom: 18,
+          transition: "border-color 0.15s",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", paddingLeft: 14, flexShrink: 0 }}>
+          <SearchIcon size={15} style={{ color: "var(--fg-muted)" }} />
+        </div>
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="e.g. Industrial PMEs in France with founders aged 60+, EBITDA 1-5M€"
+          style={{
+            ...S, flex: 1,
+            padding: "14px 12px", fontSize: 14,
+            color: "var(--fg)", background: "transparent",
+            border: "none", outline: "none",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={!query.trim()}
+          style={{
+            ...S, fontSize: 13, fontWeight: 500,
+            padding: "0 22px",
+            background: query.trim() ? "var(--fg)" : "var(--bg-alt)",
+            color: query.trim() ? "var(--bg)" : "var(--fg-dim)",
+            border: "none", cursor: query.trim() ? "pointer" : "not-allowed",
+            display: "inline-flex", alignItems: "center", gap: 6,
+            flexShrink: 0,
+          }}
+        >
+          Run search <ArrowRight size={13} />
+        </button>
+      </form>
+
+      {/* Template pills */}
+      <div style={{
+        ...M, fontSize: 9, color: "var(--fg-dim)",
+        letterSpacing: "0.12em", textTransform: "uppercase",
+        marginBottom: 10,
+      }}>
+        Or try one of these
+      </div>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10,
+      }}>
+        {templates.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onLaunch(t.query)}
+            style={{
+              textAlign: "left",
+              padding: "14px 16px",
+              background: "var(--bg-raise)",
+              border: "1px solid var(--border)",
+              cursor: "pointer",
+              transition: "all 0.12s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--fg)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-alt)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-raise)"; }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <Sparkles size={11} style={{ color: "var(--fg-muted)" }} />
+              <span style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Template
+              </span>
+            </div>
+            <div style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)", lineHeight: 1.4 }}>
+              {t.title}
+            </div>
+            <div style={{ ...S, fontSize: 11, color: "var(--fg-muted)", marginTop: 6, lineHeight: 1.5, fontStyle: "italic" }}>
+              {t.query}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <BackButton onClick={onBack} />
       </div>
     </>
+  );
+}
+
+// ─── STEP 2 — RESULTS ───────────────────────────────────────────────────────
+
+function StepResults({
+  searching, results, saved, onToggleSave, onContinue, onBack,
+}: {
+  searching: boolean;
+  results: MockResult[];
+  saved: Set<string>;
+  onToggleSave: (id: string) => void;
+  onContinue: () => void;
+  onBack: () => void;
+}) {
+  if (searching) {
+    return (
+      <div style={{ paddingTop: 60, textAlign: "center" }}>
+        <Loader2 size={28} style={{ color: "var(--fg)" }} className="onb-spin" />
+        <p style={{ ...S, fontSize: 14, color: "var(--fg)", marginTop: 18, fontWeight: 500 }}>
+          Scanning 16M+ companies…
+        </p>
+        <p style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 4 }}>
+          Matching firmographics, signals, and intent indicators.
+        </p>
+        <style jsx>{`
+          .onb-spin { animation: spin 0.8s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", marginBottom: 16,
+        background: "var(--bg-raise)",
+        border: "1px solid var(--border)",
+        ...M, fontSize: 9, color: "var(--fg-muted)", letterSpacing: "0.12em", textTransform: "uppercase",
+      }}>
+        <Target size={11} /> Step 3 of 4
+      </div>
+
+      <h1 style={{
+        ...S, fontSize: 26, fontWeight: 700, color: "var(--fg)",
+        margin: 0, letterSpacing: "-0.02em", lineHeight: 1.2,
+      }}>
+        {results.length} companies matched.
+      </h1>
+      <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 24px", lineHeight: 1.6 }}>
+        Save the ones you want to follow up on. We&apos;ll create your first list automatically.
+      </p>
+
+      <div style={{ background: "var(--bg-raise)", border: "1px solid var(--border)" }}>
+        {results.map((r, i) => {
+          const isSaved = saved.has(r.id);
+          return (
+            <div
+              key={r.id}
+              onClick={() => onToggleSave(r.id)}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "auto 1fr 110px 90px 32px",
+                gap: 14, padding: "12px 16px",
+                alignItems: "center",
+                borderBottom: i === results.length - 1 ? "none" : "1px solid var(--border)",
+                cursor: "pointer",
+                background: isSaved ? "rgba(34,197,94,0.04)" : "transparent",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = "var(--bg-hover)"; }}
+              onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = "transparent"; }}
+            >
+              {/* Score circle */}
+              <div style={{
+                width: 36, height: 36, borderRadius: 18,
+                background: r.score >= 85 ? "var(--up)" : "var(--bg-alt)",
+                color: r.score >= 85 ? "#fff" : "var(--fg)",
+                border: r.score >= 85 ? "none" : "1px solid var(--border)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                ...M, fontSize: 11, fontWeight: 700,
+                flexShrink: 0,
+              }}>
+                {r.score}
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div style={{ ...S, fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
+                  {r.name}
+                </div>
+                <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 2 }}>
+                  {r.sector} · {r.city}
+                </div>
+              </div>
+
+              {r.signal ? (
+                <span style={{
+                  ...M, fontSize: 9,
+                  padding: "2px 6px",
+                  background: "rgba(234,88,12,0.08)",
+                  border: "1px solid #EA580C",
+                  color: "#EA580C",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {r.signal}
+                </span>
+              ) : (
+                <span />
+              )}
+
+              <span style={{ ...M, fontSize: 11, color: "var(--fg-muted)", textAlign: "right" }}>
+                {r.revenue}
+              </span>
+
+              {/* Save */}
+              <div
+                style={{
+                  width: 28, height: 28,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: `1px solid ${isSaved ? "var(--up)" : "var(--border)"}`,
+                  background: isSaved ? "var(--up)" : "transparent",
+                  color: isSaved ? "#fff" : "var(--fg-muted)",
+                  transition: "all 0.12s",
+                }}
+              >
+                {isSaved ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{
+        marginTop: 24,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <BackButton onClick={onBack} />
+        <button
+          onClick={onContinue}
+          style={{
+            ...S, fontSize: 13, fontWeight: 500,
+            padding: "10px 18px",
+            background: "var(--fg)", color: "var(--bg)",
+            border: "none", cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+        >
+          {saved.size > 0 ? `Save ${saved.size} and continue` : "Continue"} <ArrowRight size={13} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ─── STEP 3 — DONE / OPTIONAL SETUP ─────────────────────────────────────────
+
+function StepDone({ savedCount, onFinish }: { savedCount: number; onFinish: () => void }) {
+  const [doneItems, setDoneItems] = useState<Record<string, boolean>>({});
+
+  const optionals: { id: string; Icon: React.ElementType; title: string; desc: string; cta: string }[] = [
+    { id: "crm",      Icon: Plug,   title: "Connect your CRM",        desc: "HubSpot, Salesforce, Affinity, DealCloud. Avoid duplicates and sync deals.", cta: "Connect" },
+    { id: "team",     Icon: Users,  title: "Invite your team",        desc: "Share lists, get alerts together. Admins can invite by email in one click.",   cta: "Invite"  },
+    { id: "chrome",   Icon: Chrome, title: "Install Chrome extension", desc: "Surface mutual LinkedIn connections and push companies to your CRM.",         cta: "Install" },
+  ];
+
+  return (
+    <>
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{
+          width: 56, height: 56, margin: "0 auto 18px",
+          borderRadius: 28,
+          background: "var(--up)", color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <Check size={26} />
+        </div>
+        <h1 style={{
+          ...S, fontSize: 28, fontWeight: 700, color: "var(--fg)",
+          margin: 0, letterSpacing: "-0.02em",
+        }}>
+          You&apos;re all set.
+        </h1>
+        <p style={{ ...S, fontSize: 14, color: "var(--fg-muted)", margin: "10px 0 0", lineHeight: 1.6 }}>
+          {savedCount > 0
+            ? <>We saved {savedCount} {savedCount === 1 ? "company" : "companies"} to your first list.</>
+            : <>Your account is ready. Jump in and start sourcing.</>}
+        </p>
+      </div>
+
+      {/* Optional setup */}
+      <div style={{
+        ...M, fontSize: 9, color: "var(--fg-dim)",
+        letterSpacing: "0.12em", textTransform: "uppercase",
+        marginBottom: 10,
+      }}>
+        Optional · 30 seconds each
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+        {optionals.map(({ id, Icon, title, desc, cta }) => {
+          const isDone = doneItems[id];
+          return (
+            <div
+              key={id}
+              style={{
+                display: "flex", alignItems: "center", gap: 14,
+                padding: "14px 16px",
+                background: "var(--bg-raise)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, flexShrink: 0,
+                background: "var(--bg)", border: "1px solid var(--border)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Icon size={15} style={{ color: "var(--fg)" }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ ...S, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{title}</div>
+                <div style={{ ...S, fontSize: 12, color: "var(--fg-muted)", marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+              </div>
+              {isDone ? (
+                <span style={{
+                  ...M, fontSize: 9, padding: "4px 8px",
+                  background: "var(--up)", color: "#fff",
+                  letterSpacing: "0.06em", textTransform: "uppercase",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                }}>
+                  <Check size={9} /> Done
+                </span>
+              ) : (
+                <button
+                  onClick={() => setDoneItems((p) => ({ ...p, [id]: true }))}
+                  style={{
+                    ...S, fontSize: 12, fontWeight: 500,
+                    padding: "6px 14px",
+                    background: "transparent",
+                    color: "var(--fg)",
+                    border: "1px solid var(--border)",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--fg)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                >
+                  {cta}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={onFinish}
+        style={{
+          ...S, fontSize: 14, fontWeight: 500,
+          padding: "12px 22px",
+          background: "var(--fg)", color: "var(--bg)",
+          border: "none", cursor: "pointer",
+          display: "inline-flex", alignItems: "center", gap: 8,
+          alignSelf: "center", margin: "0 auto",
+        }}
+      >
+        Go to dashboard <ArrowRight size={14} />
+      </button>
+    </>
+  );
+}
+
+// ─── BACK BUTTON ────────────────────────────────────────────────────────────
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...S, fontSize: 12, color: "var(--fg-muted)",
+        background: "transparent", border: "none", cursor: "pointer",
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: 4,
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-muted)")}
+    >
+      <ArrowLeft size={12} /> Back
+    </button>
   );
 }
