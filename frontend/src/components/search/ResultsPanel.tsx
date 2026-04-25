@@ -7,6 +7,7 @@ import CompanyRow, { COL_DEFS, DEFAULT_COLS, buildGridTemplate } from "./Company
 import type { ColKey } from "./CompanyRow";
 import FilterPill from "./FilterPill";
 import EnrichModal from "./EnrichModal";
+import EditColumnsModal from "./EditColumnsModal";
 import type { SearchCompany, SearchFilter } from "@/types/search";
 import { addToPipeline, getPipeline } from "@/lib/pipeline";
 
@@ -210,12 +211,6 @@ export default function ResultsPanel({
   const COL_LABELS = ["", "#", "Actions", "Company", ...visibleCols.map(k => COL_DEFS[k].label), ...(showAI ? ["AI Insight"] : [])];
   const COL_WIDTHS = buildGridTemplate(visibleCols, showAI);
 
-  function toggleCol(key: ColKey) {
-    setVisibleCols(prev =>
-      prev.includes(key) ? (prev.length > 1 ? prev.filter(k => k !== key) : prev) : [...prev, key]
-    );
-  }
-
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
 
@@ -263,55 +258,27 @@ export default function ResultsPanel({
         </button>
 
         {/* Edit Columns */}
-        <div ref={colEditorRef} style={{ position: "relative" }}>
-          <button
-            onClick={() => setColEditorOpen(p => !p)}
-            style={{
-              display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-              background: colEditorOpen ? "var(--bg-alt)" : "transparent",
-              border: `1px solid ${colEditorOpen ? "var(--fg)" : "var(--border)"}`,
-              color: colEditorOpen ? "var(--fg)" : "var(--fg-muted)",
-              cursor: "pointer", ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
-            }}
-            onMouseEnter={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--fg-muted)"; e.currentTarget.style.color = "var(--fg)"; } }}
-            onMouseLeave={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
-          >
-            <Columns size={11} /> Colonnes
-          </button>
-          {colEditorOpen && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
-              background: "var(--bg-raise)", border: "1px solid var(--border)",
-              padding: "8px 0", minWidth: 175, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            }}>
-              <div style={{ ...M, fontSize: 9, color: "var(--fg-dim)", letterSpacing: "0.1em", padding: "4px 14px 8px" }}>COLONNES VISIBLES</div>
-              {ALL_OPTIONAL_COLS.map(key => {
-                const active = visibleCols.includes(key);
-                return (
-                  <button key={key} onClick={() => toggleCol(key)} style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "7px 14px", background: "transparent",
-                    cursor: "pointer", ...S, fontSize: 12,
-                    color: active ? "var(--fg)" : "var(--fg-muted)", transition: "background 0.1s",
-                  }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div style={{
-                      width: 14, height: 14, flexShrink: 0,
-                      border: `1px solid ${active ? "var(--fg)" : "var(--border)"}`,
-                      background: active ? "var(--fg)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {active && <Check size={9} style={{ color: "var(--bg)" }} />}
-                    </div>
-                    {COL_DEFS[key].label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => setColEditorOpen(p => !p)}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
+            background: colEditorOpen ? "var(--bg-alt)" : "transparent",
+            border: `1px solid ${colEditorOpen ? "var(--fg)" : "var(--border)"}`,
+            color: colEditorOpen ? "var(--fg)" : "var(--fg-muted)",
+            cursor: "pointer", ...S, fontSize: 11, transition: "all 0.15s", whiteSpace: "nowrap",
+          }}
+          onMouseEnter={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--fg-muted)"; e.currentTarget.style.color = "var(--fg)"; } }}
+          onMouseLeave={e => { if (!colEditorOpen) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--fg-muted)"; } }}
+        >
+          <Columns size={11} /> Colonnes
+        </button>
+        <EditColumnsModal
+          open={colEditorOpen}
+          visibleCols={visibleCols}
+          allCols={ALL_OPTIONAL_COLS}
+          onApply={(cols) => setVisibleCols(cols)}
+          onClose={() => setColEditorOpen(false)}
+        />
 
         {/* Séparateur */}
         <div style={{ width: 1, height: 16, background: "var(--border)", flexShrink: 0 }} />

@@ -5,6 +5,7 @@ import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import ChatPanel from "@/components/search/ChatPanel";
 import ResultsPanel from "@/components/search/ResultsPanel";
 import CompanyHUD from "@/components/search/CompanyHUD";
+import FilterPanel, { DEFAULT_FILTER_STATE, type FilterState } from "@/components/search/FilterPanel";
 import type { SearchMessage, SearchCompany, SearchFilter } from "@/types/search";
 import type { Target, TargetsApiResponse, FilterOptions } from "@/types/index";
 import { addToPipeline } from "@/lib/pipeline";
@@ -72,6 +73,7 @@ export default function SearchPage() {
   const [savedIds, setSavedIds]               = useState<Set<string>>(new Set());
   const [selectedCompany, setSelectedCompany] = useState<SearchCompany | null>(null);
   const [aiInsights, setAiInsights]           = useState<Record<string, string | "loading">>({});
+  const [filterState, setFilterState]         = useState<FilterState>(DEFAULT_FILTER_STATE);
 
   const send = useCallback(async (query: string) => {
     const uid = Date.now().toString();
@@ -179,11 +181,19 @@ export default function SearchPage() {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg)" }}>
       <PanelGroup direction="horizontal" style={{ flex: 1, overflow: "hidden" }}>
+        <Panel defaultSize={18} minSize={14} maxSize={25}>
+          <FilterPanel
+            state={filterState}
+            onChange={setFilterState}
+            availableLists={[]}
+          />
+        </Panel>
+        <PanelResizeHandle style={{ width: 4, background: "var(--border)", cursor: "col-resize", flexShrink: 0 }} />
         <Panel defaultSize={30} minSize={20} maxSize={45}>
           <ChatPanel messages={messages} loading={loading} onSend={send} />
         </Panel>
         <PanelResizeHandle style={{ width: 4, background: "var(--border)", cursor: "col-resize", flexShrink: 0 }} />
-        <Panel defaultSize={70}>
+        <Panel defaultSize={52}>
           <ResultsPanel
             companies={visibleCompanies}
             filters={filters}
